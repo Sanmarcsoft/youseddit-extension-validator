@@ -5,6 +5,7 @@
 
 import { MSG_DISPLAY_C2PA_OVERLAY, MSG_FRAME_CLICK, MSG_REMOTE_INSPECT_URL } from './constants'
 import { C2paOverlay } from './overlay'
+import { validateUrl } from './c2pa' // Import validateUrl
 
 export type MediaElement = (HTMLImageElement | HTMLVideoElement | HTMLAudioElement)
 
@@ -56,3 +57,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     overlay.hide()
   }
 })
+
+// Function to process a single image element
+async function processImage(img: HTMLImageElement): Promise<void> {
+  // Check if the image is larger than 50x50 pixels
+  if (img.naturalWidth > 50 && img.naturalHeight > 50) {
+    console.debug(`Processing image: ${img.src}`);
+    try {
+      const result = await validateUrl(img.src);
+      if ('manifestStore' in result) {
+        console.log(`C2PA data found for image: ${img.src}`, result);
+      } else {
+        console.log(`No C2PA data found for image: ${img.src}`, result);
+      }
+    } catch (error) {
+      console.error(`Error processing image ${img.src}:`, error);
+    }
+  } else {
+    console.debug(`Skipping image (too small): ${img.src}`);
+  }
+}
+
+// Observe the DOM for new images
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    mutation.addedNodes.forEach((node) => {
+      if (node.nodeName === 'IMG') {
+        void processImage(node as HTMLImageElement);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        // Check for images within added elements
+        (node as Element).querySelectorAll('img').forEach((img) => {
+          void processImage(img);
+        });
+      }
+    });
+  });
+});
+
+// Start observing the document body for added nodes
+observer.observe(document.body, { childList: true, subtree: true });
+
+// Process existing images on the page
+document.querySelectorAll('img').forEach((img) => {
+  void processImage(img);
+});
