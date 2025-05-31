@@ -159,6 +159,8 @@ const backgroundC = {
         { src: 'public/*', dest: 'dist/chrome' },
         { src: `node_modules/c2pa/dist/c2pa.worker${DEBUG ? '' : '.min'}.js`, dest: 'dist/chrome', rename: 'c2pa.worker.js' },
         { src: 'node_modules/c2pa/dist/assets/wasm/toolkit_bg.wasm', dest: 'dist/chrome' },
+        { src: 'test/test-trust-list.json', dest: 'dist/chrome' },
+        { src: 'test/ai-trust-list.json', dest: 'dist/chrome' },
         { src: 'dist/chrome', dest: 'dist', rename: 'firefox' },
         { src: 'src/manifest.chrome.v3.json', dest: 'dist/chrome', rename: 'manifest.json' },
         { src: 'src/manifest.firefox.v3.json', dest: 'dist/firefox', rename: 'manifest.json' }

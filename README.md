@@ -2,12 +2,14 @@
 
 *NOTE*: this project is a developer preview prototype; it is not meant to be used in production. One goal of the project is to incubate updates and extensions to the C2PA specifications; as such the browser validator might not be fully compliant with the current version of the specifications.
 
+**For an AI-friendly project overview and current status, please refer to the [`AI_START_HERE.md`](AI_START_HERE.md) document.**
+
 This project contains a Edge/Chrome/Firefox browser extension that can validate [C2PA](https://c2pa.org) assets. Our goal is to provide a developer tool to
 
 1. encourage experimentation with C2PA technologies, and
 2. enable rapid prototyping of new C2PA features.
 
-The extension must be side-loaded into a browser; see the [setup](#setup) section. The extension doesn't contain a built-it certificate trust list, these must be imported by the user; see the [trust setup](#trust-setup) section.  
+The extension must be side-loaded into a browser; see the [setup](#setup) section. The extension doesn't contain a built-it certificate trust list, these must be imported by the user; see the [trust setup](#trust-setup) section.
 
 The extension makes use of [c2pa](https://github.com/contentauth/c2pa-js) library from the [Content Authenticity Initiative](https://github.com/contentauth).
 
@@ -19,11 +21,11 @@ The following asset types can currently be verified by the extension:
 
 ## Setup
 
-The extension can either be downloaded from this repository or built locally. 
+The extension can either be downloaded from this repository or built locally.
 
 ### Download instructions
 
-Either download and unzip the last stable version ([dist-chrome.zip](https://github.com/microsoft/c2pa-extension-validator/releases/download/v0.1.3/dist-chrome.zip), [dist-firefox.zip](https://github.com/microsoft/c2pa-extension-validator/releases/download/v0.1.3/dist-firefox.zip)) or the latest dev one from the [Build Browser Extension](https://github.com/microsoft/c2pa-extension-validator/actions/workflows/ci.yml) Action CI (click the latest workflow run, and see the Artifacts section).   
+Either download and unzip the last stable version ([dist-chrome.zip](https://github.com/microsoft/c2pa-extension-validator/releases/download/v0.1.3/dist-chrome.zip), [dist-firefox.zip](https://github.com/microsoft/c2pa-extension-validator/releases/download/v0.1.3/dist-firefox.zip)) or the latest dev one from the [Build Browser Extension](https://github.com/microsoft/c2pa-extension-validator/actions/workflows/ci.yml) Action CI (click the latest workflow run, and see the Artifacts section).
 
 ### Build instructions
 
@@ -44,8 +46,8 @@ The Edge/Chrome `manifest.json` file is located in `dist/chrome`. The Firefox `m
 
 Follow the side-loading instruction for your browser to load the extension:
 
-* [Edge](https://learn.microsoft.com/en-us/microsoft-edge/extensions-chromium/getting-started/extension-sideloading)  
-* [Chrome](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked)  
+* [Edge](https://learn.microsoft.com/en-us/microsoft-edge/extensions-chromium/getting-started/extension-sideloading)
+* [Chrome](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked)
 * [Firefox](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/)
 
 To enable the extension in Firefox, you need to grant specific user permissions:

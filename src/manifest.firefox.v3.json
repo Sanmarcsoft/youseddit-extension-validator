@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
-    "name": "c2pa-extension-validator",
-    "version": "0.1.3",
+    "name": "verifieddit",
+    "version": "1.0.0",
     "permissions": [
         "storage",
         "scripting",

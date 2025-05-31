@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
-    "name": "c2pa-extension-validator",
-    "version": "0.1.3",
+    "name": "verifieddit",
+    "version": "1.0.0",
     "permissions": [
         "storage",
         "scripting",
@@ -59,7 +59,9 @@
                 "c2pa.worker.js",
                 "icons/*.svg",
                 "toolkit_bg.wasm",
-                "iframe.html"
+                "iframe.html",
+                "test-trust-list.json",
+                "ai-trust-list.json"
             ],
             "matches": [
                 "<all_urls>"

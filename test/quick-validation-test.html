@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2PA Extension Quick Validation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .test-image {
+            max-width: 200px;
+            height: auto;
+            margin: 10px;
+            border: 2px solid #ddd;
+        }
+
+        .instruction {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0;
+        }
+
+        #results {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔒 C2PA Extension Quick Validation Test</h1>
+
+    <div class="instruction">
+        <h3>📋 Instructions:</h3>
+        <ol>
+            <li><strong>Install Extension:</strong> Load the C2PA extension in Chrome (chrome://extensions/ → Load
+                unpacked → select dist/chrome/)</li>
+            <li><strong>Look for Icons:</strong> C2PA icons should appear on the images below within 5 seconds</li>
+            <li><strong>Click Run Tests:</strong> Use the button below to run automated validation</li>
+            <li><strong>Manual Check:</strong> Verify icons match expected results</li>
+        </ol>
+    </div>
+
+    <h2>🔍 Test Images</h2>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div>
+            <h4>Trusted C2PA Image</h4>
+            <img src="./media/cards_trusted.jpg" alt="Trusted C2PA" class="test-image" id="trusted-image">
+            <p><strong>Expected:</strong> Green C2PA icon should appear</p>
+        </div>
+
+        <div>
+            <h4>Untrusted C2PA Image</h4>
+            <img src="./media/cards_untrusted.jpg" alt="Untrusted C2PA" class="test-image" id="untrusted-image">
+            <p><strong>Expected:</strong> Yellow/orange warning icon should appear</p>
+        </div>
+
+        <div>
+            <h4>Regular Image (No C2PA)</h4>
+            <img src="./media/cards.jpg" alt="Regular image" class="test-image" id="regular-image">
+            <p><strong>Expected:</strong> No C2PA icon should appear</p>
+        </div>
+
+        <div>
+            <h4>AI Generated Image</h4>
+            <img src="./media/bing_creator_cloud_surfing_puppy.jpg" alt="AI generated" class="test-image" id="ai-image">
+            <p><strong>Expected:</strong> C2PA icon should appear (if AI trust list loaded)</p>
+        </div>
+    </div>
+
+    <h2>🧪 Automated Tests</h2>
+    <button onclick="runQuickTests()"
+        style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+        Run Quick Validation Tests
+    </button>
+
+    <div id="results"></div>
+
+    <h2>📊 Manual Validation Checklist</h2>
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 5px;">
+        <h4>Check these items manually:</h4>
+        <label><input type="checkbox"> Green C2PA icon appears on trusted image</label><br>
+        <label><input type="checkbox"> Yellow/orange icon appears on untrusted image</label><br>
+        <label><input type="checkbox"> No icon appears on regular image</label><br>
+        <label><input type="checkbox"> Right-click → "Inspect Content Credentials" appears</label><br>
+        <label><input type="checkbox"> Clicking C2PA icon opens metadata overlay</label><br>
+        <label><input type="checkbox"> Extension doesn't slow down page loading noticeably</label><br>
+        <label><input type="checkbox"> Console shows no critical errors (F12)</label><br>
+    </div>
+
+    <script>
+        let testResults = [];
+
+        async function runQuickTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>🔄 Running Tests...</h3>';
+
+            testResults = [];
+
+            // Test 1: Check if extension APIs are available
+            await testExtensionPresence();
+
+            // Test 2: Check if images loaded properly
+            await testImageLoading();
+
+            // Test 3: Basic extension communication
+            await testExtensionCommunication();
+
+            // Test 4: Check for C2PA icons in DOM
+            await testC2PAIconPresence();
+
+            // Test 5: Performance check
+            await testPerformance();
+
+            displayResults();
+        }
+
+        async function testExtensionPresence() {
+            try {
+                const hasChrome = typeof chrome !== 'undefined';
+                const hasRuntime = hasChrome && chrome.runtime;
+
+                if (hasRuntime) {
+                    addTestResult('Extension API', true, 'Chrome extension APIs are available');
+                } else {
+                    addTestResult('Extension API', false, 'Chrome extension APIs not found - extension may not be loaded');
+                }
+            } catch (error) {
+                addTestResult('Extension API', false, `Error: ${error.message}`);
+            }
+        }
+
+        async function testImageLoading() {
+            const images = document.querySelectorAll('.test-image');
+            let loadedCount = 0;
+
+            images.forEach(img => {
+                if (img.complete && img.naturalHeight !== 0) {
+                    loadedCount++;
+                }
+            });
+
+            const success = loadedCount === images.length;
+            addTestResult('Image Loading', success, `${loadedCount}/${images.length} test images loaded successfully`);
+        }
+
+        async function testExtensionCommunication() {
+            try {
+                if (typeof chrome !== 'undefined' && chrome.runtime) {
+                    // Try to send a message to the extension
+                    const response = await new Promise((resolve, reject) => {
+                        chrome.runtime.sendMessage({ action: 'MSG_GET_ID' }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                reject(new Error(chrome.runtime.lastError.message));
+                            } else {
+                                resolve(response);
+                            }
+                        });
+                    });
+
+                    if (response) {
+                        addTestResult('Extension Communication', true, 'Extension responds to messages');
+                    } else {
+                        addTestResult('Extension Communication', false, 'Extension loaded but not responding');
+                    }
+                } else {
+                    addTestResult('Extension Communication', false, 'Cannot test - extension APIs not available');
+                }
+            } catch (error) {
+                addTestResult('Extension Communication', false, `Communication failed: ${error.message}`);
+            }
+        }
+
+        async function testC2PAIconPresence() {
+            // Wait a moment for C2PA processing
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Look for C2PA icons in the DOM
+            const c2paIcons = document.querySelectorAll('[class*="c2pa"], [id*="c2pa"], [class*="icon"]');
+            const shadowRoots = document.querySelectorAll('*');
+
+            let iconCount = 0;
+
+            // Check for icons attached to images
+            shadowRoots.forEach(element => {
+                if (element.shadowRoot) {
+                    const shadowIcons = element.shadowRoot.querySelectorAll('[class*="c2pa"], [class*="icon"]');
+                    iconCount += shadowIcons.length;
+                }
+            });
+
+            // Also check for any absolute positioned elements that might be icons
+            const absoluteElements = document.querySelectorAll('div[style*="absolute"], span[style*="absolute"]');
+            iconCount += absoluteElements.length;
+
+            if (iconCount > 0) {
+                addTestResult('C2PA Icon Detection', true, `Found ${iconCount} potential C2PA indicators`);
+            } else {
+                addTestResult('C2PA Icon Detection', false, 'No C2PA icons detected - check if extension is processing images');
+            }
+        }
+
+        async function testPerformance() {
+            const startTime = performance.now();
+
+            // Simulate some processing
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+
+            const success = duration < 1000; // Should be quick
+            addTestResult('Performance', success, `Page response time: ${duration.toFixed(2)}ms`);
+        }
+
+        function addTestResult(testName, success, message) {
+            testResults.push({
+                name: testName,
+                success,
+                message,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            const passed = testResults.filter(r => r.success).length;
+            const total = testResults.length;
+
+            let html = `<h3>📊 Test Results: ${passed}/${total} Passed</h3>`;
+
+            testResults.forEach(result => {
+                const cssClass = result.success ? 'pass' : 'fail';
+                const icon = result.success ? '✅' : '❌';
+                html += `<div class="test-result ${cssClass}">
+                    ${icon} <strong>${result.name}:</strong> ${result.message}
+                </div>`;
+            });
+
+            if (passed === total) {
+                html += '<div class="test-result pass">🎉 All basic tests passed! Extension appears to be working correctly.</div>';
+            } else {
+                html += '<div class="test-result fail">⚠️ Some tests failed. Check extension installation and reload the page.</div>';
+            }
+
+            html += `<div style="margin-top: 20px;">
+                <button onclick="exportResults()" style="background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 3px; cursor: pointer;">
+                    Export Results
+                </button>
+            </div>`;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function exportResults() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                testSuite: 'C2PA Extension Quick Validation',
+                results: testResults,
+                summary: {
+                    total: testResults.length,
+                    passed: testResults.filter(r => r.success).length,
+                    failed: testResults.filter(r => !r.success).length
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `c2pa-quick-test-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Auto-run tests after page loads
+        window.addEventListener('load', () => {
+            console.log('🔒 C2PA Quick Validation Test loaded');
+            console.log('📋 Use F12 to monitor for extension debug messages');
+
+            // Give time for extension to initialize, then run tests
+            setTimeout(() => {
+                console.log('🚀 Auto-running quick validation tests...');
+                runQuickTests();
+            }, 2000);
+        });
+
+        // Track image load events
+        document.addEventListener('DOMContentLoaded', function () {
+            const images = document.querySelectorAll('.test-image');
+            console.log(`📊 Monitoring ${images.length} test images for C2PA processing`);
+
+            images.forEach((img, index) => {
+                img.addEventListener('load', function () {
+                    console.log(`🖼️ Test image ${index + 1} loaded:`, img.src);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

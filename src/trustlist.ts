@@ -3,9 +3,13 @@
  *  Licensed under the MIT license.
  */
 
-import { type CertificateInfoExtended, calculateSha256CertThumbprintFromX5c, PEMtoDER, certificateFromDer, distinguishedNameToString } from './certs/certs'
-import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE } from './constants'
-import { bytesToBase64, sendMessageToAllTabs } from './utils'
+import { type CertificateInfoExtended, calculateSha256CertThumbprintFromX5c, PEMtoDER, certificateFromDer, distinguishedNameToString } from './certs/certs';
+import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE } from './constants';
+import { bytesToBase64, sendMessageToAllTabs } from './utils';
+
+// Directly import the JSON files
+import defaultTestTrustList from '../test/test-trust-list.json';
+import defaultAiTrustList from '../test/ai-trust-list.json';
 
 // valid JWK key types (to adhere to C2PA cert profile: https://c2pa.org/specifications/specifications/2.0/specs/C2PA_Specification.html#_certificate_profile)
 type ValidKeyTypes = 'RSA' /* sha*WithRSAEncryption and id-RSASSA-PSS */ | 'EC' /* ecdsa-with-* */ | 'OKP' /* id-Ed25519 */
@@ -299,28 +303,34 @@ export async function loadTrustLists (): Promise<void> {
  * @returns a trust list match object if found, otherwise null
  */
 export function checkTrustListInclusion (certChain: CertificateInfoExtended[], trustLists: TrustList[] = globalTrustLists): TrustListMatch | null {
-  console.debug('checkTrustListInclusion called', certChain, trustLists)
+  console.debug('checkTrustListInclusion called with certChain:', certChain, 'and trustLists:', trustLists);
   if (trustLists != null && trustLists.length > 0) {
+    console.debug('checkTrustListInclusion: Iterating through trustLists.');
     // for each trust list
-    for (const trustList of globalTrustLists) {
+    for (const trustList of trustLists) { // Changed from globalTrustLists to trustLists parameter
+      console.debug('checkTrustListInclusion: Checking trustList:', trustList.name);
       // for each entity's certs in the list (current and expired), check if it matches a cert in the chain
       for (const entity of trustList.entities) {
-        const jwks = entity.jwks
+        console.debug('checkTrustListInclusion: Checking entity:', entity.name);
+        const jwks = entity.jwks;
         for (const jwkCert of jwks.keys) {
+          console.debug('checkTrustListInclusion: Checking jwkCert:', jwkCert);
           // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
           for (const cert of certChain) {
+            console.debug('checkTrustListInclusion: Comparing with cert in chain:', cert.sha256Thumbprint);
             if ((jwkCert['x5t#S256'] != null) && jwkCert['x5t#S256'].toLowerCase() === cert.sha256Thumbprint && entity.isCA === cert.isCA) {
               // found a match
-              const tlInfo = getInfoFromTrustList(trustList)
-              console.debug('Trust list match:', entity, cert)
-              return { tlInfo, entity, cert }
+              const tlInfo = getInfoFromTrustList(trustList);
+              console.debug('Trust list match FOUND:', { tlInfo, entity, cert });
+              return { tlInfo, entity, cert };
             }
           }
         }
       }
     }
   }
-  return null
+  console.debug('checkTrustListInclusion: No trust list match found.');
+  return null;
 }
 
 /**
@@ -372,31 +382,64 @@ async function notifyTabsOfTrustListUpdate (): Promise<void> {
  *  Other modules import functions from this module, but they don't want the listeners
  *  So the init function needs to be called explicitly
  */
+async function loadDefaultTrustLists (): Promise<void> {
+  console.debug('Loading default trust lists...');
+
+  try {
+    console.debug('Using imported defaultTestTrustList.');
+    const testTrustList = defaultTestTrustList as TrustList;
+    await processDownloadedTrustList(testTrustList);
+    globalTrustLists.push(testTrustList);
+    console.debug('Default test-trust-list.json loaded successfully from import.');
+  } catch (error) {
+    console.error('Failed to load default test-trust-list.json from import:', error);
+  }
+
+  try {
+    console.debug('Using imported defaultAiTrustList.');
+    const aiTrustList = defaultAiTrustList as TrustList;
+    await processDownloadedTrustList(aiTrustList);
+    globalTrustLists.push(aiTrustList);
+    console.debug('Default ai-trust-list.json loaded successfully from import.');
+  } catch (error) {
+    console.error('Failed to load default ai-trust-list.json from import:', error);
+  }
+
+  await storeUpdatedTrustLists('Default trust lists loaded.');
+}
+
 export async function init (): Promise<void> {
-  void loadTrustLists()
+  await loadTrustLists(); // Attempt to load existing trust lists first
+  if (globalTrustLists.length === 0) {
+    console.debug('No existing trust lists found, loading defaults.');
+    await loadDefaultTrustLists();
+  } else {
+    console.debug('Existing trust lists found, count:', globalTrustLists.length);
+  }
+
   chrome.runtime.onMessage.addListener(
     // eslint-disable-next-line @typescript-eslint/promise-function-async
     (request: MSG_PAYLOAD, sender, sendResponse) => {
       if (request.action === MSG_GET_TRUSTLIST_INFOS) {
-        void getTrustListInfos().then(sendResponse)
-        return AWAIT_ASYNC_RESPONSE
+        void getTrustListInfos().then(sendResponse);
+        return AWAIT_ASYNC_RESPONSE;
       }
       if (request.action === MSG_ADD_TRUSTLIST) {
-        void addTrustList(request.data as TrustList).then(sendResponse)
-        return AWAIT_ASYNC_RESPONSE
+        void addTrustList(request.data as TrustList).then(sendResponse);
+        return AWAIT_ASYNC_RESPONSE;
       }
       if (request.action === MSG_ADD_TRUSTFILE) {
-        void addTrustFile(request.data as string).then(sendResponse)
-        return AWAIT_ASYNC_RESPONSE
+        void addTrustFile(request.data as string).then(sendResponse);
+        return AWAIT_ASYNC_RESPONSE;
       }
       if (request.action === MSG_ADD_TSA_TRUSTFILE) {
-        void addTSATrustFile(request.data as string).then(sendResponse)
-        return AWAIT_ASYNC_RESPONSE
+        void addTSATrustFile(request.data as string).then(sendResponse);
+        return AWAIT_ASYNC_RESPONSE;
       }
       if (request.action === MSG_REMOVE_TRUSTLIST) {
-        void removeTrustList(request.data as number).then(sendResponse)
-        return AWAIT_ASYNC_RESPONSE
+        void removeTrustList(request.data as number).then(sendResponse);
+        return AWAIT_ASYNC_RESPONSE;
       }
     }
-  )
+  );
 }
