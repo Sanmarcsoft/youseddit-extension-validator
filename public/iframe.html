@@ -12,7 +12,22 @@
 </head>
 
 <body>
-    <c2pa-overlay></c2pa-overlay>
+    <div class="overlay-container">
+        <div class="overlay-header">
+            <h2>C2PA Provenance</h2>
+            <button id="close-button">X</button>
+        </div>
+        <div class="overlay-content">
+            <div class="image-container">
+                <!-- Image will be loaded here -->
+                <img id="provenance-image" src="" alt="Provenance Image">
+            </div>
+            <div class="provenance-data">
+                <!-- Provenance data will be displayed here -->
+                <p>Provenance information goes here.</p>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

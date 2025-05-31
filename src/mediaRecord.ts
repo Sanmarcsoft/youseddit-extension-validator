@@ -5,8 +5,9 @@
 
 import { type C2paResult } from './c2pa'
 import { IS_DEBUG } from './constants'
-import { type MediaElement } from './content'
 import { type CrIcon } from './icon'
+
+export type MediaElement = (HTMLImageElement | HTMLVideoElement | HTMLAudioElement)
 
 console.debug('MediaRecord module loaded')
 

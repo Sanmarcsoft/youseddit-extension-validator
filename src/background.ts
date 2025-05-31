@@ -10,9 +10,12 @@ import { type C2paError, type C2paResult } from './c2pa'
 import {
   MSG_GET_ID, MSG_L3_INSPECT_URL, MSG_REMOTE_INSPECT_URL, MSG_FORWARD_TO_CONTENT, REMOTE_VALIDATION_LINK,
   MSG_VALIDATE_URL, AWAIT_ASYNC_RESPONSE, MSG_C2PA_RESULT_FROM_CONTEXT, AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED,
-  TRUSTLIST_UPDATE_INTERVAL
+  MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
+
+const MAX_LOG_ENTRIES = 200 // Limit the number of log entries to store
+let extensionLogs: string[] = []
 
 console.debug('Background: Script: start')
 
@@ -102,20 +105,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void chrome.storage.local.set({ autoScan: data })
     void sendMessageToAllTabs({ action: MSG_AUTO_SCAN_UPDATED, data })
   }
+
+  if (action === MSG_LOG_MESSAGE) {
+    const logEntry = data as string
+    extensionLogs.push(logEntry)
+    if (extensionLogs.length > MAX_LOG_ENTRIES) {
+      extensionLogs.shift() // Remove the oldest entry
+    }
+  }
+
+  if (action === MSG_GET_LOGS) {
+    sendResponse(extensionLogs)
+    return AWAIT_ASYNC_RESPONSE
+  }
 })
 
 async function validateUrl (url: string): Promise<C2paResult | C2paError> {
-  const c2paResult = await c2paValidateUrl(url)
+  console.debug(`Background: validateUrl: Starting validation for: ${url}`);
+  const c2paResult = await c2paValidateUrl(url);
+  
   if (c2paResult instanceof Error) {
-    return c2paResult
+    console.error(`Background: validateUrl: Error from c2paValidateUrl for ${url}:`, c2paResult);
+    return c2paResult;
   }
-  c2paResult.trustList = checkTrustListInclusion(c2paResult.certChain ?? [])
+  
+  console.debug(`Background: validateUrl: Initial c2paResult for ${url}:`, c2paResult);
+  
+  // Check trust list inclusion
+  c2paResult.trustList = checkTrustListInclusion(c2paResult.certChain ?? []);
+  console.debug(`Background: validateUrl: trustList after check for ${url}:`, c2paResult.trustList);
+  
+  // Check TSA trust list inclusion if TST tokens exist
   if (c2paResult.tstTokens != null && c2paResult.tstTokens.length > 0) {
-    const tstToken = c2paResult.tstTokens[0] // TODO: for each token
-    c2paResult.tsaTrustList = checkTSATrustListInclusion(tstToken.certChain ?? [])
+    const tstToken = c2paResult.tstTokens[0]; // TODO: for each token
+    c2paResult.tsaTrustList = checkTSATrustListInclusion(tstToken.certChain ?? []);
+    console.debug(`Background: validateUrl: tsaTrustList after check for ${url}:`, c2paResult.tsaTrustList);
+  } else {
+    console.debug(`Background: validateUrl: No TST tokens found for ${url}.`);
   }
 
-  return c2paResult
+  console.debug(`Background: validateUrl: Final c2paResult before returning for ${url}:`, c2paResult);
+  return c2paResult;
 }
 
 async function init (): Promise<void> {

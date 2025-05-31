@@ -185,17 +185,31 @@ export class MediaMonitor {
   }
 }
 
-function DOMContentLoaded (): void {
-  if (_autoObserve != null) {
-    MediaMonitor.monitoring = _autoObserve
-  }
-}
 
 void chrome.storage.local.get('autoScan').then((result) => {
   _autoObserve = result.autoScan ?? AUTO_SCAN_DEFAULT
-  if (document.body != null) {
-    MediaMonitor.monitoring = _autoObserve
+  console.debug('Auto-scan setting:', _autoObserve)
+  
+  // Start monitoring once DOM is ready
+  const startMonitoringWhenReady = () => {
+    if (document.body != null) {
+      console.debug('Starting MediaMonitor with auto-scan:', _autoObserve)
+      MediaMonitor.monitoring = _autoObserve
+    } else {
+      // DOM not ready yet, wait for it
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          console.debug('DOM ready, starting MediaMonitor with auto-scan:', _autoObserve)
+          MediaMonitor.monitoring = _autoObserve
+        })
+      } else {
+        // DOM is already ready but body somehow not available, try again soon
+        setTimeout(startMonitoringWhenReady, 100)
+      }
+    }
   }
+  
+  startMonitoringWhenReady()
 })
 
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
@@ -208,4 +222,3 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   }
 })
 
-document.addEventListener('DOMContentLoaded', DOMContentLoaded)
