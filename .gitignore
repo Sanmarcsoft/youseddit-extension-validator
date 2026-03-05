@@ -2,6 +2,19 @@
 *.code-workspace
 node_modules
 dist
+*.zip
+*.tar.gz
+
+# OS files
+.DS_Store
+@eaDir
+
+# lock files (use npm)
+bun.lock
+
+# local test artifacts
+c2pa-quick-test-*.json
+Screenshot *.png
 # intermediate test files
 test/untrusted
 test/expired/*.key
