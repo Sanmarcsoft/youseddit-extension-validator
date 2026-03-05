@@ -1,0 +1,98 @@
+# Chrome Web Store Listing — Verifieddit
+
+## Extension Name
+Verifieddit - C2PA Content Credential Verifier
+
+## Short Name
+Verifieddit
+
+## Summary (132 chars max)
+Verify content authenticity using C2PA Content Credentials. Detect AI-generated and edited media directly in your browser.
+
+## Category
+Developer Tools
+
+## Language
+English
+
+## Single Purpose Description
+Verify the authenticity and provenance of images, videos, and audio on any webpage using the C2PA content credentials standard.
+
+## Detailed Description
+
+Verifieddit is a free, open-source browser extension that verifies Content Credentials (C2PA) embedded in images, videos, and audio files on any website you visit.
+
+**What are Content Credentials?**
+Content Credentials are a new open standard (C2PA) for proving where digital content came from and how it was created or modified. Major companies including Adobe, Google, Microsoft, and the BBC are embedding Content Credentials into their media.
+
+**Key Features:**
+
+- Automatic Detection: Scans media elements on any webpage for C2PA content credentials
+- Visual Indicators: Shows overlay icons on media with verified content credentials (green = valid, yellow = warning, red = invalid)
+- AI Content Detection: Identifies AI-generated content based on C2PA metadata and digital source types
+- Detailed Provenance: View the full chain of custody — who created the content, what tools were used, and how it was modified
+- Certificate Verification: Validates signer certificates against the C2PA Trust List
+- Right-Click Inspection: Right-click any image, video, or audio to inspect its Content Credentials
+- Trust List Management: Import custom trust anchors and TSA certificates
+- Auto-Scan Toggle: Enable or disable automatic scanning per your preference
+
+**Privacy-First:**
+- All processing happens locally in your browser using WebAssembly
+- No media files are ever uploaded to any server
+- No analytics, tracking, or telemetry
+- No account required
+
+**Supported Formats:**
+JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, FLAC, PDF, and more.
+
+**Open Source:**
+Built on Microsoft's C2PA Extension Validator. View the source code at https://github.com/Sanmarcsoft/youseddit-extension-validator
+
+Learn more at https://verifieddit.com
+
+## Privacy Policy URL
+https://verifieddit.com/docs/privacy/
+
+## Permission Justifications
+
+### storage
+Saves user preferences (auto-scan toggle, theme) and custom trust lists locally in the browser.
+
+### scripting
+Injects content scripts to detect and overlay C2PA icons on media elements across web pages.
+
+### offscreen
+Creates an offscreen document to run C2PA WebAssembly verification in a background context, required because service workers cannot use WebAssembly directly.
+
+### notifications
+Displays a brief notification when the extension is installed or updated to confirm successful loading.
+
+### webRequest
+Monitors network requests to detect media files (images, videos) being loaded, enabling automatic C2PA credential detection.
+
+### tabs
+Sends messages between the background service worker and content scripts in browser tabs to coordinate C2PA validation results.
+
+### webNavigation
+Detects page navigation events to trigger automatic media scanning when users navigate to new pages.
+
+### activeTab
+Accesses the currently active tab to display validation results in the popup and coordinate with the content script.
+
+### contextMenus
+Adds "Inspect Content Credentials" to the right-click context menu on images, videos, and audio elements.
+
+### alarms
+Schedules periodic trust list refreshes (every 24 hours) to keep certificate validation up to date.
+
+### Host Permissions: <all_urls>
+The extension needs access to all URLs because C2PA content credentials can appear on any website. The extension scans image, video, and audio elements on the current page to detect and verify cryptographic provenance data embedded in media files. Without broad host access, users would need to manually allowlist every website, defeating the purpose of automatic content credential detection.
+
+## Screenshots Needed
+1. Extension detecting C2PA credentials on a webpage (1280x800)
+2. Popup showing validation results
+3. Right-click context menu "Inspect Content Credentials"
+4. Overlay icon on a verified image
+
+## Store Icon
+Use existing cr128.png (128x128)

@@ -1,6 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "verifieddit",
+    "name": "Verifieddit - C2PA Content Credential Verifier",
+    "short_name": "Verifieddit",
+    "description": "Verify content authenticity using C2PA Content Credentials. Detect AI-generated and edited media directly in your browser.",
     "version": "1.0.0",
     "permissions": [
         "storage",
