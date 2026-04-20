@@ -1,0 +1,3 @@
+name: youseddit-extension-validator
+runtime: nodejs
+description: YouSeddit Extension Validator — Scaleway Object Storage for validation artifacts
