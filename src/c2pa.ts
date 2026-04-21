@@ -193,28 +193,37 @@ async function serializeC2paReadResult (result: C2paReadResult): Promise<Extensi
   }
   const c2paManifests: ManifestMap = manifestStore.manifests
   const c2paActiveManifest = manifestStore.activeManifest
-  const manifests: ExtensionC2paManifest[] = Object.entries(c2paManifests).map(([key, value]) => {
-    return {
-      key,
-      title: value.title,
-      format: value.format,
-      claimGenerator: value.claimGenerator,
-      signatureInfo: {
-        issuer: value.signatureInfo?.issuer ?? ''
-      },
-      ingredients: value.ingredients.map(ingredient => {
-        return {
-          title: ingredient.title,
-          format: ingredient.format,
-          instanceId: ingredient.instanceId,
-          thumbnail: {
-            type: ingredient.thumbnail?.contentType ?? '',
-            data: ''
+  const manifests: ExtensionC2paManifest[] = await Promise.all(
+    Object.entries(c2paManifests).map(async ([key, value]) => {
+      const ingredients = await Promise.all(
+        value.ingredients.map(async ingredient => {
+          const thumbType = ingredient.thumbnail?.contentType ?? ''
+          const thumbData =
+            (thumbType.startsWith('image/') && ingredient.thumbnail?.blob != null)
+              ? await blobToDataURL(ingredient.thumbnail.blob)
+              : ''
+          return {
+            title: ingredient.title,
+            format: ingredient.format,
+            instanceId: ingredient.instanceId,
+            thumbnail: {
+              type: thumbType,
+              data: thumbData
+            }
           }
-        }
-      })
-    }
-  }
+        })
+      )
+      return {
+        key,
+        title: value.title,
+        format: value.format,
+        claimGenerator: value.claimGenerator,
+        signatureInfo: {
+          issuer: value.signatureInfo?.issuer ?? ''
+        },
+        ingredients
+      }
+    })
   )
 
   const activeManifestIndex = Object.values(c2paManifests).indexOf(c2paActiveManifest)

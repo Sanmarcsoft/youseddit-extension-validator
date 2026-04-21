@@ -156,8 +156,8 @@ async function init (): Promise<void> {
     await chrome.offscreen
       .createDocument({
         url: 'offscreen.html',
-        reasons: [chrome.offscreen.Reason.DOM_PARSER],
-        justification: 'Private DOM access to parse HTML'
+        reasons: [chrome.offscreen.Reason.DOM_PARSER, chrome.offscreen.Reason.WORKERS],
+        justification: 'Parse C2PA manifest DOM and run WebAssembly verification in a Web Worker (both forbidden in MV3 service workers)'
       })
       .catch((error) => {
         console.error('Failed to create offscreen document', error)
