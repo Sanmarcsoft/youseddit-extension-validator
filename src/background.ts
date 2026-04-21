@@ -55,7 +55,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }
     const message = { action: MSG_C2PA_RESULT_FROM_CONTEXT, data: { url, c2paResult, frame: info.frameId } }
     if (tab?.id != null) {
-      void chrome.tabs.sendMessage(tab.id, message)
+      chrome.tabs.sendMessage(tab.id, message).catch(() => { /* tab may not have a content-script listener */ })
     }
   })
 })
@@ -87,13 +87,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // This is a temporary workaround to wait for the content script to be ready.
         // We should have the content script send a message to the background script when it is ready. Then we can remove this timeout.
         setTimeout(() => {
-          void chrome.tabs.sendMessage(id, { action: MSG_REMOTE_INSPECT_URL, data })
+          chrome.tabs.sendMessage(id, { action: MSG_REMOTE_INSPECT_URL, data }).catch(() => { /* content script may not yet be ready */ })
         }, 1000)
       })
   }
 
   if (action === MSG_FORWARD_TO_CONTENT && tabId != null) {
-    void chrome.tabs.sendMessage(tabId, data)
+    chrome.tabs.sendMessage(tabId, data).catch(() => { /* content script may be absent on this tab */ })
   }
 
   if (action === MSG_VALIDATE_URL) {
