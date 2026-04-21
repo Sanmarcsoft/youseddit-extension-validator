@@ -28,7 +28,7 @@ for cert_type in "${cert_types[@]}"; do
     openssl req -new -newkey ec:<(openssl ecparam -name prime256v1) -keyout "$certdir/signer.key" -out "$certdir/signer.csr" -nodes -subj "/O=C2PA Extension Validator/OU=Test/CN=Test Signer" -config openssl_ca.cnf -extensions v3_signer -sha256
 
     # Intermediate CA signs the signer cert request
-    openssl x509 -req -in "$certdir/signer.csr" -out "$certdir/signer.crt" -CA "$certdir/CA.crt" -CAkey "$certdir/CA.key" -CAcreateserial -days 365 -extfile openssl_ca.cnf -extensions v3_signer -sha384
+    openssl x509 -req -in "$certdir/signer.csr" -out "$certdir/signer.crt" -CA "$certdir/CA.crt" -CAkey "$certdir/CA.key" -CAcreateserial -days ${SIGNER_DAYS:-730} -extfile openssl_ca.cnf -extensions v3_signer -sha384
 
     # Concatenate certificates to form the chain
     cat "$certdir/signer.crt" "$certdir/CA.crt" "$certdir/root_CA.crt" > "$certdir/chain.pem"
