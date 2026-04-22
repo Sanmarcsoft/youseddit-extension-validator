@@ -36,7 +36,7 @@ chrome.runtime.onInstalled.addListener(function (details) {
 function createContextMenu (): void {
   chrome.contextMenus.create({
     id: 'validateMediaElement',
-    title: 'Inspect Content Credentials',
+    title: 'Verify with Verifieddit.',
     contexts: ['audio', 'image', 'video'],
     documentUrlPatterns: ['<all_urls>']
   })
