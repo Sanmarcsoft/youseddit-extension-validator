@@ -1,0 +1,90 @@
+name: E2E Tests (#50)
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - feature/50-*
+
+jobs:
+  e2e:
+    name: Run E2E Test Suite (TDD RED Pass)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Run E2E tests
+        run: npx playwright test
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test/e2e/results/
+          retention-days: 30
+
+      - name: Comment PR with test status
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const resultsPath = './test/e2e/results/test-results.json';
+
+            let testResults = {};
+            try {
+              if (fs.existsSync(resultsPath)) {
+                testResults = JSON.parse(fs.readFileSync(resultsPath, 'utf-8'));
+              }
+            } catch (e) {
+              console.log('Could not parse test results');
+            }
+
+            const body = `
+            ## E2E Test Results (#50 — TDD RED Pass)
+
+            This is the RED phase of TDD. Tests are expected to FAIL. ❌
+
+            **Test Command:**
+            \`\`\`
+            npm run build && npx playwright test
+            \`\`\`
+
+            **Expected State:** All 4 tests FAILING (by design)
+
+            **Next Steps:**
+            1. Merge this PR (test infrastructure)
+            2. Create follow-up PRs for each failing feature
+            3. Each follow-up PR fixes one feature and makes one test pass
+
+            See \`test/e2e/README.md\` for details on running tests locally.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body,
+            });
