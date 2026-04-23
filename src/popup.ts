@@ -5,18 +5,46 @@
 
 import { type TrustListInfo, getTrustListInfos, removeTrustList, addTSATrustFile, addTrustFile } from './trustlistProxy.js'
 import packageManifest from '../package.json'
+import { BUILD_INFO } from './build-info'
 import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, MSG_RESPONSE_C2PA_ENTRIES } from './constants.js'
 import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
 import { type ToggleSwitch } from './components/toggle.js'
 
 console.debug('popup.js: load')
 
-document.addEventListener('DOMContentLoaded', function (): void {
-  // Update the version number
-  const versionElement = document.getElementById('version')
-  if (versionElement !== null) {
-    versionElement.textContent = packageManifest.version
+function setText (id: string, value: string): void {
+  const el = document.getElementById(id)
+  if (el !== null) el.textContent = value
+}
+
+function setHref (id: string, url: string): void {
+  const el = document.getElementById(id) as HTMLAnchorElement | null
+  if (el !== null) el.href = url
+}
+
+function populateBuildInfo (): void {
+  setText('version', BUILD_INFO.version)
+  // version-name shows tag if at an exact release, else 'dev'
+  setText('version-name', BUILD_INFO.tag !== '' ? `(${BUILD_INFO.tag})` : '(dev)')
+
+  setText('tag-describe', BUILD_INFO.tagDescribe)
+  if (BUILD_INFO.tag !== '') {
+    setHref('tag-link', `${BUILD_INFO.repoUrl}/releases/tag/${BUILD_INFO.tag}`)
+  } else {
+    // No exact tag — link to the commit's tree on that branch
+    setHref('tag-link', `${BUILD_INFO.repoUrl}/tree/${BUILD_INFO.commitBranch}`)
   }
+
+  setText('commit-short', BUILD_INFO.commitShort)
+  setHref('commit-link', `${BUILD_INFO.repoUrl}/commit/${BUILD_INFO.commit}`)
+  setText('commit-branch', BUILD_INFO.commitBranch !== 'unknown' ? `· ${BUILD_INFO.commitBranch}` : '')
+
+  setText('build-date', BUILD_INFO.buildDate)
+  setText('build-host', BUILD_INFO.buildHost !== 'unknown' ? `· ${BUILD_INFO.buildHost}` : '')
+}
+
+document.addEventListener('DOMContentLoaded', function (): void {
+  populateBuildInfo()
 
   const autoScanToggle = document.getElementById('toggleAutoScan') as ToggleSwitch
 
