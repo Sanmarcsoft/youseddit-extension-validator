@@ -15,6 +15,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       name: Check out repository code
+      with:
+        # Fetch full history + tags so scripts/generate-build-info.js
+        # can run `git describe --tags --exact-match` and embed the
+        # release tag in the extension's About tab. Without this,
+        # checkout is shallow and tag-less (#61).
+        fetch-depth: 0
+        fetch-tags: true
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
