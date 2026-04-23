@@ -5,7 +5,11 @@
 
 import { MSG_DISPLAY_C2PA_OVERLAY, MSG_FRAME_CLICK, MSG_REMOTE_INSPECT_URL } from './constants'
 import { C2paOverlay } from './overlay'
-import { validateUrl } from './c2pa' // Import validateUrl
+// NOTE (#57): do not import c2pa here. c2pa spawns a Worker from
+// chrome-extension://.../c2pa.worker.js which is blocked when the content
+// script runs on a web origin. The real validation path goes through
+// inject.ts -> MSG_VALIDATE_URL -> background service worker, where the
+// Worker is allowed.
 
 export type MediaElement = (HTMLImageElement | HTMLVideoElement | HTMLAudioElement)
 
@@ -58,46 +62,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 })
 
-// Function to process a single image element
-async function processImage(img: HTMLImageElement): Promise<void> {
-  // Check if the image is larger than 50x50 pixels
-  if (img.naturalWidth > 50 && img.naturalHeight > 50) {
-    console.debug(`Processing image: ${img.src}`);
-    try {
-      const result = await validateUrl(img.src);
-      if ('manifestStore' in result) {
-        console.log(`C2PA data found for image: ${img.src}`, result);
-      } else {
-        console.log(`No C2PA data found for image: ${img.src}`, result);
-      }
-    } catch (error) {
-      console.error(`Error processing image ${img.src}:`, error);
-    }
-  } else {
-    console.debug(`Skipping image (too small): ${img.src}`);
-  }
-}
-
-// Observe the DOM for new images
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    mutation.addedNodes.forEach((node) => {
-      if (node.nodeName === 'IMG') {
-        void processImage(node as HTMLImageElement);
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        // Check for images within added elements
-        (node as Element).querySelectorAll('img').forEach((img) => {
-          void processImage(img);
-        });
-      }
-    });
-  });
-});
-
-// Start observing the document body for added nodes
-observer.observe(document.body, { childList: true, subtree: true });
-
-// Process existing images on the page
-document.querySelectorAll('img').forEach((img) => {
-  void processImage(img);
-});
+// Duplicate image-processing observer removed (#57). inject.ts is the single
+// source of truth for image discovery + validation. This script only bridges
+// overlay messages between the background worker and the page.
