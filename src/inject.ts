@@ -406,8 +406,11 @@ VisibilityMonitor.onEnterViewport((mediaRecord: MediaRecord): void => {
     // Check image dimensions for icon injection
     if (mediaRecord.element.tagName === 'IMG') {
       const imgElement = mediaRecord.element as HTMLImageElement;
-      // Use onReady to ensure dimensions are available
-      mediaRecord.onReady = () => {
+      // Capture the ready-callback locally so we can invoke it directly
+      // for already-loaded images. mediaRecord.onReady is a setter-only
+      // property on MediaRecord — reading it returns undefined, so we
+      // cannot round-trip through it (#57).
+      const onReadyCallback = (): void => {
         if (imgElement.naturalWidth > 5 && imgElement.naturalHeight > 5) {
           console.debug('Image meets size criteria, creating/updating icon:', mediaRecord.src);
           // Create icon with a default status if it doesn't exist
@@ -464,9 +467,10 @@ console.debug('Removing CrIcon due to size criteria in onEnterViewport for:', me
           }
         }
       };
+      mediaRecord.onReady = onReadyCallback;
       // Trigger onReady logic immediately if the image is already loaded
       if (imgElement.complete && imgElement.naturalWidth !== 0) {
-          mediaRecord.onReady(mediaRecord);
+          onReadyCallback();
       }
     } else {
        // For non-image media elements (video, audio), proceed with C2PA validation

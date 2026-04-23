@@ -75,3 +75,38 @@
     visibility: visible;
     opacity: 1;
 }
+/* Build info DL — renders the Version / Tag / Commit / Built grid in the
+ * About tab. Populated at runtime by popup.ts from the generated
+ * src/build-info.ts constants (#57). */
+.build-info {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 12px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #333;
+}
+.build-info dt {
+    color: #777;
+    font-weight: 600;
+}
+.build-info dd {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    word-break: break-all;
+}
+.build-info dd a {
+    color: #0b5ed7;
+    text-decoration: none;
+}
+.build-info dd a:hover {
+    text-decoration: underline;
+}
+.build-info-dim {
+    color: #999;
+    font-size: 11px;
+}
+.version-name {
+    color: #555;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
