@@ -110,3 +110,171 @@
     color: #555;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* ─── Validation tab accordion (#59) ────────────────────────────────
+ * Each entry renders as a clickable summary row that expands to show
+ * signer / trust-list / cert / timestamp / AI / ingredients details.
+ */
+
+.validation-empty {
+    color: #888;
+    font-size: 12px;
+    padding: 12px 0;
+    text-align: center;
+}
+
+.v-row {
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.v-summary {
+    display: grid;
+    grid-template-columns: 28px 40px 1fr auto 16px;
+    column-gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+.v-summary:hover         { background: #f7f9fb; }
+.v-summary.is-open       { background: #f0f4f8; }
+
+.v-status-icon { width: 24px; height: 24px; object-fit: contain; }
+.v-thumb       { width: 40px; height: 40px; object-fit: cover; border-radius: 4px;
+                 background: #eee; }
+.v-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #222;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.v-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 10px;
+    line-height: 1.4;
+    color: #fff;
+}
+.status-success    { background: #2a8a3c; }
+.status-warning    { background: #f0a500; color: #1a1a1a; }
+.status-error      { background: #c83232; }
+.status-ai-success { background: #2a8a3c; }
+.status-ai-error   { background: #c83232; }
+.status-unknown    { background: #888; }
+
+.v-disclosure {
+    transition: transform 120ms ease-out;
+    color: #888;
+    font-size: 14px;
+}
+.v-summary.is-open .v-disclosure { transform: rotate(90deg); }
+
+.v-details {
+    padding: 10px 14px 12px;
+    border-top: 1px solid #eee;
+    background: #fafbfc;
+    font-size: 12px;
+}
+
+.v-details dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 10px;
+    margin: 0 0 10px 0;
+}
+.v-details dt {
+    color: #777;
+    font-weight: 600;
+}
+.v-details dd {
+    margin: 0;
+    color: #222;
+    word-break: break-word;
+}
+.v-details dd b { color: #111; }
+
+.detail-dim      { color: #999; }
+.tsa-ok          { color: #2a8a3c; font-weight: 600; }
+.ai-flag         { color: #c83232; font-weight: 600; }
+.validation-errors { color: #c83232; }
+.validation-errors > div { padding: 2px 0; }
+
+.ingredient-header {
+    font-weight: 600;
+    color: #555;
+    margin: 4px 0 6px;
+    font-size: 12px;
+}
+.ingredient-tree {
+    list-style: none;
+    padding-left: 8px;
+    margin: 0;
+    border-left: 2px solid #cfd8e3;
+}
+.ingredient {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 8px;
+    padding: 4px 0 4px 8px;
+    position: relative;
+    align-items: center;
+}
+.ingredient::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 8px;
+    height: 2px;
+    background: #cfd8e3;
+}
+.ingredient-thumb {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 3px;
+    background: #eee;
+}
+.ingredient-thumb.placeholder {
+    display: grid;
+    place-items: center;
+    color: #aaa;
+    font-weight: 700;
+    font-size: 14px;
+}
+.ingredient-meta {
+    min-width: 0;
+}
+.ingredient-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #222;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ingredient-dim {
+    color: #888;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.ingredient-empty {
+    padding: 6px 10px;
+    color: #888;
+    font-size: 12px;
+    font-style: italic;
+}

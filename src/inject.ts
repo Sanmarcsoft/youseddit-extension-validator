@@ -255,10 +255,29 @@ document.addEventListener('click', (event) => {
   sendToContent({ action: MSG_FRAME_CLICK, data: null })
 })
 
+export interface IngredientSummary {
+  title: string
+  format: string
+  thumbnail: string | null
+  parentManifest: string
+}
+
 export interface MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD {
   name: string
   status: VALIDATION_STATUS
   thumbnail: string | null
+  // rc9 (#59) — detail fields rendered inside the expandable Validation row
+  signer: string
+  trustListName: string | null
+  trustListEntity: string | null
+  isAIDetected: boolean
+  manifestCount: number
+  activeManifest: string
+  certIssuer: string | null
+  certSubject: string | null
+  hasTSA: boolean
+  validationErrors: string[]
+  ingredients: IngredientSummary[]
 }
 
 async function updateTrustLists (): Promise<void> {
@@ -327,10 +346,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       c2paEntries.forEach((entry) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const c2pa = entry.state.c2pa!
-        const response = {
+        const activeManifest = c2pa.manifestStore.manifests[c2pa.manifestStore.activeManifest as unknown as keyof typeof c2pa.manifestStore.manifests]
+        const certChain = c2pa.certChain ?? []
+        const signingCert = certChain[0]
+        const manifestArr = Object.values(c2pa.manifestStore.manifests ?? {}) as Array<{ title?: string, ingredients: Array<{ title: string, format: string, thumbnail: { data: string, type: string } }> }>
+        const ingredients: IngredientSummary[] = []
+        for (const m of manifestArr) {
+          for (const ing of m.ingredients ?? []) {
+            ingredients.push({
+              title: ing.title ?? '(untitled)',
+              format: ing.format ?? '',
+              thumbnail: (ing.thumbnail?.data !== '' ? ing.thumbnail?.data : null) ?? null,
+              parentManifest: m.title ?? '(unnamed manifest)'
+            })
+          }
+        }
+        const response: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD = {
           name: c2pa.source.filename,
           status: getC2PAStatus(c2pa),
-          thumbnail: c2pa.source.thumbnail.data
+          thumbnail: c2pa.source.thumbnail.data,
+          signer: (activeManifest as unknown as { signatureInfo?: { issuer?: string } })?.signatureInfo?.issuer ?? signingCert?.subject?.CN ?? '(unknown signer)',
+          trustListName: c2pa.trustList?.tlInfo.name ?? null,
+          trustListEntity: c2pa.trustList?.entity?.name ?? null,
+          isAIDetected: c2pa.trustList?.tlInfo.name === 'AI trust list',
+          manifestCount: manifestArr.length,
+          activeManifest: (activeManifest as unknown as { title?: string })?.title ?? '(unnamed)',
+          certIssuer: signingCert?.issuer?.CN ?? null,
+          certSubject: signingCert?.subject?.CN ?? null,
+          hasTSA: c2pa.tstTokens != null && c2pa.tstTokens.length > 0,
+          validationErrors: c2pa.manifestStore.validationStatus ?? [],
+          ingredients
         }
         void chrome.runtime.sendMessage({ action: MSG_RESPONSE_C2PA_ENTRIES, data: response })
       })
