@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Corpus - Verifieddit E2E Testing</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+    }
+    .corpus-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .corpus-item {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .corpus-item img {
+      max-width: 100%;
+      height: auto;
+      min-width: 100px;
+      min-height: 100px;
+      display: block;
+      margin: 10px 0;
+    }
+    .corpus-item h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .corpus-item p {
+      margin: 5px 0;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <h1>Verifieddit Extension - Demo Corpus</h1>
+  <p>This page contains test images with various C2PA credential states for extension testing.</p>
+
+  <div class="corpus-grid">
+    <div class="corpus-item">
+      <h3>01: Green Trust (JPEG)</h3>
+      <img src="/demo-corpus/01-greentrust-jpeg.jpg" alt="Green trust JPEG with C2PA credentials">
+      <p>C2PA verified, trusted signer</p>
+    </div>
+
+    <div class="corpus-item">
+      <h3>02: Green Trust (PNG)</h3>
+      <img src="/demo-corpus/02-greentrust-png.png" alt="Green trust PNG with C2PA credentials">
+      <p>C2PA verified, trusted signer</p>
+    </div>
+
+    <div class="corpus-item">
+      <h3>03: Green Trust (WebP)</h3>
+      <img src="/demo-corpus/03-greentrust-webp.webp" alt="Green trust WebP with C2PA credentials">
+      <p>C2PA verified, trusted signer</p>
+    </div>
+
+    <div class="corpus-item">
+      <h3>04: Warning - Untrusted Signer</h3>
+      <img src="/demo-corpus/04-warning-untrusted-signer.jpg" alt="Image with untrusted signer warning">
+      <p>C2PA present but signer not trusted</p>
+    </div>
+
+    <div class="corpus-item">
+      <h3>05: Error - Tampered Pixels</h3>
+      <img src="/demo-corpus/05-error-tampered-pixels.jpg" alt="Image with tampered pixels error">
+      <p>C2PA credentials indicate pixel tampering</p>
+    </div>
+
+    <div class="corpus-item">
+      <h3>06: No C2PA - Plain JPEG</h3>
+      <img src="/demo-corpus/06-no-c2pa-plain-jpeg.jpg" alt="Plain image without C2PA credentials">
+      <p>No C2PA metadata present</p>
+    </div>
+
+    <div class="corpus-item">
+      <h3>07: Edge Case - Real-World CBC Signed</h3>
+      <img src="/demo-corpus/07-edge-realworld-cbc-signed.jpg" alt="Real-world image with CBC signing">
+      <p>Real-world C2PA credential with complex manifest</p>
+    </div>
+  </div>
+
+  <hr>
+  <footer>
+    <p>Corpus manifest: <code><a href="/demo-corpus/manifest.json">manifest.json</a></code></p>
+  </footer>
+</body>
+</html>
