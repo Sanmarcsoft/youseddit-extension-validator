@@ -159,7 +159,16 @@ async function postWithResponse <T> (message: unknown): Promise<T> {
 
 async function handleValidationResult (mediaElement: MediaElement, c2paResult: C2paResult | C2paError): Promise<void> {
   if (c2paResult instanceof Error || c2paResult.manifestStore == null) {
-    console.error('Error validating image 1:', c2paResult)
+    // 'No Manifest' is the expected case for any unsigned image on the
+    // open web — log at debug level, not error. Genuine errors (bad
+    // signatures, network failures, malformed media, etc.) still go
+    // to console.error so they remain loud.
+    const name = (c2paResult as C2paError).name
+    if (name === 'No Manifest') {
+      console.debug('No C2PA manifest for image:', (c2paResult as C2paError).url)
+    } else {
+      console.error('C2PA validation error:', c2paResult)
+    }
     return
   }
 
