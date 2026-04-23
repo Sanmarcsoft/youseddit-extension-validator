@@ -94,27 +94,136 @@ async function showResults (): Promise<void> {
   void chrome.tabs.sendMessage(id, { action: MSG_REQUEST_C2PA_ENTRIES, data: null })
 }
 
-function addValidationResult (validationResult: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
+// Escape untrusted strings before insertion into innerHTML (#59).
+function esc (s: string | null | undefined): string {
+  if (s == null) return ''
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c)
+}
+
+function statusLabel (status: string): { text: string, cls: string } {
+  switch (status) {
+    case 'success':    return { text: 'Trusted',     cls: 'status-success' }
+    case 'warning':    return { text: 'Untrusted',   cls: 'status-warning' }
+    case 'error':      return { text: 'Invalid',     cls: 'status-error' }
+    case 'ai-success': return { text: 'AI (signed)', cls: 'status-ai-success' }
+    case 'ai-error':   return { text: 'AI (error)',  cls: 'status-ai-error' }
+    default:           return { text: status,        cls: 'status-unknown' }
+  }
+}
+
+function renderIngredientTree (ingredients: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD['ingredients']): string {
+  if (ingredients.length === 0) {
+    return '<div class="ingredient-empty">No ingredients in manifest</div>'
+  }
+  const rows = ingredients.map((ing) => {
+    const thumb = ing.thumbnail != null && ing.thumbnail !== ''
+      ? `<img class="ingredient-thumb" src="${esc(ing.thumbnail)}" alt="">`
+      : '<div class="ingredient-thumb placeholder">?</div>'
+    return `
+      <li class="ingredient">
+        ${thumb}
+        <div class="ingredient-meta">
+          <div class="ingredient-title">${esc(ing.title)}</div>
+          <div class="ingredient-dim">${esc(ing.format)} · in ${esc(ing.parentManifest)}</div>
+        </div>
+      </li>`
+  }).join('')
+  return `<ul class="ingredient-tree">${rows}</ul>`
+}
+
+function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
+  // Status icon — same two-tone CR set as the in-page overlay.
   const iconUrl = {
-    valid: chrome.runtime.getURL('icons/cr.svg'),
-    invalid: chrome.runtime.getURL('icons/crx.svg'),
-    untrusted: chrome.runtime.getURL('icons/cr!.svg')
-  }
+    success:      chrome.runtime.getURL('icons/cr.svg'),
+    warning:      chrome.runtime.getURL('icons/cr!.svg'),
+    error:        chrome.runtime.getURL('icons/crx.svg'),
+    'ai-success': chrome.runtime.getURL('icons/cr.svg'),
+    'ai-error':   chrome.runtime.getURL('icons/crx.svg')
+  } as Record<string, string>
+  const icon = iconUrl[r.status] ?? iconUrl.success
 
-  const icon = validationResult.status === 'error' ? iconUrl.invalid : validationResult.status === 'warning' ? iconUrl.untrusted : iconUrl.valid
+  const thumbSrc = (r.thumbnail != null && r.thumbnail !== '')
+    ? r.thumbnail
+    : chrome.runtime.getURL('icons/camera.svg')
 
-  if (validationResult.thumbnail === '') {
-    validationResult.thumbnail = chrome.runtime.getURL('icons/video.svg')
-  }
+  const { text: statusText, cls: statusCls } = statusLabel(r.status)
+
+  const errorsSection = r.validationErrors.length > 0
+    ? `<dt>Errors</dt><dd class="validation-errors">${r.validationErrors.map((e) => `<div>${esc(e)}</div>`).join('')}</dd>`
+    : ''
+
+  const trustLine = r.trustListName != null
+    ? `${esc(r.trustListName)}${r.trustListEntity != null ? ` · ${esc(r.trustListEntity)}` : ''}`
+    : '<span class="detail-dim">not in any trust list</span>'
+
+  const tsaLine = r.hasTSA
+    ? '<span class="tsa-ok">✓ present</span>'
+    : '<span class="detail-dim">absent</span>'
+
+  const aiLine = r.isAIDetected
+    ? '<span class="ai-flag">⚠ AI-generated</span>'
+    : '<span class="detail-dim">no</span>'
+
+  // Unique id so each row's details panel can be toggled independently.
+  const rowId = `v-${Math.random().toString(36).slice(2, 9)}`
 
   const html = `
-          <img src="${icon}" style="width: 30px; height: 30px;">
-          <img src="${validationResult.thumbnail}" style="width: 40px; height: 40px">
-          <div>${decodeURIComponent(validationResult.name)}</div>
-          `
+    <div class="v-row" data-status="${esc(r.status)}">
+      <button class="v-summary" data-target="${rowId}" aria-expanded="false">
+        <img class="v-status-icon" src="${esc(icon)}" alt="${esc(statusText)}">
+        <img class="v-thumb" src="${esc(thumbSrc)}" alt="">
+        <div class="v-name">${esc(decodeURIComponent(r.name))}</div>
+        <span class="v-pill ${statusCls}">${esc(statusText)}</span>
+        <span class="v-disclosure">▸</span>
+      </button>
+      <div class="v-details" id="${rowId}" hidden>
+        <dl>
+          <dt>Signer</dt>
+          <dd>${esc(r.signer)}</dd>
+          <dt>Trust list</dt>
+          <dd>${trustLine}</dd>
+          <dt>Certificate</dt>
+          <dd>${r.certIssuer != null ? `issued by <b>${esc(r.certIssuer)}</b>${r.certSubject != null ? ` to <b>${esc(r.certSubject)}</b>` : ''}` : '<span class="detail-dim">no chain</span>'}</dd>
+          <dt>Trusted timestamp</dt>
+          <dd>${tsaLine}</dd>
+          <dt>AI detection</dt>
+          <dd>${aiLine}</dd>
+          <dt>Manifests</dt>
+          <dd>${r.manifestCount} · active: <b>${esc(r.activeManifest)}</b></dd>
+          ${errorsSection}
+        </dl>
+        <div class="ingredient-header">Ingredients (${r.ingredients.length})</div>
+        ${renderIngredientTree(r.ingredients)}
+      </div>
+    </div>
+  `
+
   const validationEntries = document.getElementById('validationEntries')
-  if (validationEntries !== null) {
-    validationEntries.innerHTML += html
+  if (validationEntries == null) return
+  // Hide the "scanning…" empty state as soon as the first entry arrives.
+  const empty = document.getElementById('validationEmpty')
+  if (empty != null) empty.style.display = 'none'
+  // Append; wire up the toggle for the newly inserted row.
+  const wrap = document.createElement('template')
+  wrap.innerHTML = html.trim()
+  const node = wrap.content.firstElementChild
+  if (node == null) return
+  validationEntries.appendChild(node)
+  const btn = node.querySelector<HTMLButtonElement>('.v-summary')
+  const panel = node.querySelector<HTMLElement>('.v-details')
+  if (btn != null && panel != null) {
+    btn.addEventListener('click', () => {
+      const open = panel.hasAttribute('hidden') === false
+      if (open) {
+        panel.setAttribute('hidden', '')
+        btn.setAttribute('aria-expanded', 'false')
+        btn.classList.remove('is-open')
+      } else {
+        panel.removeAttribute('hidden')
+        btn.setAttribute('aria-expanded', 'true')
+        btn.classList.add('is-open')
+      }
+    })
   }
 }
 
