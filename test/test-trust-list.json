@@ -3,7 +3,7 @@
   "download_url": "",
   "description": "Official C2PA trust anchors from c2pa-org/conformance-public \u2014 synced with verifieddit.com",
   "website": "https://github.com/c2pa-org/conformance-public",
-  "last_updated": "2026-04-21T00:00:00Z",
+  "last_updated": "2026-04-24T12:15:00Z",
   "entities": [
     {
       "name": "Google LLC - Google C2PA Media Services 1P ICA G3",
@@ -324,6 +324,40 @@
               "MIICcDCCAfagAwIBAgIUBDlKkihSufUldk8QxHNUIx7zIPkwCgYIKoZIzj0EAwMwRDEhMB8GA1UECgwYQzJQQSBFeHRlbnNpb24gVmFsaWRhdG9yMQ0wCwYDVQQLDARUZXN0MRAwDgYDVQQDDAdUZXN0IENBMB4XDTI2MDQyMTEzMTQ1MFoXDTI4MDQyMDEzMTQ1MFowSDEhMB8GA1UECgwYQzJQQSBFeHRlbnNpb24gVmFsaWRhdG9yMQ0wCwYDVQQLDARUZXN0MRQwEgYDVQQDDAtUZXN0IFNpZ25lcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNg/OPgx33N5uJEi4KNjovo/LJgsbfmKnUb6bftesDBpYr6AAnzQ6+MLoBVtv06sf8g8LiQpzSLVld7HSnqZgmyjgcEwgb4wCQYDVR0TBAIwADALBgNVHQ8EBAMCB4AwTwYDVR0RBEgwRoZEaHR0cHM6Ly9naXRodWIuY29tL21pY3Jvc29mdC9jMnBhLWV4dGVuc2lvbi12YWxpZGF0b3IvdHJlZS9tYWluL3Rlc3QwHQYDVR0OBBYEFFI2T+/M9RGLKd+notfBeYIX5858MB8GA1UdIwQYMBaAFIOFH3r2nqDl5rvHi0xJDBF4dHkdMBMGA1UdJQQMMAoGCCsGAQUFBwMkMAoGCCqGSM49BAMDA2gAMGUCMQDK18/ZOjsp8IwAV6baDtgFBR/McY0C8pDwghXIEiueZe7ws3MMT7LNyLMvTdhMWvsCMGmmluGpBg3zXQbf8/wa/ARqxzCqUSw4whYn2KOOIXCS6G0q4gHxcuWSMTqqyN3Vag=="
             ],
             "x5t#S256": "a1d71e68d2a48f08045700119c14a81d62d043a06ccc15249abc59f90b262e59"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Trusteddit.com - Trusteddit-Journalist-Issuer-CA",
+      "display_name": "Trusteddit-Journalist-Issuer-CA",
+      "contact": "https://trusteddit.com",
+      "isCA": true,
+      "jwks": {
+        "keys": [
+          {
+            "kty": "EC",
+            "x5c": [
+              "MIIB2jCCAX+gAwIBAgIRAMPtFg+/UfZ4/RbPF1QkGgEwCgYIKoZIzj0EAwIwSjEfMB0GA1UEChMWVHJ1c3RlZGRpdC5jb20gUm9vdCBDQTEnMCUGA1UEAxMeVHJ1c3RlZGRpdC5jb20gUm9vdCBDQSBSb290IENBMB4XDTI1MDgyOTA5MjEyN1oXDTM1MDgyNzA5MjEyN1owKjEoMCYGA1UEAxMfVHJ1c3RlZGRpdC1Kb3VybmFsaXN0LUlzc3Vlci1DQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABMZHQ2SBQwzDMzxSZlno5UtnYS1LXJ6yRiYJlRH4AYfp2fSaqwgecq48tbQF6ShLef66I6HZUFypJ5ETMIdqf5GjZjBkMA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBQi169gndODeCF7HKnM87MrNc8elTAfBgNVHSMEGDAWgBT189Bqom2ijBcsx2NMmNfKbUjkZzAKBggqhkjOPQQDAgNJADBGAiEAzfjM4uyIvsvYc8JicL+DoeZaEiNp93oUh0wtc66m+cACIQCpMIDfzaH0lX4EDtRB2yCDkYFTVfSKx4hpJ0RNfKXWPA=="
+            ],
+            "x5t#S256": "3b0c969c747c514f5d2d785d6819b4836aa3a11451282f12a5c0ebfed183e9e9"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Trusteddit.com - Trusteddit.com Root CA Root CA",
+      "display_name": "Trusteddit.com Root CA Root CA",
+      "contact": "https://trusteddit.com",
+      "isCA": true,
+      "jwks": {
+        "keys": [
+          {
+            "kty": "EC",
+            "x5c": [
+              "MIIB1zCCAX6gAwIBAgIRAPYvziGZdOCDegvDEaiwuoMwCgYIKoZIzj0EAwIwSjEfMB0GA1UEChMWVHJ1c3RlZGRpdC5jb20gUm9vdCBDQTEnMCUGA1UEAxMeVHJ1c3RlZGRpdC5jb20gUm9vdCBDQSBSb290IENBMB4XDTI1MDgyMTEzNDgxMFoXDTM1MDgxOTEzNDgxMFowSjEfMB0GA1UEChMWVHJ1c3RlZGRpdC5jb20gUm9vdCBDQTEnMCUGA1UEAxMeVHJ1c3RlZGRpdC5jb20gUm9vdCBDQSBSb290IENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE0igNYBBKViL/M5Eio7cNxbNs6NZIraHCPaLOY7VWfDUjAyDle1Q8F1GhxThu1ULm2NKwu4LSMJiJkko71TC/b6NFMEMwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQEwHQYDVR0OBBYEFPXz0GqibaKMFyzHY0yY18ptSORnMAoGCCqGSM49BAMCA0cAMEQCIH3CsKqoF/C2UYWl9vgoE6uNzVkePNSuUhdElvgcxl/2AiAvZN0DEOGIvB+17ALoyMcviPaeuXkuiDfNNPFJSHbPWA=="
+            ],
+            "x5t#S256": "315c9e7ebc9442ada9b25d39ac0d5284d5538a7e3ba71bd4a20ab8f465f67c0f"
           }
         ]
       }
