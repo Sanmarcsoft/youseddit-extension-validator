@@ -77,19 +77,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (action === MSG_L3_INSPECT_URL) {
+    // Open verifieddit.com with the image URL pre-populated via ?url=.
+    // (#74) Replaces the upstream "paste into Microsoft Content Integrity's
+    // HTMLInputElement via MutationObserver" dance, which was tied to
+    // Microsoft's page DOM and is no longer the target validator page.
     void openOrSwitchToTab(data as string)
-      .then(async tab => {
-        if (tab.id == null) {
-          return
-        }
-        const id = tab.id
-        // TODO: when the tab is newly created, the content script may not be ready to receive the message.
-        // This is a temporary workaround to wait for the content script to be ready.
-        // We should have the content script send a message to the background script when it is ready. Then we can remove this timeout.
-        setTimeout(() => {
-          chrome.tabs.sendMessage(id, { action: MSG_REMOTE_INSPECT_URL, data }).catch(() => { /* content script may not yet be ready */ })
-        }, 1000)
-      })
   }
 
   if (action === MSG_FORWARD_TO_CONTENT && tabId != null) {
@@ -172,23 +164,14 @@ async function init (): Promise<void> {
   })
 }
 
-async function openOrSwitchToTab (url: string): Promise<chrome.tabs.Tab> {
-  const openTabs = await chrome.tabs.query({ url: REMOTE_VALIDATION_LINK })
-
-  let tab: chrome.tabs.Tab
-
-  if (openTabs.length > 0) {
-    tab = openTabs[0]
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chrome.tabs.update(tab.id!, { active: true })
-    if (tab.windowId != null) {
-      await chrome.windows.update(tab.windowId, { focused: true })
-    }
-  } else {
-    tab = await chrome.tabs.create({ url: REMOTE_VALIDATION_LINK })
-  }
-
-  return tab
+async function openOrSwitchToTab (imageUrl: string): Promise<chrome.tabs.Tab> {
+  // Build the Verifieddit /check URL with the image URL as a query parameter.
+  // (#74) Always open a NEW tab — reusing the existing tab loses the previous
+  // inspection, and matching a pre-existing tab by REMOTE_VALIDATION_LINK
+  // exactly no longer works once the URL carries per-image query params.
+  const target = new URL(REMOTE_VALIDATION_LINK)
+  target.searchParams.set('url', imageUrl)
+  return await chrome.tabs.create({ url: target.toString() })
 }
 
 // trust list refresh alarm (run once a day) TODO: create an option

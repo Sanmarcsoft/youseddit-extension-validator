@@ -181,6 +181,28 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(panel.trustList, 'trust list must read "unknown" for the CBC fixture').toBe('unknown')
       expect(panel.shadowText, 'overlay must show the signer').toContain('CBC/Radio-Canada')
       expect(panel.shadowText, 'overlay must indicate signer is unknown to current trust list').toMatch(/unknown/i)
+
+      // rc11.3 / #74 — the overlay's "For more details" inspection copy must
+      // point at Verifieddit, not the upstream Microsoft Content Integrity
+      // page. Assert both the user-visible text and the absence of the old
+      // microsoft.com host in any link-bearing attribute of the shadow tree.
+      const linkAudit = await iframeFrame!.evaluate(() => {
+        const overlay = document.querySelector('c2pa-overlay') as unknown as { shadowRoot: ShadowRoot | null }
+        const root = overlay?.shadowRoot
+        const text = (root?.textContent ?? '').replace(/\s+/g, ' ').trim()
+        const allEls = root != null ? Array.from(root.querySelectorAll('*')) : []
+        const hasMicrosoftHost = allEls.some((el) => {
+          for (const a of el.getAttributeNames()) {
+            const v = el.getAttribute(a) ?? ''
+            if (v.includes('contentintegrity.microsoft.com')) return true
+          }
+          return false
+        }) || text.includes('contentintegrity.microsoft.com')
+        return { text, hasMicrosoftHost }
+      })
+      expect(linkAudit.text, 'overlay must not mention "Microsoft Content Integrity"').not.toMatch(/microsoft content integrity/i)
+      expect(linkAudit.text, 'overlay must offer a Verifieddit details page').toMatch(/verifieddit/i)
+      expect(linkAudit.hasMicrosoftHost, 'no attribute or text may reference contentintegrity.microsoft.com').toBe(false)
     } finally {
       await ctx.close()
     }

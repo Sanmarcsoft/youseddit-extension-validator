@@ -460,7 +460,7 @@ export class C2paOverlay extends LitElement {
       </div>
       ${this.validationSection(c2paResult.manifestStore.validationStatus)}
       <div id="inspectionLink">
-          For more details, inspect the image in the <span id="mciLink" @click="${this.handleClick}"><u>Microsoft Content Integrity</u></span> page.
+          For more details, inspect this image on the <span id="mciLink" @click="${this.handleClick}"><u>Verifieddit</u></span> page.
       </div>
       <!-- <div class="additional-info" style="display: ${this.additionalInfoCollapsed ? 'none' : 'flex'};"> -->
       <div class="additional-info">
