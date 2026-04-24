@@ -176,7 +176,7 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
  * can branch on. Returned as `C2paResult` via a deliberate cast since the
  * synth only fills the subset of fields the overlay actually reads.
  */
-function synthesiseRecoveredC2paResult (url: string, api: { recovery: RecoveredCredential | null } & Record<string, unknown>): C2paResult {
+function synthesiseRecoveredC2paResult (url: string, api: { recovery: RecoveredCredential | null }): C2paResult {
   const rec = api.recovery
   if (rec == null) throw new Error('synthesiseRecoveredC2paResult called with no recovery block')
   const manifest = {
