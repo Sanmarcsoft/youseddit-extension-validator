@@ -217,6 +217,37 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(linkAudit.text, 'overlay must offer a Verifieddit details page').toMatch(/verifieddit/i)
       expect(linkAudit.hasMicrosoftHost, 'no attribute or text may reference contentintegrity.microsoft.com').toBe(false)
 
+      // rc13 / #73 — ingredient diagram renders in the Ingredients
+      // collapsible. Even with zero ingredients we expect at least one
+      // node (the active manifest). Opening the collapsible first.
+      const diagramAudit = await iframeFrame!.evaluate(() => {
+        const overlay = document.querySelector('c2pa-overlay') as unknown as { shadowRoot: ShadowRoot | null }
+        const root = overlay?.shadowRoot
+        if (root == null) return { hasDiagram: false }
+        // The Ingredients section uses <c2pa-collapsible>; expand it
+        const collapsibles = [...root.querySelectorAll('c2pa-collapsible')] as unknown as Array<{ open?: boolean, shadowRoot?: ShadowRoot | null }>
+        const ingSection = collapsibles.find((c) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const header = ((c as any).shadowRoot?.querySelector('.section-title')?.textContent ?? '') as string
+          return /ingredients/i.test(header)
+        })
+        if (ingSection != null) {
+          (ingSection as { open?: boolean }).open = true
+        }
+        // The diagram lives in the light DOM of <c2pa-collapsible>'s content slot
+        const diagram = root.querySelector('.ingredient-diagram svg') as SVGElement | null
+        const rects = diagram != null ? Array.from(diagram.querySelectorAll('rect')) : []
+        const paths = diagram != null ? Array.from(diagram.querySelectorAll('path')) : []
+        return {
+          hasDiagram: diagram != null,
+          rectCount: rects.length,
+          pathCount: paths.length,
+          firstRectStroke: rects[0]?.getAttribute('stroke') ?? null
+        }
+      })
+      expect(diagramAudit.hasDiagram, 'ingredient diagram SVG must render in the Ingredients section').toBe(true)
+      expect(diagramAudit.rectCount, 'diagram must contain ≥ 1 rounded-rect node (active manifest)').toBeGreaterThanOrEqual(1)
+
       // rc11.7 / #86 — auto-scan must be OFF on a fresh install so users
       // don't see CR icons on every page without asking. The only reason
       // icons appear in this test is that we explicitly clicked the CBC
