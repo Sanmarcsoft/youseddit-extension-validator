@@ -54,13 +54,19 @@ test.describe('popup About + Trust Lists (issue #68)', () => {
       await page.click('button.tab[data-tab="about"]')
       await page.waitForTimeout(500)
 
-      // Release tag visible, starts with "v1.0.0-rc"
+      // Release tag visible. In CI / release builds this should look like
+      // "vX.Y.Z-rcNN" (tags available); in unit/dev builds cloned without
+      // tags git-describe falls back to "<sha>-dirty", which is also a
+      // valid signal that the placeholder wiring is live.
       const releaseTag = await page.locator('#release-tag').textContent()
       expect(releaseTag, 'release tag must be non-empty').toBeTruthy()
-      expect(releaseTag ?? '', 'release tag should look like vX.Y.Z-rcNN').toMatch(/^v\d+\.\d+\.\d+(-rc\d+)?/)
+      expect(releaseTag ?? '', 'release tag should look like vX.Y.Z-rcNN or a dev SHA').toMatch(
+        /^(v\d+\.\d+\.\d+(-[a-z0-9.]+)?|[0-9a-f]{7,}(-dirty)?)$/
+      )
 
-      // Pre-release badge visible
-      await expect(page.locator('#release-stage')).toBeVisible()
+      // Pre-release badge present (pre-release or stable)
+      const stage = await page.locator('#release-stage').textContent()
+      expect(stage?.trim() ?? '').toMatch(/^(pre-release|stable)$/)
 
       // "What's new" section has at least one release entry
       const entries = page.locator('.release-entry')
