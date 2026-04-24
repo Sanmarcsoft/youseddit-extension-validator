@@ -24,19 +24,15 @@ interface IconTextItem {
 
 const sharedStyles = css`
     :host {
-        /* Custom elements default to display:inline, which collapses the host
-         * to zero layout height. The overlay lives inside iframe.html where
-         * the parent iframe sizes itself off document.body via ResizeObserver
-         * + MSG_UPDATE_FRAME_HEIGHT; if :host doesn't contribute height, the
-         * iframe ends up ~2px tall and the panel is effectively invisible
-         * (rc11.2 / issue #70). Force a block host with an opaque default
-         * background so the iframe has real content to render against.
+        /* Theme tokens ONLY. Layout rules (display, min-width, min-height,
+         * background) must NOT live here because this stylesheet is applied
+         * to every custom element in this module — c2pa-overlay,
+         * c2pa-collapsible, c2pa-grid-display. rc11.2 (#70) put the min-sizing
+         * here to fix the overlay-collapse-to-2px bug; that also made every
+         * closed <c2pa-collapsible> reserve 160 px of empty vertical space,
+         * violating rc11.4 (#76). Each component now owns its own :host
+         * layout rules in its static styles block.
          */
-        display: block;
-        background: #FFFFFF;
-        min-width: 280px;
-        min-height: 160px;
-        /* Theme tokens consumed by the rest of the component tree. */
         --background: #FFFFFF;
         --border-color: #DDDDDD;
         --background-highlight: #F4F4F4;
@@ -46,10 +42,33 @@ const sharedStyles = css`
         --font-bold: 700;
     }`
 
+/*
+ * Layout rules for the top-level c2pa-overlay panel — restores the rc11.2
+ * stacking-fix guarantees without leaking into sibling custom elements.
+ */
+const overlayHostStyles = css`
+    :host {
+        display: block;
+        background: #FFFFFF;
+        min-width: 280px;
+        min-height: 160px;
+    }`
+
+/*
+ * Layout rules for inline custom elements that live INSIDE c2pa-overlay.
+ * display:block so they contribute height; NO min-height so they collapse
+ * to the intrinsic height of their own content when closed (rc11.4 / #76).
+ */
+const innerHostStyles = css`
+    :host {
+        display: block;
+    }`
+
 @customElement('c2pa-overlay')
 export class C2paOverlay extends LitElement {
   static styles = [
     sharedStyles,
+    overlayHostStyles,
     css`
       * {
           font-family: var(--font-family);
@@ -186,9 +205,12 @@ export class C2paOverlay extends LitElement {
       }
 
       .separator {
-        border-bottom: 1px solid var(--border-color);
-        margin: 5px 15px 5px 15px
-        border-color: #EEE
+        /* rc11.4 / #76 — tighter separator; also repairs a missing
+         * semicolon after the margin rule which made border-color
+         * concatenate into the margin value as invalid CSS.
+         */
+        border-bottom: 1px solid #EEE;
+        margin: 3px 15px;
       }
 
       .button {
@@ -212,11 +234,14 @@ export class C2paOverlay extends LitElement {
 
       .additional-info {
         overflow: hidden;
-        max-height: 0; 
+        max-height: 0;
         transition: max-height 0.3s ease-in-out;
-        display: flex;        
+        display: flex;
         flex-direction: column;
-        gap: 15px;
+        /* rc11.4 / #76 — gap was 15px and caused four closed sections
+         * to pile up 45px of pure air. Drop to 4px so closed sections
+         * sit flush. */
+        gap: 4px;
         justify-content: space-between;
       }
 
@@ -508,9 +533,9 @@ export class C2paCollapsible extends LitElement {
 
   static styles = [
     sharedStyles,
+    innerHostStyles,
     css`
     .collapsible-container {
-
     }
     .collapsible-header {
       cursor: pointer;
@@ -518,12 +543,19 @@ export class C2paCollapsible extends LitElement {
       justify-content: space-between;
       align-items: center;
       font-weight: 700;
-      font-size: 16px;
+      /* rc11.4 / #76 — header was 16px making each closed row ~30px tall.
+       * Drop to 13px so the header itself is ~20px. Paired with the
+       * smaller gap/margin in .additional-info + .separator below, four
+       * closed sections now take ~80px total instead of ~130px. */
+      font-size: 13px;
+      padding: 2px 0;
     }
     .collapsible-content {
       overflow: hidden;
       max-height: 0;
-      transition: max-height 0.3s ease;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      /* When closed, collapse the content pad to zero so the section
+       * contributes no inter-row padding either. */
       padding: 0 0 0 20px;
     }
     .collapsible-content.open  {

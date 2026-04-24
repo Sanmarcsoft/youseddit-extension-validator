@@ -203,6 +203,19 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(linkAudit.text, 'overlay must not mention "Microsoft Content Integrity"').not.toMatch(/microsoft content integrity/i)
       expect(linkAudit.text, 'overlay must offer a Verifieddit details page').toMatch(/verifieddit/i)
       expect(linkAudit.hasMicrosoftHost, 'no attribute or text may reference contentintegrity.microsoft.com').toBe(false)
+
+      // rc11.4 / #76 — the overlay must be space-efficient. With all four
+      // collapsible sections closed, the panel height must be below an
+      // "all-closed ceiling" (< 400 px). In rc11.2 the sections each carried
+      // a 160 px min-height because the rc11.2 #70 fix applied min-sizing to
+      // sharedStyles, which bled into <c2pa-collapsible>. Panel height was
+      // ~800 px with every section closed, leaving vast empty space.
+      const closedHeight = await page.evaluate(() => {
+        const d = [...document.querySelectorAll('iframe')].find(f => f.className === 'c2paDialog')
+        return d?.getBoundingClientRect().height ?? 0
+      })
+      expect(closedHeight, `overlay height with all collapsibles closed must be < 400 px; got ${closedHeight}`).toBeLessThan(400)
+      expect(closedHeight, `overlay height must be ≥ 120 px (still usable); got ${closedHeight}`).toBeGreaterThanOrEqual(120)
     } finally {
       await ctx.close()
     }
