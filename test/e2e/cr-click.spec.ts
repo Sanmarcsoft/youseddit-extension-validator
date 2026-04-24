@@ -96,7 +96,14 @@ test.describe('CR overlay click (issue #65)', () => {
       }, CBC_FIXTURE_URL_FRAGMENT)
 
       expect(pre.found, 'CR icon must exist near CBC fixture').toBe(true)
-      expect(pre.onclickType, 'icon.onclick must be set (IDL handler, not addEventListener)').toBe('function')
+      // Cross-world view of el.onclick can come back as either 'function' or
+      // 'object' depending on how Playwright bridges the content-script
+      // isolated world back to the page world. Both are acceptable; we just
+      // need it to be *not* the absent values ('none' / 'null' / 'undefined').
+      expect(
+        ['function', 'object'].includes(pre.onclickType ?? 'none'),
+        `icon.onclick must be set (IDL handler, not addEventListener); got ${String(pre.onclickType)}`
+      ).toBe(true)
       expect(pre.iconTitle).toContain(CBC_FIXTURE_URL_FRAGMENT)
 
       // Click via IDL — click() — exercises the onclick property directly
