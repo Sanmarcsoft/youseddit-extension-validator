@@ -128,6 +128,34 @@ test.describe('CR overlay click (issue #65)', () => {
       // Give the iframe a moment to populate via MSG_DISPLAY_C2PA_OVERLAY
       await page.waitForTimeout(2_000)
 
+      // rc11.2 / #70 — the iframe must actually be visually visible, not a
+      // 302×2 transparent slit hidden behind the page content. Assert:
+      //   1. elementsFromPoint(centre) returns the iframe as top-of-stack.
+      //   2. the iframe has non-trivial width AND height (≥ 180×120 px).
+      //   3. the iframe rect overlaps the current viewport.
+      const stacking = await page.evaluate(() => {
+        const d = [...document.querySelectorAll('iframe')].find(f => f.className === 'c2paDialog')
+        if (d == null) return null
+        const r = d.getBoundingClientRect()
+        const cx = r.x + r.width / 2
+        const cy = r.y + r.height / 2
+        const top = document.elementsFromPoint(cx, cy)[0]
+        return {
+          rect: { x: r.x, y: r.y, w: r.width, h: r.height },
+          topIsIframe: top === d,
+          topTag: top?.tagName,
+          topCls: (top as HTMLElement | null)?.className?.toString().slice(0, 80),
+          inViewport: r.width > 0 && r.height > 0 &&
+            r.right > 0 && r.bottom > 0 &&
+            r.left < window.innerWidth && r.top < window.innerHeight
+        }
+      })
+      expect(stacking, 'overlay iframe must exist for stacking check').not.toBeNull()
+      expect(stacking!.inViewport, `overlay iframe must land inside the viewport; got rect ${JSON.stringify(stacking!.rect)}`).toBe(true)
+      expect(stacking!.rect.w, 'overlay width must be ≥ 180 px').toBeGreaterThanOrEqual(180)
+      expect(stacking!.rect.h, `overlay height must be ≥ 120 px; got ${stacking!.rect.h} — probably <c2pa-overlay> host had display:inline or iframe had no min-height`).toBeGreaterThanOrEqual(120)
+      expect(stacking!.topIsIframe, `overlay iframe must be topmost at its centre; got ${stacking!.topTag}.${stacking!.topCls} — probably a page element has a higher z-index or the overlay is transparent`).toBe(true)
+
       // Diagnostic logs we expect to have emitted
       expect(consoleLogs.some(l => l.includes('CrIcon onclick fired')), 'CrIcon click handler must fire').toBe(true)
       expect(consoleLogs.some(l => l.includes('overlayFrame: MSG_OPEN_OVERLAY received')), 'overlayFrame must hear MSG_OPEN_OVERLAY').toBe(true)
