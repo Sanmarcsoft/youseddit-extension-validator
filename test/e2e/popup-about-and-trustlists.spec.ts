@@ -120,6 +120,15 @@ test.describe('popup About + Trust Lists (issue #68)', () => {
       // belongs to rc12 / #66.)
       const fileInputs = await page.locator('#trustlists input[type="file"]').count()
       expect(fileInputs, 'Trust Lists tab must be read-only — no file inputs').toBe(0)
+
+      // rc11.5 / #79 — the bundled C2PA Official Trust List must include
+      // Trusteddit.com (verifieddit.com trusts it; the extension must
+      // mirror). Verify via the summary total (≥ 21 after rc11.5 adds
+      // the Journalist-Issuer-CA + Trusteddit.com Root CA).
+      const summaryText = await page.locator('.trustlists-summary').textContent()
+      const totalMatch = summaryText?.match(/(\d+)\s+entit/i)
+      const total = totalMatch != null ? parseInt(totalMatch[1], 10) : 0
+      expect(total, `total entity count must be ≥ 21 (Trusteddit.com included); got ${total} from "${summaryText}"`).toBeGreaterThanOrEqual(21)
     } finally {
       await ctx.close()
     }
