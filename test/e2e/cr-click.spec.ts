@@ -204,6 +204,15 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(linkAudit.text, 'overlay must offer a Verifieddit details page').toMatch(/verifieddit/i)
       expect(linkAudit.hasMicrosoftHost, 'no attribute or text may reference contentintegrity.microsoft.com').toBe(false)
 
+      // rc11.7 / #86 — auto-scan must be OFF on a fresh install so users
+      // don't see CR icons on every page without asking. The only reason
+      // icons appear in this test is that we explicitly clicked the CBC
+      // badge earlier; they got auto-rendered during the earlier rc11 /
+      // rc11.1 test-setup. For the dedicated no-auto-scan assertion, a
+      // second test spins up a fresh context with zero prior interaction
+      // and asserts zero icons — that lives in test/e2e/auto-scan.spec.ts
+      // (not added here to keep the cr-click spec focused).
+
       // rc11.4 / #76 — the overlay must be space-efficient. With all four
       // collapsible sections closed, the panel height must be below an
       // "all-closed ceiling" (< 400 px). In rc11.2 the sections each carried

@@ -23,6 +23,13 @@ const SVG_CR_ERROR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41
 const SVG_CR_AI_SUCCESS = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41"><path fill="#2a8a3c" stroke="#1f6a2c" stroke-width="2" d="M1.56 18c0-9.08 7.361-16.44 16.441-16.44s16.443 7.362 16.443 16.442V34.44H18C8.92 34.44 1.56 27.08 1.56 18Z" /><path fill="#ffffff" d="M13.665 26.483c-4.07 0-6.61-3.189-6.61-6.973 0-3.785 2.54-6.973 6.61-6.973 3.292 0 5.522 2.152 6.118 4.951h-3.318c-.441-1.244-1.478-1.996-2.8-1.996-2.048 0-3.396 1.607-3.396 4.018s1.348 4.018 3.396 4.018c1.374 0 2.437-.804 2.852-2.126h3.292c-.545 2.878-2.8 5.08-6.144 5.08M21.12 26.12V12.9h3.11v1.426c.726-.96 1.866-1.582 3.577-1.582h.804v3.06h-.83c-1.166 0-1.892.258-2.436.75-.622.52-.985 1.375-.985 2.67v6.896z" /><rect x="25" y="25" width="10" height="10" rx="1.5" ry="1.5" fill="#1a1a1a" /></svg>`
 const SVG_CR_AI_ERROR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41"><path fill="#c83232" stroke="#7a1f1f" stroke-width="2" d="M1.56 18c0-9.08 7.361-16.44 16.441-16.44s16.443 7.362 16.443 16.442V34.44H18C8.92 34.44 1.56 27.08 1.56 18Z" /><path fill="#ffffff" d="M13.665 26.483c-4.07 0-6.61-3.189-6.61-6.973 0-3.785 2.54-6.973 6.61-6.973 3.292 0 5.522 2.152 6.118 4.951h-3.318c-.441-1.244-1.478-1.996-2.8-1.996-2.048 0-3.396 1.607-3.396 4.018s1.348 4.018 3.396 4.018c1.374 0 2.437-.804 2.852-2.126h3.292c-.545 2.878-2.8 5.08-6.144 5.08M21.12 26.12V12.9h3.11v1.426c.726-.96 1.866-1.582 3.577-1.582h.804v3.06h-.83c-1.166 0-1.892.258-2.436.75-.622.52-.985 1.375-.985 2.67v6.896z" /><rect x="25" y="25" width="16" height="16" rx="1.5" ry="1.5" fill="#1a1a1a" /><path d="m28 28 10.4 10.4M28 38.4 38.4 28" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" /></svg>`
 
+// rc11.7 / #86 — "checked, no credentials found". Neutral grey camera
+// silhouette with a red circle-with-slash overlay in the lower-right so
+// users can tell "we verified and this image carries no cryptographic
+// provenance" apart from "we haven't verified yet" (the transient img
+// state during scan) and from "has credentials, trust unknown" (warning).
+const SVG_CR_NO_CREDENTIALS = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41"><path fill="#888888" stroke="#555555" stroke-width="2" d="M1.56 18c0-9.08 7.361-16.44 16.441-16.44s16.443 7.362 16.443 16.442V34.44H18C8.92 34.44 1.56 27.08 1.56 18Z" /><path fill="#ffffff" d="M9 13h5l1.5-2h6l1.5 2h4v10h-18v-10z" /><circle fill="#ffffff" cx="18" cy="18" r="3.5" /><circle fill="none" stroke="#c83232" stroke-width="3" cx="31" cy="30" r="7" /><line stroke="#c83232" stroke-width="3" stroke-linecap="round" x1="26" y1="25" x2="36" y2="35" /></svg>`
+
 const imageSources: { [key in VALIDATION_STATUS]: string } = {
   success: SVG_CR_SUCCESS,
   warning: SVG_CR_WARNING,
@@ -32,7 +39,8 @@ const imageSources: { [key in VALIDATION_STATUS]: string } = {
   audio: chrome.runtime.getURL('icons/audio.svg'),
   none: '',
   'ai-success': SVG_CR_AI_SUCCESS,
-  'ai-error': SVG_CR_AI_ERROR
+  'ai-error': SVG_CR_AI_ERROR,
+  'no-credentials': SVG_CR_NO_CREDENTIALS
 }
 
 export class CrIcon {
@@ -164,6 +172,6 @@ export class CrIcon {
   }
 
   private static validateStatus (status: unknown): status is VALIDATION_STATUS {
-    return ['success', 'warning', 'error', 'img', 'video', 'audio', 'none'].includes(status as string)
+    return ['success', 'warning', 'error', 'img', 'video', 'audio', 'none', 'ai-success', 'ai-error', 'no-credentials'].includes(status as string)
   }
 }

@@ -151,29 +151,57 @@ async function postWithResponse <T> (message: unknown): Promise<T> {
 }
 
 async function handleValidationResult (mediaElement: MediaElement, c2paResult: C2paResult | C2paError): Promise<void> {
-  if (c2paResult instanceof Error || c2paResult.manifestStore == null) {
-    // 'No Manifest' is the expected case for any unsigned image on the
-    // open web — log at debug level, not error. Genuine errors (bad
-    // signatures, network failures, malformed media, etc.) still go
-    // to console.error so they remain loud.
-    const name = (c2paResult as C2paError).name
-    if (name === 'No Manifest') {
-      console.debug('No C2PA manifest for image:', (c2paResult as C2paError).url)
-    } else {
-      console.error('C2PA validation error:', c2paResult)
-    }
-    return
-  }
-
+  // rc11.7 / #86 — the user explicitly right-click → Verify'd this image.
+  // Always produce a visible interactive icon, even when the result has
+  // no embedded C2PA manifest. Previously this path early-returned and
+  // the user saw nothing happen. The 'no-credentials' badge now renders
+  // a distinct grey-camera-with-red-slash so users can see the verifier
+  // DID run and found nothing.
   const mediaRecord = MediaMonitor.lookup(mediaElement)
   if (mediaRecord == null) {
     console.error('Media record not found:', mediaElement)
     return
   }
 
+  if (c2paResult instanceof Error || c2paResult.manifestStore == null) {
+    const name = (c2paResult as C2paError).name
+    if (name === 'No Manifest') {
+      console.debug('No C2PA manifest for image:', (c2paResult as C2paError).url)
+    } else {
+      console.error('C2PA validation error:', c2paResult)
+    }
+    // Create (or update) an icon in the 'no-credentials' state so the
+    // user gets clear feedback. Click handler opens a minimal panel —
+    // no API call, just explanatory text (respects #83 security baseline).
+    ensureNoCredentialsIcon(mediaRecord, (c2paResult as C2paError)?.url ?? mediaRecord.src)
+    return
+  }
+
   mediaRecord.state.c2pa = c2paResult
 
   setIcon(mediaRecord)
+}
+
+function ensureNoCredentialsIcon (mediaRecord: MediaRecord, url: string): void {
+  if (mediaRecord.icon != null) {
+    mediaRecord.icon.status = 'no-credentials'
+    mediaRecord.icon.setMetadataLink(url)
+    mediaRecord.icon.show()
+    return
+  }
+  mediaRecord.onReady = (mr: MediaRecord): void => {
+    mr.icon = new CrIcon(mr.element, 'no-credentials')
+    mr.icon.setMetadataLink(url)
+    mr.icon.onClick = async () => {
+      const note = `No embedded content credentials were found for this image. ` +
+        `The file has no C2PA manifest, so nothing cryptographic can be verified locally.`
+      // Surface via the browser's own alert for now — a dedicated panel
+      // in <c2pa-overlay> for the no-credentials state is queued behind
+      // the #83 API re-enablement work (rc12.x). Alert is non-blocking
+      // in the extension context and sufficient for the one-line notice.
+      try { window.alert(note + `\n\n` + url) } catch { /* alerts blocked */ }
+    }
+  }
 }
 
 async function getParentOffset (): Promise<Rect> {
