@@ -20,15 +20,18 @@ let _overlay: C2paOverlay | null = null
 let _pendingOverlay: { c2paResult: C2paResult, position: { x: number, y: number } } | null = null
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.debug('overlayFrame received runtime message, action=', message?.action, ', senderTabId=', sender?.tab?.id, ', senderFrameId=', sender?.frameId)
   /*
     Populate the IFrame with C2PA validation results for a media element.
   */
   if (message.action === MSG_OPEN_OVERLAY) {
+    console.debug('overlayFrame: MSG_OPEN_OVERLAY matched, overlay is', _overlay === null ? 'null (buffering)' : 'ready')
     const c2paResult = message.data.c2paResult as C2paResult
     const position = message.data.position as { x: number, y: number }
     if (_overlay !== null) {
       _overlay.c2paResult = c2paResult
       sendToContent({ action: MSG_DISPLAY_C2PA_OVERLAY, data: { position } })
+      console.debug('overlayFrame: forwarded MSG_DISPLAY_C2PA_OVERLAY to content, position=', position)
     } else {
       // window.onload hasn't fired yet — buffer and apply on load
       _pendingOverlay = { c2paResult, position }
