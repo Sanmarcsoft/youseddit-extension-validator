@@ -115,11 +115,15 @@ test.describe('popup About + Trust Lists (issue #68)', () => {
       expect(firstName?.trim().length ?? 0).toBeGreaterThan(0)
       expect(firstMeta).toMatch(/\d+\s+entit/i)
 
-      // The Trust Lists tab is content-focused, not edit-focused: no file
-      // input should be visible here. (Import UI stays in Options and
-      // belongs to rc12 / #66.)
+      // rc13.1 / #66 — the Trust Lists tab now carries the import UI
+      // directly so users don't have to hunt for it in Options. Assert
+      // the expected controls exist (one file input, one url input,
+      // one fetch button, one status area).
       const fileInputs = await page.locator('#trustlists input[type="file"]').count()
-      expect(fileInputs, 'Trust Lists tab must be read-only — no file inputs').toBe(0)
+      expect(fileInputs, 'Trust Lists tab must expose a file input for importing').toBe(1)
+      expect(await page.locator('#tl-url-input').count(), 'URL input must exist').toBe(1)
+      expect(await page.locator('#tl-url-fetch').count(), 'Fetch button must exist').toBe(1)
+      expect(await page.locator('#tl-import-status').count(), 'Import status area must exist').toBe(1)
 
       // rc11.5 / #79 — the bundled C2PA Official Trust List must include
       // Trusteddit.com (verifieddit.com trusts it; the extension must

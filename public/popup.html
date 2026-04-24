@@ -34,16 +34,31 @@
         <div id="trustlists" class="tab-content">
             <h1>Trust Lists</h1>
             <p class="detail-dim">
-                Read-only snapshot of every trust list currently loaded by the extension. Certificates
-                whose SHA-256 thumbprint appears in one of these entries will render a green CR badge
-                on signed media; everything else shows a warning.
+                Every trust list currently loaded by the extension. Certificates whose SHA-256 thumbprint
+                appears in one of these entries render as trusted on signed media; everything else shows
+                a warning.
             </p>
             <div id="trustlists-content">
                 <p class="detail-dim">Loading trust lists…</p>
             </div>
-            <p class="detail-dim" style="margin-top:1em;">
-                To add your own list, see the <b>Options</b> tab.
+
+            <hr style="margin-top:14px;border:none;border-top:1px solid #e4e7eb">
+
+            <h2 style="font-size:14px;margin:10px 0 6px;color:#222">Add a trust list</h2>
+            <p class="detail-dim" style="font-size:12px">
+                Import a JSON trust list or a PEM/CRT certificate chain, or fetch one from a URL.
+                Imported lists are stored locally and can be removed from the list above at any time.
             </p>
+
+            <label style="display:block;font-size:12px;font-weight:600;margin-top:8px;color:#333">From a file</label>
+            <input type="file" id="tl-file-input-trustlists" accept=".json,.pem,.crt" style="display:block;margin-top:4px">
+
+            <label style="display:block;font-size:12px;font-weight:600;margin-top:10px;color:#333">From a URL</label>
+            <div style="display:flex;gap:6px;margin-top:4px">
+                <input type="url" id="tl-url-input" placeholder="https://…/trust-list.json" style="flex:1;padding:4px 6px;font-size:12px;border:1px solid #ccc;border-radius:4px">
+                <button id="tl-url-fetch" type="button" style="padding:4px 10px;font-size:12px;border:1px solid #1f4d7a;background:#1f4d7a;color:#fff;border-radius:4px;cursor:pointer">Fetch</button>
+            </div>
+            <div id="tl-import-status" class="detail-dim" style="font-size:12px;margin-top:6px;min-height:16px"></div>
         </div>
 
         <div id="about" class="tab-content">
