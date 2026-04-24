@@ -13,7 +13,12 @@ import {
   MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
-import { validateImageUrl as apiValidate, isApiFailure, type RecoveredCredential } from './verifiedditApi'
+// rc11.6 / #83 — Intentionally NOT importing verifiedditApi. rc12 shipped
+// an anonymous cross-origin fallback that fired on every unsigned image;
+// that is a security / privacy surface and must not run in production
+// without per-install auth + user consent + server-side rate limits.
+// Reintroducing any call here requires #83's acceptance criteria.
+// import { validateImageUrl as apiValidate, isApiFailure, type RecoveredCredential } from './verifiedditApi'
 
 const MAX_LOG_ENTRIES = 200 // Limit the number of log entries to store
 let extensionLogs: string[] = []
@@ -118,17 +123,8 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
   const c2paResult = await c2paValidateUrl(url);
   
   if (c2paResult instanceof Error) {
-    // rc12 / #72 — before giving up, ask verifieddit.com /api/v1/validate
-    // if it can recover a credential for this image via perceptual-hash
-    // lookup against the Manifest Store. Failure is logged but never
-    // rethrows the original error — the API path is additive.
-    console.warn(`Background: validateUrl: local c2pa.read threw (${c2paResult.message}). Trying verifieddit.com API fallback for ${url}…`);
-    const apiResult = await apiValidate(url);
-    if (!isApiFailure(apiResult) && apiResult.recovery != null) {
-      const synth = synthesiseRecoveredC2paResult(url, apiResult);
-      console.debug(`Background: validateUrl: recovered credential from API for ${url}:`, synth);
-      return synth;
-    }
+    // rc11.6 / #83 — removed the anonymous cross-origin verifieddit.com
+    // API fallback that rc12 shipped here. See issue #83 for context.
     console.error(`Background: validateUrl: Error from c2paValidateUrl for ${url}:`, c2paResult);
     return c2paResult;
   }
@@ -148,71 +144,17 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
     console.debug(`Background: validateUrl: No TST tokens found for ${url}.`);
   }
 
-  // rc12 / #72 — if c2pa-js returned a "No Manifest" sentinel (C2paError),
-  // try recovering a durable credential from verifieddit.com. The
-  // c2paValidateUrl path at src/c2pa.ts:72-74 returns a C2paError shape
-  // (not an Error) when the file is unsigned; detect that by the absent
-  // manifestStore.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((c2paResult as any)?.manifestStore == null) {
-    console.debug(`Background: validateUrl: unsigned image, trying verifieddit.com /api/v1/validate for ${url}…`);
-    const apiResult = await apiValidate(url);
-    if (!isApiFailure(apiResult) && apiResult.recovery != null) {
-      const synth = synthesiseRecoveredC2paResult(url, apiResult);
-      console.debug(`Background: validateUrl: recovered credential from API for ${url}:`, synth);
-      return synth;
-    }
-  }
+  // rc11.6 / #83 — removed the anonymous cross-origin verifieddit.com
+  // API fallback that rc12 shipped here. Reintroducing the path requires
+  // per-install auth + server-side rate limiting + user consent per #83.
 
   console.debug(`Background: validateUrl: Final c2paResult before returning for ${url}:`, c2paResult);
   return c2paResult;
 }
 
-/**
- * Build a c2pa-shaped result from the /api/v1/validate recovery block so the
- * existing inject.ts / webComponents.ts rendering path can show it without
- * needing a parallel "recovered-credential" type. The new result carries a
- * marker (`recovered: true`) on the source side that downstream rc12.1 UX
- * can branch on. Returned as `C2paResult` via a deliberate cast since the
- * synth only fills the subset of fields the overlay actually reads.
- */
-function synthesiseRecoveredC2paResult (url: string, api: { recovery: RecoveredCredential | null }): C2paResult {
-  const rec = api.recovery
-  if (rec == null) throw new Error('synthesiseRecoveredC2paResult called with no recovery block')
-  const manifest = {
-    title: rec.originalFilename ?? rec.manifestId,
-    format: 'application/c2pa',
-    ingredients: [],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signatureInfo: { issuer: rec.signerCn ?? '(unknown)', time: rec.signedAt ?? '' } as any
-  }
-  const synth = {
-    url,
-    source: {
-      filename: rec.originalFilename ?? '',
-      type: 'image/unknown',
-      thumbnail: { type: '', data: '' },
-      data: ''
-    },
-    manifestStore: {
-      manifests: [manifest],
-      activeManifest: 0,
-      validationStatus: []
-    },
-    trustList: null,
-    tsaTrustList: null,
-    certChain: null,
-    tstTokens: null,
-    editsAndActivity: null,
-    // rc12 extension marker — not in the c2pa-js type but safe to attach.
-    recovered: true,
-    recoveryMethod: rec.method,
-    recoverySimilarityScore: rec.similarityScore,
-    recoveryNote: rec.explanatoryNote
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return synth as any as C2paResult
-}
+// rc11.6 / #83 — synthesiseRecoveredC2paResult helper removed along with the
+// anonymous cross-origin API calls. When the per-install auth story lands
+// (tracked in #83 follow-up), reintroduce this together with the call sites.
 
 async function init (): Promise<void> {
   if (chrome.offscreen !== undefined) {
