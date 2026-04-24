@@ -13,7 +13,7 @@ import {
   MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
-import { validateImageUrl as apiValidate, isApiFailure } from './verifiedditApi'
+import { validateImageUrl as apiValidate, isApiFailure, type RecoveredCredential } from './verifiedditApi'
 
 const MAX_LOG_ENTRIES = 200 // Limit the number of log entries to store
 let extensionLogs: string[] = []
@@ -172,36 +172,46 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
  * Build a c2pa-shaped result from the /api/v1/validate recovery block so the
  * existing inject.ts / webComponents.ts rendering path can show it without
  * needing a parallel "recovered-credential" type. The new result carries a
- * marker (`recovered: true`) that downstream code can check to add UX
- * affordances — see rc12.1 for the overlay panel copy.
+ * marker (`recovered: true`) on the source side that downstream rc12.1 UX
+ * can branch on. Returned as `C2paResult` via a deliberate cast since the
+ * synth only fills the subset of fields the overlay actually reads.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function synthesiseRecoveredC2paResult (url: string, api: { recovery: NonNullable<Awaited<ReturnType<typeof apiValidate>> extends infer T ? T extends { recovery: unknown } ? T['recovery'] : never : never> } & Record<string, unknown>) {
-  const rec = api.recovery!
-  return {
+function synthesiseRecoveredC2paResult (url: string, api: { recovery: RecoveredCredential | null } & Record<string, unknown>): C2paResult {
+  const rec = api.recovery
+  if (rec == null) throw new Error('synthesiseRecoveredC2paResult called with no recovery block')
+  const manifest = {
+    title: rec.originalFilename ?? rec.manifestId,
+    format: 'application/c2pa',
+    ingredients: [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    signatureInfo: { issuer: rec.signerCn ?? '(unknown)', time: rec.signedAt ?? '' } as any
+  }
+  const synth = {
     url,
-    recovered: true as const,
-    recoveryMethod: rec.method,
-    recoverySimilarityScore: rec.similarityScore,
-    recoveryNote: rec.explanatoryNote,
-    source: { filename: rec.originalFilename ?? '', type: 'image/unknown', thumbnail: { type: '', data: '' } },
+    source: {
+      filename: rec.originalFilename ?? '',
+      type: 'image/unknown',
+      thumbnail: { type: '', data: '' },
+      data: ''
+    },
     manifestStore: {
-      manifests: {
-        [rec.manifestId]: {
-          title: rec.originalFilename ?? rec.manifestId,
-          signatureInfo: { issuer: rec.signerCn ?? '(unknown)', time: rec.signedAt ?? '' },
-          ingredients: []
-        }
-      },
-      activeManifest: rec.manifestId,
+      manifests: [manifest],
+      activeManifest: 0,
       validationStatus: []
     },
     trustList: null,
     tsaTrustList: null,
     certChain: null,
     tstTokens: null,
-    editsAndActivity: null
+    editsAndActivity: null,
+    // rc12 extension marker — not in the c2pa-js type but safe to attach.
+    recovered: true,
+    recoveryMethod: rec.method,
+    recoverySimilarityScore: rec.similarityScore,
+    recoveryNote: rec.explanatoryNote
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return synth as any as C2paResult
 }
 
 async function init (): Promise<void> {
