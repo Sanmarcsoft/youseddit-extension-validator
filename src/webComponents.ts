@@ -8,6 +8,7 @@ import { customElement, property } from 'lit/decorators.js'
 import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
 import { MSG_L3_INSPECT_URL } from './constants'
+import { modelFromC2paResult, renderIngredientDiagram } from './ingredientDiagram'
 
 /*
   The C2pa library does not export all its types, we extract them from
@@ -497,7 +498,17 @@ export class C2paOverlay extends LitElement {
         ${useSeparators ? html`<div class="separator"></div>` : ''}
         <c2pa-collapsible>
           <span slot="header">Ingredients</span>
-          <div slot="content"><c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display></div>
+          <div slot="content">
+            ${(() => {
+              const model = modelFromC2paResult(c2paResult)
+              return model != null
+                ? renderIngredientDiagram(model)
+                : html`<c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>`
+            })()}
+            ${activeManifest.ingredients != null && activeManifest.ingredients.length > 0
+              ? html`<c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>`
+              : ''}
+          </div>
         </c2pa-collapsible>
         ${useSeparators ? html`<div class="separator"></div>` : ''}
         <c2pa-collapsible>
