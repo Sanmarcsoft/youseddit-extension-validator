@@ -413,6 +413,29 @@ function sendToContent (message: unknown): void {
   }
 }
 
+// Deliver MSG_OPEN_OVERLAY directly via chrome.runtime.sendMessage (not
+// through the MSG_FORWARD_TO_CONTENT wrapper). The overlay UI lives in
+// `iframe.html`, an extension page hosted as an iframe on the current tab.
+// background.ts's MSG_FORWARD_TO_CONTENT handler forwards via
+// chrome.tabs.sendMessage, which is delivered to **content scripts only** —
+// extension-page iframes are a different world and do not hear it. In
+// contrast, chrome.runtime.sendMessage fans out to every extension context
+// with a runtime.onMessage listener (service worker + popup + options +
+// embedded extension pages), so overlayFrame.ts's listener fires directly.
+// This was the missing link: the click reached the handler, the send
+// completed, but the payload never reached overlayFrame.
+function openOverlay (c2paResult: unknown, position: { x: number, y: number }): void {
+  try {
+    void chrome.runtime.sendMessage({
+      action: MSG_OPEN_OVERLAY,
+      data: { c2paResult, position }
+    })
+  } catch (err) {
+    console.warn('openOverlay failed (extension context likely invalidated):', (err as Error)?.message)
+    showExtensionReloadToast()
+  }
+}
+
 // Tiny in-page toast shown when the content script can no longer talk to the
 // background. Rendered once; subsequent failures update the text. This makes
 // the "click does nothing" post-reload failure mode self-explanatory.
@@ -507,10 +530,7 @@ VisibilityMonitor.onEnterViewport((mediaRecord: MediaRecord): void => {
              mediaRecord.icon.onClick = async () => {
                const offsets = await getOffsets(mediaRecord.element);
                if (mediaRecord.state.c2pa) {
-                 sendToContent({
-                   action: MSG_OPEN_OVERLAY,
-                   data: { c2paResult: mediaRecord.state.c2pa, position: { x: offsets.x + offsets.width, y: offsets.y } }
-                 });
+                 openOverlay(mediaRecord.state.c2pa, { x: offsets.x + offsets.width, y: offsets.y });
                } else {
                  console.debug('Icon clicked, but no C2PA data available yet.');
                  // Optional: Provide user feedback that C2PA data is not available
@@ -623,10 +643,9 @@ console.debug('setIcon: Before icon == null check for:', mediaRecord.src, 'media
       mediaRecord.icon.setMetadataLink(mediaRecord.src) // Set the metadata link
       mediaRecord.icon.onClick = async () => {
         const offsets = await getOffsets(mediaRecord.element)
-        sendToContent({
-          action: MSG_OPEN_OVERLAY,
-          data: { c2paResult: mediaRecord.state.c2pa, position: { x: offsets.x + offsets.width, y: offsets.y } }
-        })
+        if (mediaRecord.state.c2pa) {
+          openOverlay(mediaRecord.state.c2pa, { x: offsets.x + offsets.width, y: offsets.y })
+        }
       }
     }
     return; // Wait for onReady if element isn't ready
