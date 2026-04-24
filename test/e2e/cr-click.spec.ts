@@ -63,6 +63,19 @@ test.describe('CR overlay click (issue #65)', () => {
     try {
       // Give the SW a moment to register before we navigate
       await page.waitForTimeout(2_000)
+
+      // rc11.7 / #86 — fresh installs now default to auto-scan OFF. This
+      // spec exercises the auto-scan pipeline end-to-end, so enable it
+      // explicitly before navigating. A separate spec
+      // (test/e2e/auto-scan-default-off.spec.ts) asserts the default-OFF
+      // behaviour on a pristine profile.
+      const extSw = ctx.serviceWorkers()[0]
+      if (extSw != null) {
+        await extSw.evaluate(() => {
+          return chrome.storage.local.set({ autoScan: true })
+        })
+      }
+
       await page.goto(DEMO_URL, { waitUntil: 'networkidle', timeout: 60_000 })
 
       // Let inject.ts scan the page and for the SW to validate each image
