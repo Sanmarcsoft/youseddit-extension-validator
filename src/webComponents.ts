@@ -206,8 +206,9 @@ export class C2paOverlay extends LitElement {
 
       .separator {
         /* rc11.4 / #76 — tighter separator; also repairs a missing
-         * semicolon after `margin` which made `border-color` get
-         * concatenated into the margin value as invalid CSS. */
+         * semicolon after the margin rule which made border-color
+         * concatenate into the margin value as invalid CSS.
+         */
         border-bottom: 1px solid #EEE;
         margin: 3px 15px;
       }
