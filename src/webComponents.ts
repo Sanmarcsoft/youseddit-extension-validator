@@ -24,6 +24,19 @@ interface IconTextItem {
 
 const sharedStyles = css`
     :host {
+        /* Custom elements default to display:inline, which collapses the host
+         * to zero layout height. The overlay lives inside iframe.html where
+         * the parent iframe sizes itself off document.body via ResizeObserver
+         * + MSG_UPDATE_FRAME_HEIGHT; if :host doesn't contribute height, the
+         * iframe ends up ~2px tall and the panel is effectively invisible
+         * (rc11.2 / issue #70). Force a block host with an opaque default
+         * background so the iframe has real content to render against.
+         */
+        display: block;
+        background: #FFFFFF;
+        min-width: 280px;
+        min-height: 160px;
+        /* Theme tokens consumed by the rest of the component tree. */
         --background: #FFFFFF;
         --border-color: #DDDDDD;
         --background-highlight: #F4F4F4;

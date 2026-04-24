@@ -16,17 +16,34 @@ export class C2paOverlay /* extends HTMLElement */ {
     iframe.className = 'c2paDialog'
     iframe.src = `${chrome.runtime.getURL('iframe.html')}`
     iframe.tabIndex = 0
-    iframe.style.cssText = `
-    position: absolute;
-    z-index: ${OVERLAY_Z_INDEX};
-    visibility: hidden;
-    resize: none;
-    overflow: hidden;
-    background: none;
-    border-radius: 5px;
-    border: 1px solid #DDDDDD;
-    box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.2);
-  `.replace(';', '!important;')
+    // rc11.2 / #70 — give the iframe real default dimensions + an opaque
+    // background so it's actually a visible panel on first paint rather than
+    // a 302×2 transparent slit hidden behind the page content. Width /
+    // min-height match the :host min-dimensions on <c2pa-overlay> so the
+    // ResizeObserver → MSG_UPDATE_FRAME_HEIGHT path has something to latch
+    // onto. color-scheme:light nails the iframe to a white background even
+    // under UA dark-mode to avoid the panel rendering dark-on-dark.
+    // Every rule gets `!important` — the overlay is injected into arbitrary
+    // third-party pages whose own CSS can reset position/z-index/width, and
+    // in the rc11/rc10 field reports the panel was rendering behind page
+    // content with an effective height of 2px. The previous single-
+    // `.replace(';', '!important;')` only hardened the first declaration.
+    const important = (rules: Record<string, string>): string =>
+      Object.entries(rules).map(([k, v]) => `${k}: ${v} !important`).join('; ')
+    iframe.style.cssText = important({
+      position: 'absolute',
+      'z-index': String(OVERLAY_Z_INDEX),
+      visibility: 'hidden',
+      resize: 'none',
+      overflow: 'hidden',
+      background: '#ffffff',
+      'color-scheme': 'light',
+      width: '340px',
+      'min-height': '180px',
+      'border-radius': '6px',
+      border: '1px solid #DDDDDD',
+      'box-shadow': '0px 4px 16px rgba(0, 0, 0, 0.18)'
+    })
     this._iframe = iframe
     this.hide()
 
