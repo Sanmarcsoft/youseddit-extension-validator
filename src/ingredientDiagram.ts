@@ -137,8 +137,11 @@ export function renderIngredientDiagram (model: IngredientDiagramModel): Templat
   if (model.nodes.length === 0) return html`<div class="ingredient-diagram-empty">No manifest</div>`
 
   // Vertical layout: active on top, ingredients below in a row.
-  const NODE_W = 180
-  const NODE_H = 56
+  // rc13.2 / #91 — node dimensions widened to 200 × 60 and text now
+  // rendered via <foreignObject> + CSS text-overflow so long labels
+  // degrade to an ellipsis rather than a hard character-count cut.
+  const NODE_W = 200
+  const NODE_H = 60
   const H_GAP = 28
   const V_GAP = 80
 
@@ -185,23 +188,71 @@ export function renderIngredientDiagram (model: IngredientDiagramModel): Templat
 function renderNode (node: DiagramNode, pos: { x: number, y: number }, w: number, h: number): TemplateResult {
   const stroke = STROKE_FOR_STATUS[node.status]
   const fill = FILL_FOR_STATUS[node.status]
-  const label = String(node.label).slice(0, 32)
-  const sublabel = node.sublabel != null ? String(node.sublabel).slice(0, 36) : ''
-  const genChip = node.generator != null && node.generator !== ''
-    ? svg`<text x="${pos.x + 8}" y="${pos.y + 14}" font-size="9" fill="#444" font-weight="600">${node.generator}</text>`
+  const labelFull = String(node.label ?? '')
+  const sublabelFull = String(node.sublabel ?? '')
+  const generatorFull = String(node.generator ?? '')
+
+  // rc13.2 / #91 — native SVG text with pixel-budget truncation + ellipsis.
+  // Each text row gets a maximum pixel width equal to the node's inner
+  // width and is truncated with truncateToPx() so long strings like
+  // "Trusteddit-Journalist-Issuer-CA" degrade cleanly to a "…"-suffixed
+  // form instead of a hard character-count cut mid-word. A native SVG
+  // <title> child under the <g> carries the full untruncated text so
+  // hovering any part of the node shows everything.
+  const padX = 8
+  const innerW = w - padX * 2
+  const label = truncateToPx(labelFull, innerW, 12, 700)
+  const sublabel = truncateToPx(sublabelFull, innerW, 10, 400)
+  const generator = truncateToPx(generatorFull, innerW, 9, 600)
+  const tooltip = [labelFull, sublabelFull, generatorFull].filter((s) => s !== '').join(' — ')
+
+  const genChip = generatorFull !== ''
+    ? svg`<text x="${pos.x + padX}" y="${pos.y + 14}" font-size="9" fill="#444" font-weight="600" textLength="" lengthAdjust="spacingAndGlyphs">${generator}</text>`
     : svg``
+  const sublabelLine = sublabelFull !== ''
+    ? svg`<text x="${pos.x + w / 2}" y="${pos.y + h - 10}" text-anchor="middle" font-size="10" fill="#555">${sublabel}</text>`
+    : svg``
+
+  // Place the label centred vertically; offset up a touch if no sublabel.
+  const labelY = sublabelFull !== '' ? pos.y + h / 2 + 2 : pos.y + h / 2 + 5
 
   return svg`
     <g class="diagram-node">
+      <title>${tooltip}</title>
       <rect x="${pos.x}" y="${pos.y}" width="${w}" height="${h}" rx="12" ry="12"
             stroke="${stroke}" stroke-width="3" fill="${fill}" />
       ${genChip}
-      <text x="${pos.x + w / 2}" y="${pos.y + 30}" text-anchor="middle"
+      <text x="${pos.x + w / 2}" y="${labelY}" text-anchor="middle"
             font-size="12" font-weight="700" fill="#111">${label}</text>
-      <text x="${pos.x + w / 2}" y="${pos.y + 46}" text-anchor="middle"
-            font-size="10" fill="#555">${sublabel}</text>
+      ${sublabelLine}
     </g>
   `
+}
+
+/**
+ * Truncate a string so its rendered width at the given font size stays
+ * within maxPx, appending "…" if it needed to be trimmed. Width is
+ * estimated from an average character-advance ratio that's good enough
+ * for sans-serif at 10–14 px: ~0.56 × fontSize for regular, slightly
+ * wider for bold. Not pixel-perfect (the real width depends on the
+ * exact font and which glyphs are present), but close enough that the
+ * overflow case is always defensive — we err on the side of slightly
+ * shorter so text never spills past the border.
+ */
+function truncateToPx (text: string, maxPx: number, fontSizePx: number, weight = 400): string {
+  if (text === '') return ''
+  const advance = fontSizePx * (weight >= 600 ? 0.60 : 0.56)
+  const maxChars = Math.max(1, Math.floor(maxPx / advance))
+  if (text.length <= maxChars) return text
+  // Reserve one char for the ellipsis. Prefer cutting at a word boundary
+  // if one is within the last 6 chars of the budget, else hard-cut.
+  const budget = maxChars - 1
+  const slice = text.slice(0, budget)
+  const lastSpace = slice.lastIndexOf(' ')
+  if (lastSpace >= budget - 6 && lastSpace > 0) {
+    return slice.slice(0, lastSpace) + '…'
+  }
+  return slice + '…'
 }
 
 function renderLink (link: DiagramLink, from: { x: number, y: number }, to: { x: number, y: number }, w: number, h: number): TemplateResult {

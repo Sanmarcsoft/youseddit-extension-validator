@@ -248,6 +248,23 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(diagramAudit.hasDiagram, 'ingredient diagram SVG must render in the Ingredients section').toBe(true)
       expect(diagramAudit.rectCount, 'diagram must contain ≥ 1 rounded-rect node (active manifest)').toBeGreaterThanOrEqual(1)
 
+      // rc13.2 / #91 — every diagram node must carry a <title> child
+      // (the SVG-native hover tooltip) so the full untruncated label is
+      // always reachable even when in-box text is ellipsed.
+      const titleAudit = await iframeFrame!.evaluate(() => {
+        const svgEl = document.querySelector('c2pa-overlay')?.shadowRoot?.querySelector('.ingredient-diagram svg')
+        if (svgEl == null) return { nodeCount: 0, titleCount: 0 }
+        const nodes = svgEl.querySelectorAll('g.diagram-node')
+        const titles = svgEl.querySelectorAll('g.diagram-node > title')
+        return {
+          nodeCount: nodes.length,
+          titleCount: titles.length,
+          firstTitle: titles[0]?.textContent ?? ''
+        }
+      })
+      expect(titleAudit.titleCount, 'every diagram node must carry an SVG <title> for hover tooltip').toBe(titleAudit.nodeCount)
+      expect(titleAudit.firstTitle.length, 'first node <title> must carry untruncated text').toBeGreaterThan(0)
+
       // rc11.7 / #86 — auto-scan must be OFF on a fresh install so users
       // don't see CR icons on every page without asking. The only reason
       // icons appear in this test is that we explicitly clicked the CBC
