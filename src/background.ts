@@ -13,6 +13,7 @@ import {
   MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
+import { validateImageUrl as apiValidate, isApiFailure } from './verifiedditApi'
 
 const MAX_LOG_ENTRIES = 200 // Limit the number of log entries to store
 let extensionLogs: string[] = []
@@ -117,10 +118,21 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
   const c2paResult = await c2paValidateUrl(url);
   
   if (c2paResult instanceof Error) {
+    // rc12 / #72 — before giving up, ask verifieddit.com /api/v1/validate
+    // if it can recover a credential for this image via perceptual-hash
+    // lookup against the Manifest Store. Failure is logged but never
+    // rethrows the original error — the API path is additive.
+    console.warn(`Background: validateUrl: local c2pa.read threw (${c2paResult.message}). Trying verifieddit.com API fallback for ${url}…`);
+    const apiResult = await apiValidate(url);
+    if (!isApiFailure(apiResult) && apiResult.recovery != null) {
+      const synth = synthesiseRecoveredC2paResult(url, apiResult);
+      console.debug(`Background: validateUrl: recovered credential from API for ${url}:`, synth);
+      return synth;
+    }
     console.error(`Background: validateUrl: Error from c2paValidateUrl for ${url}:`, c2paResult);
     return c2paResult;
   }
-  
+
   console.debug(`Background: validateUrl: Initial c2paResult for ${url}:`, c2paResult);
   
   // Check trust list inclusion
@@ -136,8 +148,60 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
     console.debug(`Background: validateUrl: No TST tokens found for ${url}.`);
   }
 
+  // rc12 / #72 — if c2pa-js returned a "No Manifest" sentinel (C2paError),
+  // try recovering a durable credential from verifieddit.com. The
+  // c2paValidateUrl path at src/c2pa.ts:72-74 returns a C2paError shape
+  // (not an Error) when the file is unsigned; detect that by the absent
+  // manifestStore.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((c2paResult as any)?.manifestStore == null) {
+    console.debug(`Background: validateUrl: unsigned image, trying verifieddit.com /api/v1/validate for ${url}…`);
+    const apiResult = await apiValidate(url);
+    if (!isApiFailure(apiResult) && apiResult.recovery != null) {
+      const synth = synthesiseRecoveredC2paResult(url, apiResult);
+      console.debug(`Background: validateUrl: recovered credential from API for ${url}:`, synth);
+      return synth;
+    }
+  }
+
   console.debug(`Background: validateUrl: Final c2paResult before returning for ${url}:`, c2paResult);
   return c2paResult;
+}
+
+/**
+ * Build a c2pa-shaped result from the /api/v1/validate recovery block so the
+ * existing inject.ts / webComponents.ts rendering path can show it without
+ * needing a parallel "recovered-credential" type. The new result carries a
+ * marker (`recovered: true`) that downstream code can check to add UX
+ * affordances — see rc12.1 for the overlay panel copy.
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function synthesiseRecoveredC2paResult (url: string, api: { recovery: NonNullable<Awaited<ReturnType<typeof apiValidate>> extends infer T ? T extends { recovery: unknown } ? T['recovery'] : never : never> } & Record<string, unknown>) {
+  const rec = api.recovery!
+  return {
+    url,
+    recovered: true as const,
+    recoveryMethod: rec.method,
+    recoverySimilarityScore: rec.similarityScore,
+    recoveryNote: rec.explanatoryNote,
+    source: { filename: rec.originalFilename ?? '', type: 'image/unknown', thumbnail: { type: '', data: '' } },
+    manifestStore: {
+      manifests: {
+        [rec.manifestId]: {
+          title: rec.originalFilename ?? rec.manifestId,
+          signatureInfo: { issuer: rec.signerCn ?? '(unknown)', time: rec.signedAt ?? '' },
+          ingredients: []
+        }
+      },
+      activeManifest: rec.manifestId,
+      validationStatus: []
+    },
+    trustList: null,
+    tsaTrustList: null,
+    certChain: null,
+    tstTokens: null,
+    editsAndActivity: null
+  }
 }
 
 async function init (): Promise<void> {
