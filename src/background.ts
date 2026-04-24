@@ -33,6 +33,18 @@ chrome.runtime.onInstalled.addListener(function (details) {
     void chrome.storage.local.set({ autoScan: AUTO_SCAN_DEFAULT })
   } else if (details.reason === 'update') {
     console.debug('The extension has been updated to version:', chrome.runtime.getManifest().version)
+    // rc11.7 / #86 — one-shot migration to force auto-scan OFF for any
+    // user who was silently stuck on the old rc<=11.6 build where
+    // AUTO_SCAN=true was baked into the bundle as the install default.
+    // Users who genuinely want auto-scan back on can re-enable via the
+    // Options tab; doing so on every update would be rude, so we gate
+    // on a one-shot marker.
+    void chrome.storage.local.get('rc117AutoScanMigrationDone').then((stored) => {
+      if (stored?.rc117AutoScanMigrationDone !== true) {
+        void chrome.storage.local.set({ autoScan: false, rc117AutoScanMigrationDone: true })
+        console.debug('rc11.7 migration: forced autoScan=false (one-shot).')
+      }
+    })
   } else if (details.reason === 'chrome_update') {
     console.debug('Chrome has been updated.')
   }

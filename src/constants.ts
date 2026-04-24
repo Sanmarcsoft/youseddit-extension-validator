@@ -10,7 +10,12 @@ export interface MSG_PAYLOAD {
   frame?: string
 }
 
-export type VALIDATION_STATUS = 'success' | 'warning' | 'error' | 'audio' | 'img' | 'video' | 'none' | 'ai-success' | 'ai-error'
+// rc11.7 / #86 — 'no-credentials' is produced when the user explicitly
+// right-click → Verify's an image and the result has no embedded C2PA
+// manifest. It renders as a neutral-grey camera with a small red slash
+// to signal "checked, nothing found" — distinct from the transient
+// 'img' status used during auto-scan detection.
+export type VALIDATION_STATUS = 'success' | 'warning' | 'error' | 'audio' | 'img' | 'video' | 'none' | 'ai-success' | 'ai-error' | 'no-credentials'
 
 export const MSG_VALIDATE_URL = 'MSG_VALIDATE_URL'
 export const MSG_C2PA_VALIDATE_URL = 'MSG_C2PA_VALIDATE_URL'

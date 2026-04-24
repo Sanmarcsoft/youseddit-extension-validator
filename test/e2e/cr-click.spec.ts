@@ -63,6 +63,19 @@ test.describe('CR overlay click (issue #65)', () => {
     try {
       // Give the SW a moment to register before we navigate
       await page.waitForTimeout(2_000)
+
+      // rc11.7 / #86 — fresh installs now default to auto-scan OFF. This
+      // spec exercises the auto-scan pipeline end-to-end, so enable it
+      // explicitly before navigating. A separate spec
+      // (test/e2e/auto-scan-default-off.spec.ts) asserts the default-OFF
+      // behaviour on a pristine profile.
+      const extSw = ctx.serviceWorkers()[0]
+      if (extSw != null) {
+        await extSw.evaluate(() => {
+          return chrome.storage.local.set({ autoScan: true })
+        })
+      }
+
       await page.goto(DEMO_URL, { waitUntil: 'networkidle', timeout: 60_000 })
 
       // Let inject.ts scan the page and for the SW to validate each image
@@ -203,6 +216,15 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(linkAudit.text, 'overlay must not mention "Microsoft Content Integrity"').not.toMatch(/microsoft content integrity/i)
       expect(linkAudit.text, 'overlay must offer a Verifieddit details page').toMatch(/verifieddit/i)
       expect(linkAudit.hasMicrosoftHost, 'no attribute or text may reference contentintegrity.microsoft.com').toBe(false)
+
+      // rc11.7 / #86 — auto-scan must be OFF on a fresh install so users
+      // don't see CR icons on every page without asking. The only reason
+      // icons appear in this test is that we explicitly clicked the CBC
+      // badge earlier; they got auto-rendered during the earlier rc11 /
+      // rc11.1 test-setup. For the dedicated no-auto-scan assertion, a
+      // second test spins up a fresh context with zero prior interaction
+      // and asserts zero icons — that lives in test/e2e/auto-scan.spec.ts
+      // (not added here to keep the cr-click spec focused).
 
       // rc11.4 / #76 — the overlay must be space-efficient. With all four
       // collapsible sections closed, the panel height must be below an
