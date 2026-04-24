@@ -278,3 +278,171 @@
     font-size: 12px;
     font-style: italic;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * rc11.1 — About-tab release header, What's new, Trust Lists read-only tab
+ * (#68). Keeps the existing style language (flat, small type, muted meta).
+ * ─────────────────────────────────────────────────────────────────────── */
+
+.release-header {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #fafbfc;
+    border: 1px solid #e4e7eb;
+    border-radius: 6px;
+}
+.release-tag-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+.release-tag-row a {
+    text-decoration: none;
+}
+.release-tag {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f4d7a;
+    letter-spacing: 0.2px;
+}
+.release-stage {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #fff4cd;
+    color: #8a6500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.release-date {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+}
+
+.whats-new-heading {
+    font-size: 14px;
+    margin: 8px 0 6px;
+    color: #222;
+}
+.whats-new {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.release-entry {
+    border: 1px solid #e4e7eb;
+    border-radius: 4px;
+    background: #fff;
+}
+.release-entry > summary {
+    padding: 6px 10px;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 8px;
+    align-items: baseline;
+    font-size: 12px;
+    color: #333;
+    list-style: none;
+}
+.release-entry > summary::-webkit-details-marker { display: none; }
+.release-entry-tag {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700;
+    color: #1f4d7a;
+}
+.release-entry-date {
+    color: #888;
+    font-size: 11px;
+}
+.release-entry-summary {
+    color: #222;
+    font-style: italic;
+}
+.release-fix-list {
+    list-style: none;
+    padding: 0 10px 8px;
+    margin: 0;
+}
+.release-fix {
+    padding: 6px 0;
+    border-top: 1px solid #f2f4f6;
+}
+.release-fix:first-child { border-top: none; }
+.release-fix-title {
+    font-weight: 600;
+    color: #222;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+.release-fix-verify {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.4;
+}
+.release-fix-verify-label {
+    font-weight: 600;
+    color: #1f4d7a;
+}
+.release-fix-verify-link {
+    display: inline-block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: #1f4d7a;
+    text-decoration: none;
+}
+.release-fix-verify-link:hover { text-decoration: underline; }
+
+.build-info-details > summary {
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.trustlists-summary {
+    font-size: 12px;
+    color: #444;
+    margin: 0 0 8px;
+}
+.trustlist-readonly {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.trustlist-row {
+    border: 1px solid #e4e7eb;
+    border-radius: 4px;
+    padding: 8px 10px;
+    background: #fff;
+}
+.trustlist-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #222;
+}
+.trustlist-meta {
+    font-size: 11px;
+    color: #555;
+    margin-top: 2px;
+}
+.trustlist-desc {
+    font-size: 11px;
+    color: #444;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+.trustlist-source {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+    word-break: break-all;
+}
+.trustlist-source a { color: #1f4d7a; text-decoration: none; }
+.trustlist-source a:hover { text-decoration: underline; }

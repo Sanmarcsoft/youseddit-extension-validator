@@ -16,6 +16,7 @@
 <body>
     <div>
         <button class="tab active" data-tab="validation">Validation</button>
+        <button class="tab" data-tab="trustlists">Trust Lists</button>
         <button class="tab" data-tab="about">About</button>
         <button class="tab" data-tab="options">Options</button>
     </div>
@@ -30,7 +31,32 @@
             </div>
         </div>
 
+        <div id="trustlists" class="tab-content">
+            <h1>Trust Lists</h1>
+            <p class="detail-dim">
+                Read-only snapshot of every trust list currently loaded by the extension. Certificates
+                whose SHA-256 thumbprint appears in one of these entries will render a green CR badge
+                on signed media; everything else shows a warning.
+            </p>
+            <div id="trustlists-content">
+                <p class="detail-dim">Loading trust lists…</p>
+            </div>
+            <p class="detail-dim" style="margin-top:1em;">
+                To add your own list, see the <b>Options</b> tab.
+            </p>
+        </div>
+
         <div id="about" class="tab-content">
+            <div class="release-header">
+                <div class="release-tag-row">
+                    <a id="release-tag-link" href="#" target="_blank" rel="noopener">
+                        <span id="release-tag" class="release-tag">v1.0.0</span>
+                    </a>
+                    <span id="release-stage" class="release-stage">pre-release</span>
+                </div>
+                <div class="release-date"><span id="release-date">—</span></div>
+            </div>
+
             <h1>Verifieddit</h1>
             <p>Verify content authenticity using <a href="https://c2pa.org/" target="_blank">C2PA
                     Content Credentials</a>. Detect AI-generated and edited media directly in your browser.</p>
@@ -39,17 +65,24 @@
                 for more information.</p>
 
             <hr>
-            <dl id="build-info" class="build-info">
-                <dt>Version</dt>
-                <dd><span id="version">1.0.0</span> <span id="version-name" class="version-name"></span></dd>
-                <dt>Tag</dt>
-                <dd><a id="tag-link" href="#" target="_blank"><span id="tag-describe">unknown</span></a></dd>
-                <dt>Commit</dt>
-                <dd><a id="commit-link" href="#" target="_blank"><span id="commit-short">unknown</span></a>
-                    <span id="commit-branch" class="build-info-dim"></span></dd>
-                <dt>Built</dt>
-                <dd><span id="build-date">—</span> <span id="build-host" class="build-info-dim"></span></dd>
-            </dl>
+            <h2 class="whats-new-heading">What's new</h2>
+            <div id="whats-new" class="whats-new"></div>
+
+            <hr>
+            <details class="build-info-details">
+                <summary>Build metadata</summary>
+                <dl id="build-info" class="build-info">
+                    <dt>Version</dt>
+                    <dd><span id="version">1.0.0</span> <span id="version-name" class="version-name"></span></dd>
+                    <dt>Tag</dt>
+                    <dd><a id="tag-link" href="#" target="_blank"><span id="tag-describe">unknown</span></a></dd>
+                    <dt>Commit</dt>
+                    <dd><a id="commit-link" href="#" target="_blank"><span id="commit-short">unknown</span></a>
+                        <span id="commit-branch" class="build-info-dim"></span></dd>
+                    <dt>Built</dt>
+                    <dd><span id="build-date">—</span> <span id="build-host" class="build-info-dim"></span></dd>
+                </dl>
+            </details>
         </div>
 
         <div id="options" class="tab-content">
