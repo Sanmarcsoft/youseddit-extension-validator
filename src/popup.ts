@@ -202,7 +202,74 @@ document.addEventListener('DOMContentLoaded', function (): void {
   void displayTrustListInfos()
   // Pre-warm the new read-only Trust Lists tab too.
   void renderTrustListsTab()
+
+  // rc13.1 / #66 — Wire the in-tab import controls (file + URL). These
+  // duplicate the Options-tab inputs but live alongside the list UI so
+  // users don't have to hunt for them.
+  wireTrustListImportControls()
 })
+
+function wireTrustListImportControls (): void {
+  const fileInput = document.getElementById('tl-file-input-trustlists') as HTMLInputElement | null
+  const urlInput = document.getElementById('tl-url-input') as HTMLInputElement | null
+  const fetchBtn = document.getElementById('tl-url-fetch') as HTMLButtonElement | null
+  const statusEl = document.getElementById('tl-import-status') as HTMLDivElement | null
+
+  const setStatus = (msg: string, tone: 'info' | 'ok' | 'error' = 'info'): void => {
+    if (statusEl == null) return
+    statusEl.textContent = msg
+    statusEl.style.color = tone === 'ok' ? '#1f6a2c' : tone === 'error' ? '#7a1f1f' : '#666'
+  }
+
+  if (fileInput != null) {
+    fileInput.addEventListener('change', (ev) => {
+      const t = ev.target as HTMLInputElement
+      const f = t.files?.[0]
+      if (f == null) return
+      setStatus(`Reading ${f.name}…`)
+      const reader = new FileReader()
+      reader.readAsText(f, 'UTF-8')
+      reader.onload = () => {
+        const contents = reader.result as string
+        addTrustFile(contents)
+          .then(async () => {
+            await displayTrustListInfos()
+            await renderTrustListsTab()
+            setStatus(`Imported ${f.name}`, 'ok')
+            t.value = ''
+          })
+          .catch((err) => {
+            setStatus(`Import failed: ${String((err as Error).message ?? err)}`, 'error')
+          })
+      }
+      reader.onerror = () => { setStatus('Failed to read file', 'error') }
+    })
+  }
+
+  if (fetchBtn != null && urlInput != null) {
+    fetchBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim()
+      if (url === '' || !/^https?:\/\//i.test(url)) {
+        setStatus('Enter a full http(s) URL.', 'error')
+        return
+      }
+      setStatus(`Fetching ${url}…`)
+      fetch(url, { credentials: 'omit' })
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`)
+          return await r.text()
+        })
+        .then(async (contents) => {
+          await addTrustFile(contents)
+          await displayTrustListInfos()
+          await renderTrustListsTab()
+          setStatus(`Imported from ${url}`, 'ok')
+          urlInput.value = ''
+        })
+        .catch((err) => { setStatus(`Fetch failed: ${String((err as Error).message ?? err)}`, 'error') })
+    })
+  }
+}
 
 /**
  * Displays the validation results in the popup.
