@@ -9,6 +9,7 @@ import { BUILD_INFO } from './build-info'
 import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, MSG_RESPONSE_C2PA_ENTRIES } from './constants.js'
 import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
 import { type ToggleSwitch } from './components/toggle.js'
+import { RELEASE_NOTES, DEMO_URL, type ReleaseEntry, type ReleaseFix } from './releaseNotes.js'
 
 console.debug('popup.js: load')
 
@@ -22,7 +23,44 @@ function setHref (id: string, url: string): void {
   if (el !== null) el.href = url
 }
 
+/**
+ * Return the release family tag for the current build, even when the build
+ * isn't at an exact tag commit. Examples:
+ *   BUILD_INFO.tag         = "v1.0.0-rc11"             → "v1.0.0-rc11"
+ *   BUILD_INFO.tagDescribe = "v1.0.0-rc11-2-g544aaa6"  → "v1.0.0-rc11"
+ *   BUILD_INFO.tagDescribe = "v1.0.0-rc9-1-gdd46fd1-dirty" → "v1.0.0-rc9"
+ *   BUILD_INFO.tagDescribe = "v1.0.0" (exact-match rare) → "v1.0.0"
+ * Falls back to the version string from package.json if no tag is available.
+ */
+function releaseFamilyTag (): string {
+  if (BUILD_INFO.tag !== '') return BUILD_INFO.tag
+  const td = BUILD_INFO.tagDescribe
+  if (td == null || td === '' || td === 'unknown') return `v${BUILD_INFO.version}`
+  // Strip trailing "-<n>-g<sha>[-dirty]" if present.
+  const match = td.match(/^(.+?)(?:-\d+-g[0-9a-f]+(?:-dirty)?)?$/)
+  return match?.[1] ?? td
+}
+
+function populateReleaseHeader (): void {
+  const tag = releaseFamilyTag()
+  setText('release-tag', tag)
+  const isPrerelease = /-rc\d+/i.test(tag) || /-alpha|-beta/i.test(tag)
+  setText('release-stage', isPrerelease ? 'pre-release' : 'stable')
+  setHref('release-tag-link',
+    BUILD_INFO.tag !== ''
+      ? `${BUILD_INFO.repoUrl}/releases/tag/${BUILD_INFO.tag}`
+      : `${BUILD_INFO.repoUrl}/releases`
+  )
+  // Find the matching release-notes entry by family tag. The buildDate is
+  // the compile-time stamp; the release date is the one in releaseNotes.ts
+  // so we prefer the latter when we have it.
+  const matching = RELEASE_NOTES.find(r => r.tag === tag)
+  const displayDate = matching?.date ?? (BUILD_INFO.buildDate !== '' ? BUILD_INFO.buildDate.slice(0, 10) : '')
+  setText('release-date', displayDate !== '' ? `Released ${displayDate}` : '')
+}
+
 function populateBuildInfo (): void {
+  populateReleaseHeader()
   setText('version', BUILD_INFO.version)
   // version-name shows tag if at an exact release, else 'dev'
   setText('version-name', BUILD_INFO.tag !== '' ? `(${BUILD_INFO.tag})` : '(dev)')
@@ -43,8 +81,77 @@ function populateBuildInfo (): void {
   setText('build-host', BUILD_INFO.buildHost !== 'unknown' ? `· ${BUILD_INFO.buildHost}` : '')
 }
 
+function renderWhatsNew (): void {
+  const host = document.getElementById('whats-new')
+  if (host == null) return
+  const currentTag = releaseFamilyTag()
+  const html = RELEASE_NOTES.map((entry, idx) => renderReleaseEntry(entry, idx === 0 || entry.tag === currentTag)).join('')
+  host.innerHTML = html
+}
+
+function renderReleaseEntry (entry: ReleaseEntry, openByDefault: boolean): string {
+  const fixesHtml = entry.fixes.map(renderFix).join('')
+  const openAttr = openByDefault ? ' open' : ''
+  return `
+    <details class="release-entry"${openAttr} data-tag="${esc(entry.tag)}">
+      <summary>
+        <span class="release-entry-tag">${esc(entry.tag)}</span>
+        <span class="release-entry-date">${esc(entry.date)}</span>
+        <span class="release-entry-summary">${esc(entry.summary)}</span>
+      </summary>
+      <ul class="release-fix-list">${fixesHtml}</ul>
+    </details>
+  `
+}
+
+function renderFix (fix: ReleaseFix): string {
+  const verifyHref = fix.verifyFragment != null && fix.verifyFragment !== ''
+    ? `${DEMO_URL}#${esc(encodeURIComponent(fix.verifyFragment))}`
+    : DEMO_URL
+  return `
+    <li class="release-fix">
+      <div class="release-fix-title">${esc(fix.title)}</div>
+      <div class="release-fix-verify"><span class="release-fix-verify-label">How to verify:</span> ${esc(fix.howToVerify)}</div>
+      <a class="release-fix-verify-link" href="${esc(verifyHref)}" target="_blank" rel="noopener">Open /demo ↗</a>
+    </li>
+  `
+}
+
+async function renderTrustListsTab (): Promise<void> {
+  const host = document.getElementById('trustlists-content')
+  if (host == null) return
+  try {
+    const tlis = await getTrustListInfos()
+    if (tlis == null || tlis.length === 0) {
+      host.innerHTML = '<p class="detail-dim">No trust lists loaded yet. The background service worker may still be warming up — try closing and reopening this popup.</p>'
+      return
+    }
+    const totalEntities = tlis.reduce((sum, tli) => sum + (tli.entities_count ?? 0), 0)
+    const summary = `<p class="trustlists-summary"><b>${tlis.length}</b> trust list${tlis.length === 1 ? '' : 's'} loaded · <b>${totalEntities}</b> entit${totalEntities === 1 ? 'y' : 'ies'} total</p>`
+    const rows = tlis.map((tli) => {
+      const displayName = esc(tli.name ?? '(unnamed list)')
+      const website = tli.website?.length > 0 ? `<a href="${esc(tli.website)}" target="_blank" rel="noopener">${esc(tli.website)}</a>` : '<span class="detail-dim">no website</span>'
+      const lastUpdated = tli.last_updated != null && tli.last_updated !== ''
+        ? esc(tli.last_updated.slice(0, 10))
+        : '<span class="detail-dim">unknown</span>'
+      return `
+        <li class="trustlist-row">
+          <div class="trustlist-name">${displayName}</div>
+          <div class="trustlist-meta"><b>${tli.entities_count}</b> entit${tli.entities_count === 1 ? 'y' : 'ies'} · updated ${lastUpdated}</div>
+          <div class="trustlist-desc">${esc(tli.description ?? '')}</div>
+          <div class="trustlist-source">Source: ${website}</div>
+        </li>
+      `
+    }).join('')
+    host.innerHTML = `${summary}<ul class="trustlist-readonly">${rows}</ul>`
+  } catch (err) {
+    host.innerHTML = `<p class="validation-errors">Couldn't load trust lists: ${esc(String((err as Error).message ?? err))}</p>`
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function (): void {
   populateBuildInfo()
+  renderWhatsNew()
 
   const autoScanToggle = document.getElementById('toggleAutoScan') as ToggleSwitch
 
@@ -82,12 +189,19 @@ document.addEventListener('DOMContentLoaded', function (): void {
         }
         void displayTrustListInfos()
       }
+
+      // Populate the new Trust Lists read-only tab when it becomes active.
+      if (tabContentId === 'trustlists') {
+        void renderTrustListsTab()
+      }
     })
   })
   void showResults()
   // Pre-warm trust-list data so the Options tab is ready to render
   // as soon as it's selected, not after a perceptible delay (#59/#60).
   void displayTrustListInfos()
+  // Pre-warm the new read-only Trust Lists tab too.
+  void renderTrustListsTab()
 })
 
 /**
