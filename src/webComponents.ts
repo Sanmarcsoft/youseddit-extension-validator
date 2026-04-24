@@ -375,6 +375,62 @@ export class C2paOverlay extends LitElement {
     return { errors, trusted }
   }
 
+  // rc12.1 / #82 — Recovered-credential section. Only rendered when the
+  // background attached the `recovered: true` marker (see #72 / #82).
+  // Shows the server's explanatoryNote verbatim, the similarity score
+  // as a rounded percentage, the recovery method, and the signer CN.
+  private recoveredCredentialSection (c2paResult: C2paResult): TemplateResult | '' {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r: any = c2paResult
+    if (r?.recovered !== true) return ''
+    const method: string = r.recoveryMethod === 'watermark' ? 'watermark' : 'perceptual fingerprint'
+    const pct: number = Math.round((r.recoverySimilarityScore ?? 0) * 100)
+    const note: string = r.recoveryNote ?? 'A durable credential matching this image was recovered from the Verifieddit Manifest Store.'
+    return html`
+      <div id="recoveredCredential" style="border-left: 3px solid #6a3ca0; padding: 6px 10px; margin: 6px 0; background: #f5f0fa;">
+        <div style="font-weight: 700; color: #3d2066;">Recovered durable credential</div>
+        <div style="margin-top: 4px;">Matched via ${method} (${pct}% similarity).</div>
+        <div style="margin-top: 4px; color: #444;">${note}</div>
+      </div>
+    `
+  }
+
+  // rc12.1 / #82 — AI-detection section. Separate from provenance status,
+  // so a C2PA-trusted AI-generated image reads as "trusted AND AI" rather
+  // than conflating the two (fixes the bug tracked at
+  // verifieddit-www#325). Backend response is attached by the background
+  // worker on `c2paResult.aiDetection`.
+  private aiDetectionSection (c2paResult: C2paResult): TemplateResult | '' {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ai: any = (c2paResult as any)?.aiDetection
+    if (ai == null) return ''
+    if (ai.aiDetected === true) {
+      const pct = ai.confidence != null ? Math.round(ai.confidence * 100) : null
+      const gen = ai.detectedGenerator ?? null
+      return html`
+        <div id="aiDetection" style="border-left: 3px solid #c83232; padding: 6px 10px; margin: 6px 0; background: #fdf2f2;">
+          <div style="font-weight: 700; color: #7a1f1f;">AI-generated content detected</div>
+          <div style="margin-top: 4px;">
+            ${pct != null ? html`${pct}% confidence` : 'confidence unknown'}${gen != null ? html` · generator: <b>${gen}</b>` : ''}
+          </div>
+        </div>
+      `
+    }
+    if (ai.aiDetected === false) {
+      return html`
+        <div id="aiDetection" style="border-left: 3px solid #2a8a3c; padding: 6px 10px; margin: 6px 0; background: #f0faf3;">
+          <div style="font-weight: 700; color: #1f6a2c;">Not detected as AI-generated</div>
+        </div>
+      `
+    }
+    // null — classifier couldn't decide
+    return html`
+      <div id="aiDetection" style="border-left: 3px solid #999; padding: 6px 10px; margin: 6px 0;">
+        <div style="color: #555;">AI detection unavailable.</div>
+      </div>
+    `
+  }
+
   private validationSection (validation: string[]): TemplateResult[] {
     const isTrusted = this.status?.trusted === true
     const areErrors = this.status?.errors === true
@@ -484,6 +540,8 @@ export class C2paOverlay extends LitElement {
           </div>
       </div>
       ${this.validationSection(c2paResult.manifestStore.validationStatus)}
+      ${this.recoveredCredentialSection(c2paResult)}
+      ${this.aiDetectionSection(c2paResult)}
       <div id="inspectionLink">
           For more details, inspect this image on the <span id="mciLink" @click="${this.handleClick}"><u>Verifieddit</u></span> page.
       </div>

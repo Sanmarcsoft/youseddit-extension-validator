@@ -13,7 +13,7 @@ import {
   MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
-import { validateImageUrl as apiValidate, isApiFailure, type RecoveredCredential } from './verifiedditApi'
+import { validateImageUrl as apiValidate, detectAiForImageUrl as apiAiDetect, isApiFailure, type RecoveredCredential, type AiDetectApiResponse } from './verifiedditApi'
 
 const MAX_LOG_ENTRIES = 200 // Limit the number of log entries to store
 let extensionLogs: string[] = []
@@ -115,8 +115,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function validateUrl (url: string): Promise<C2paResult | C2paError> {
   console.debug(`Background: validateUrl: Starting validation for: ${url}`);
+
+  // rc12.1 / #82 — Fire the AI-detection call in parallel with the local
+  // c2pa.read. Both take ~hundreds of ms; running them sequentially would
+  // double the perceived latency on every image. We merge the results
+  // before returning. If the AI call fails for any reason (rate limit,
+  // network, etc.), it lands as null — never blocks the main path.
+  const aiDetectPromise: Promise<AiDetectApiResponse | null> = apiAiDetect(url)
+    .then((r) => (isApiFailure(r) ? null : r))
+    .catch(() => null)
+
   const c2paResult = await c2paValidateUrl(url);
-  
+
   if (c2paResult instanceof Error) {
     // rc12 / #72 — before giving up, ask verifieddit.com /api/v1/validate
     // if it can recover a credential for this image via perceptual-hash
@@ -159,10 +169,20 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
     const apiResult = await apiValidate(url);
     if (!isApiFailure(apiResult) && apiResult.recovery != null) {
       const synth = synthesiseRecoveredC2paResult(url, apiResult);
+      // Attach parallel AI-detect result too.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (synth as any).aiDetection = await aiDetectPromise;
       console.debug(`Background: validateUrl: recovered credential from API for ${url}:`, synth);
       return synth;
     }
   }
+
+  // rc12.1 / #82 — attach the resolved AI-detection result so the overlay
+  // panel can render an "AI detection" row separate from the provenance
+  // line. Running in parallel (see top of function) means this await
+  // does not add to latency.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (c2paResult as any).aiDetection = await aiDetectPromise;
 
   console.debug(`Background: validateUrl: Final c2paResult before returning for ${url}:`, c2paResult);
   return c2paResult;

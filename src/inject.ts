@@ -294,6 +294,18 @@ async function updateTrustLists (): Promise<void> {
 function getC2PAStatus(c2pa: C2paResult): VALIDATION_STATUS {
   console.debug('getC2PAStatus: Evaluating C2PA result for URL:', c2pa.url, c2pa);
 
+  // rc12.1 / #82 — Durable-credential recovered via verifieddit.com
+  // /api/v1/validate perceptual-hash lookup. Rendered as a violet CR
+  // badge so users can tell "locally-signed + trusted" from "no
+  // embedded manifest but credential recovered server-side". The
+  // `recovered: true` marker is attached in background.ts when it
+  // synthesises a C2paResult from the API's recovery block (#72).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((c2pa as any)?.recovered === true) {
+    console.debug('getC2PAStatus: recovered durable credential for URL:', c2pa.url, 'returning recovered.');
+    return 'recovered';
+  }
+
   // Check for AI content first
   if (c2pa.trustList?.tlInfo.name === 'AI trust list') {
     console.debug('getC2PAStatus: AI trust list match found for URL:', c2pa.url);

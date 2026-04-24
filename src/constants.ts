@@ -10,7 +10,10 @@ export interface MSG_PAYLOAD {
   frame?: string
 }
 
-export type VALIDATION_STATUS = 'success' | 'warning' | 'error' | 'audio' | 'img' | 'video' | 'none' | 'ai-success' | 'ai-error'
+// 'recovered' (rc12.1 / #82) — the image had no embedded C2PA manifest
+// but verifieddit.com's perceptual-hash lookup matched a Durable
+// Credential in the Manifest Store. Renders as a violet CR badge.
+export type VALIDATION_STATUS = 'success' | 'warning' | 'error' | 'audio' | 'img' | 'video' | 'none' | 'ai-success' | 'ai-error' | 'recovered'
 
 export const MSG_VALIDATE_URL = 'MSG_VALIDATE_URL'
 export const MSG_C2PA_VALIDATE_URL = 'MSG_C2PA_VALIDATE_URL'

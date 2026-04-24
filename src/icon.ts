@@ -23,6 +23,13 @@ const SVG_CR_ERROR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41
 const SVG_CR_AI_SUCCESS = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41"><path fill="#2a8a3c" stroke="#1f6a2c" stroke-width="2" d="M1.56 18c0-9.08 7.361-16.44 16.441-16.44s16.443 7.362 16.443 16.442V34.44H18C8.92 34.44 1.56 27.08 1.56 18Z" /><path fill="#ffffff" d="M13.665 26.483c-4.07 0-6.61-3.189-6.61-6.973 0-3.785 2.54-6.973 6.61-6.973 3.292 0 5.522 2.152 6.118 4.951h-3.318c-.441-1.244-1.478-1.996-2.8-1.996-2.048 0-3.396 1.607-3.396 4.018s1.348 4.018 3.396 4.018c1.374 0 2.437-.804 2.852-2.126h3.292c-.545 2.878-2.8 5.08-6.144 5.08M21.12 26.12V12.9h3.11v1.426c.726-.96 1.866-1.582 3.577-1.582h.804v3.06h-.83c-1.166 0-1.892.258-2.436.75-.622.52-.985 1.375-.985 2.67v6.896z" /><rect x="25" y="25" width="10" height="10" rx="1.5" ry="1.5" fill="#1a1a1a" /></svg>`
 const SVG_CR_AI_ERROR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41"><path fill="#c83232" stroke="#7a1f1f" stroke-width="2" d="M1.56 18c0-9.08 7.361-16.44 16.441-16.44s16.443 7.362 16.443 16.442V34.44H18C8.92 34.44 1.56 27.08 1.56 18Z" /><path fill="#ffffff" d="M13.665 26.483c-4.07 0-6.61-3.189-6.61-6.973 0-3.785 2.54-6.973 6.61-6.973 3.292 0 5.522 2.152 6.118 4.951h-3.318c-.441-1.244-1.478-1.996-2.8-1.996-2.048 0-3.396 1.607-3.396 4.018s1.348 4.018 3.396 4.018c1.374 0 2.437-.804 2.852-2.126h3.292c-.545 2.878-2.8 5.08-6.144 5.08M21.12 26.12V12.9h3.11v1.426c.726-.96 1.866-1.582 3.577-1.582h.804v3.06h-.83c-1.166 0-1.892.258-2.436.75-.622.52-.985 1.375-.985 2.67v6.896z" /><rect x="25" y="25" width="16" height="16" rx="1.5" ry="1.5" fill="#1a1a1a" /><path d="m28 28 10.4 10.4M28 38.4 38.4 28" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" /></svg>`
 
+// rc12.1 / #82 — Durable-credential recovered via perceptual-hash lookup.
+// Violet CR to differentiate from trust-list-matched green (success) and
+// trust-list-missing yellow (warning). Same silhouette as the other CR
+// badges; fill = #6a3ca0 (indigo/violet), accent = #3d2066 for the inner
+// cert-restored glyph.
+const SVG_CR_RECOVERED = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41"><path fill="#6a3ca0" stroke="#3d2066" stroke-width="2" d="M1.56 18c0-9.08 7.361-16.44 16.441-16.44s16.443 7.362 16.443 16.442V34.44H18C8.92 34.44 1.56 27.08 1.56 18Z" /><path fill="#ffffff" d="M13.665 26.483c-4.07 0-6.61-3.189-6.61-6.973 0-3.785 2.54-6.973 6.61-6.973 3.292 0 5.522 2.152 6.118 4.951h-3.318c-.441-1.244-1.478-1.996-2.8-1.996-2.048 0-3.396 1.607-3.396 4.018s1.348 4.018 3.396 4.018c1.374 0 2.437-.804 2.852-2.126h3.292c-.545 2.878-2.8 5.08-6.144 5.08M21.12 26.12V12.9h3.11v1.426c.726-.96 1.866-1.582 3.577-1.582h.804v3.06h-.83c-1.166 0-1.892.258-2.436.75-.622.52-.985 1.375-.985 2.67v6.896z" /><path d="M27 25 L31 29 L36 23" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>`
+
 const imageSources: { [key in VALIDATION_STATUS]: string } = {
   success: SVG_CR_SUCCESS,
   warning: SVG_CR_WARNING,
@@ -32,7 +39,8 @@ const imageSources: { [key in VALIDATION_STATUS]: string } = {
   audio: chrome.runtime.getURL('icons/audio.svg'),
   none: '',
   'ai-success': SVG_CR_AI_SUCCESS,
-  'ai-error': SVG_CR_AI_ERROR
+  'ai-error': SVG_CR_AI_ERROR,
+  recovered: SVG_CR_RECOVERED
 }
 
 export class CrIcon {
@@ -155,6 +163,8 @@ export class CrIcon {
       fillColor = '#FFC000' // Yellow/Orange for warning
     } else if (status === 'error') {
       fillColor = '#ae3f28' // Red for error
+    } else if (status === 'recovered') {
+      fillColor = '#6a3ca0' // Violet for recovered durable credential
     }
 
     const svgContent = imageSources[status].replace(/CURRENT_COLOR/g, fillColor)
@@ -164,6 +174,6 @@ export class CrIcon {
   }
 
   private static validateStatus (status: unknown): status is VALIDATION_STATUS {
-    return ['success', 'warning', 'error', 'img', 'video', 'audio', 'none'].includes(status as string)
+    return ['success', 'warning', 'error', 'img', 'video', 'audio', 'none', 'ai-success', 'ai-error', 'recovered'].includes(status as string)
   }
 }
