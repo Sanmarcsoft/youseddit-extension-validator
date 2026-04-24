@@ -49,6 +49,10 @@ export const MSG_OFFSCREEN_READY = 'MSG_OFFSCREEN_READY'
 export const MSG_OFFSCREEN_INIT_ERROR = 'MSG_OFFSCREEN_INIT_ERROR'
 export const MSG_PING_OFFSCREEN = 'MSG_PING_OFFSCREEN'
 export const MSG_OFFSCREEN_KEEPALIVE = 'MSG_OFFSCREEN_KEEPALIVE'
+// rc14 / #93 — overlay "Save verification" button round-trips through
+// the background service worker since content scripts have no access
+// to chrome.bookmarks.*.
+export const MSG_SAVE_BOOKMARK = 'MSG_SAVE_BOOKMARK'
 
 export const DEFAULT_MSG_TIMEOUT = 5000 /* 5 sec */
 // Verifieddit's own in-browser validator page — replaces the upstream

@@ -296,6 +296,9 @@ export interface MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD {
   name: string
   status: VALIDATION_STATUS
   thumbnail: string | null
+  // rc14 (#93) — original image URL so the popup's Save-verification
+  // button per row can post MSG_SAVE_BOOKMARK with the right payload.
+  url: string
   // rc9 (#59) — detail fields rendered inside the expandable Validation row
   signer: string
   trustListName: string | null
@@ -395,6 +398,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           name: c2pa.source.filename,
           status: getC2PAStatus(c2pa),
           thumbnail: c2pa.source.thumbnail.data,
+          url: c2pa.url,
           signer: (activeManifest as unknown as { signatureInfo?: { issuer?: string } })?.signatureInfo?.issuer ?? signingCert?.subject?.CN ?? '(unknown signer)',
           trustListName: c2pa.trustList?.tlInfo.name ?? null,
           trustListEntity: c2pa.trustList?.entity?.name ?? null,

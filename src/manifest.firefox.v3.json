@@ -11,7 +11,8 @@
         "webNavigation",
         "activeTab",
         "contextMenus",
-        "alarms"
+        "alarms",
+        "bookmarks"
     ],
     "background": {
         "scripts": [

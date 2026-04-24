@@ -10,8 +10,9 @@ import { type C2paError, type C2paResult } from './c2pa'
 import {
   MSG_GET_ID, MSG_L3_INSPECT_URL, MSG_REMOTE_INSPECT_URL, MSG_FORWARD_TO_CONTENT, REMOTE_VALIDATION_LINK,
   MSG_VALIDATE_URL, AWAIT_ASYNC_RESPONSE, MSG_C2PA_RESULT_FROM_CONTEXT, AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED,
-  MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL
+  MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL, MSG_SAVE_BOOKMARK
 } from './constants'
+import { saveVerificationBookmark, type SaveBookmarkRequest } from './bookmarks'
 import { sendMessageToAllTabs } from './utils'
 // rc11.6 / #83 — Intentionally NOT importing verifiedditApi. rc12 shipped
 // an anonymous cross-origin fallback that fired on every unsigned image;
@@ -126,6 +127,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (action === MSG_GET_LOGS) {
     sendResponse(extensionLogs)
+    return AWAIT_ASYNC_RESPONSE
+  }
+
+  // rc14 / #93 — Save Verification bookmark. Content script fires this;
+  // background has chrome.bookmarks.* and returns the structured result
+  // (created | already-exists | error) so the overlay can show a toast.
+  if (action === MSG_SAVE_BOOKMARK) {
+    const req = data as SaveBookmarkRequest
+    void saveVerificationBookmark(req).then((result) => { sendResponse(result) })
     return AWAIT_ASYNC_RESPONSE
   }
 })

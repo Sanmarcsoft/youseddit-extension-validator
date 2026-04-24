@@ -7,7 +7,7 @@ import { LitElement, html, css, type TemplateResult } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
-import { MSG_L3_INSPECT_URL } from './constants'
+import { MSG_L3_INSPECT_URL, MSG_SAVE_BOOKMARK } from './constants'
 import { modelFromC2paResult, renderIngredientDiagram } from './ingredientDiagram'
 
 /*
@@ -420,6 +420,53 @@ export class C2paOverlay extends LitElement {
     })
   }
 
+  // rc14 / #93 — Save-verification bookmark. Builds a concise title
+  // (filename + status) and posts to the background which does the
+  // actual chrome.bookmarks.* work. Feedback is shown via a tiny
+  // transient text node appended beside the button.
+  @property({ attribute: false }) saveState: 'idle' | 'saving' | 'saved' | 'exists' | 'error' = 'idle'
+  private readonly handleSaveBookmark = (): void => {
+    const result = this.c2paResult
+    if (result == null) return
+    this.saveState = 'saving'
+    const name = result.source?.filename ?? 'verification'
+    const statusLabel = (this.status?.errors === true)
+      ? 'Invalid'
+      : (this.status?.trusted === true ? 'Trusted' : 'Signer unknown')
+    const signer = (this._c2paResult?.manifestStore?.manifests[this._c2paResult.manifestStore.activeManifest]?.signatureInfo?.issuer as string | undefined) ?? ''
+    const signerSuffix = signer !== '' ? ` (${signer})` : ''
+    const title = `Verifieddit · ${decodeURIComponent(name)} · ${statusLabel}${signerSuffix}`
+    chrome.runtime.sendMessage(
+      { action: MSG_SAVE_BOOKMARK, data: { imageUrl: result.url, title } },
+      (resp: { status?: 'created' | 'already-exists' | 'error', error?: string }) => {
+        if (chrome.runtime.lastError != null) {
+          this.saveState = 'error'
+          return
+        }
+        this.saveState = resp?.status === 'created' ? 'saved'
+          : resp?.status === 'already-exists' ? 'exists'
+            : 'error'
+      }
+    )
+  }
+
+  private renderSaveButton (): TemplateResult {
+    const label = this.saveState === 'saving' ? 'Saving…'
+      : this.saveState === 'saved' ? '✓ Saved to Verifieddit folder'
+        : this.saveState === 'exists' ? '✓ Already saved'
+          : this.saveState === 'error' ? 'Save failed'
+            : 'Save verification'
+    const disabled = this.saveState === 'saving'
+    return html`
+      <button id="saveBookmarkBtn"
+              @click="${this.handleSaveBookmark}"
+              ?disabled="${disabled}"
+              style="margin-left:10px;padding:4px 10px;font-size:12px;background:#1f4d7a;color:#fff;border:1px solid #1f4d7a;border-radius:4px;cursor:pointer">
+        ${label}
+      </button>
+    `
+  }
+
   render (): TemplateResult {
     const trusted = this.status?.trusted === true
     const manifestMap = this.c2paResult?.manifestStore?.manifests
@@ -487,6 +534,7 @@ export class C2paOverlay extends LitElement {
       ${this.validationSection(c2paResult.manifestStore.validationStatus)}
       <div id="inspectionLink">
           For more details, inspect this image on the <span id="mciLink" @click="${this.handleClick}"><u>Verifieddit</u></span> page.
+          ${this.renderSaveButton()}
       </div>
       <!-- <div class="additional-info" style="display: ${this.additionalInfoCollapsed ? 'none' : 'flex'};"> -->
       <div class="additional-info">
