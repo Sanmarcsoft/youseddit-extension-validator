@@ -69,7 +69,8 @@ export class CrIcon {
 
   public remove (): void {
     if (this._crDiv == null) return
-    if (this._clickListener != null) this._crDiv.removeEventListener('click', this._clickListener as EventListener)
+    this._crDiv.onclick = null
+    this._clickListener = undefined
     console.debug('Removing CrIcon:', this._crDiv.title)
     this._crDiv.remove()
     this._crDiv = null
@@ -106,13 +107,31 @@ export class CrIcon {
     this._crDiv.style.left = `${rect.right + window.scrollX - this._crDiv.offsetWidth - rightOffset}px` // Use offsetWidth
   }
 
+  // IDL `onclick` handler, not `addEventListener`. Root-cause of the long-
+  // standing "click does nothing" bug through rc10: addEventListener("click")
+  // registered against the _crDiv element from an extension content-script
+  // isolated world did not fire on user-initiated clicks on verifieddit.com
+  // /demo (verified via Playwright + CDP DOMDebugger.getEventListeners across
+  // rc9 and rc10 — zero listeners observed despite the setter executing). IDL
+  // handlers (`el.onclick = fn`) are stored as a property on the element and
+  // fire reliably regardless of the world that assigned them. Keeping the
+  // listener reference around so remove() can null it cleanly.
   // eslint-disable-next-line accessor-pairs
-  set onClick (listener: (this: HTMLDivElement, ev: MouseEvent) => unknown | null) { // Changed this type
+  set onClick (listener: ((this: HTMLDivElement, ev: MouseEvent) => unknown) | null) {
     if (this._crDiv == null) {
       throw new Error('Icon not created')
     }
-    this._clickListener = listener
-    this._crDiv.addEventListener('click', listener as EventListener) // Cast to EventListener
+    this._clickListener = listener ?? undefined
+    this._crDiv.onclick = listener == null
+      ? null
+      : (ev: MouseEvent): void => {
+          console.debug('CrIcon onclick fired for:', this._crDiv?.title)
+          try {
+            listener.call(this._crDiv as HTMLDivElement, ev)
+          } catch (err) {
+            console.error('CrIcon click handler threw:', err)
+          }
+        }
   }
 
   get status (): VALIDATION_STATUS {

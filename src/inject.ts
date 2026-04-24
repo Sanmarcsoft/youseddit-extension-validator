@@ -26,36 +26,25 @@ const originalConsole = {
   error: console.error
 }
 
-// Override console methods to send messages to background script
-console.log = (...args: any[]) => {
-  const logString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ')
-  void chrome.runtime.sendMessage({ action: MSG_LOG_MESSAGE, data: `[LOG] ${logString}` })
-  originalConsole.log(...args)
+// Override console methods to send messages to background script.
+// Wrapped in try/catch: after an extension reload chrome.runtime.sendMessage
+// throws synchronously with "Extension context invalidated." Unguarded, every
+// subsequent console call from the content script surfaces as an uncaught
+// error in the page console (bug #63 follow-up).
+function forwardLogToBackground (level: string, args: any[]): void {
+  try {
+    const logString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ')
+    void chrome.runtime.sendMessage({ action: MSG_LOG_MESSAGE, data: `[${level}] ${logString}` })
+  } catch {
+    // Extension context invalidated or channel not yet ready — drop.
+  }
 }
 
-console.debug = (...args: any[]) => {
-  const logString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ')
-  void chrome.runtime.sendMessage({ action: MSG_LOG_MESSAGE, data: `[DEBUG] ${logString}` })
-  originalConsole.debug(...args)
-}
-
-console.info = (...args: any[]) => {
-  const logString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ')
-  void chrome.runtime.sendMessage({ action: MSG_LOG_MESSAGE, data: `[INFO] ${logString}` })
-  originalConsole.info(...args)
-}
-
-console.warn = (...args: any[]) => {
-  const logString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ')
-  void chrome.runtime.sendMessage({ action: MSG_LOG_MESSAGE, data: `[WARN] ${logString}` })
-  originalConsole.warn(...args)
-}
-
-console.error = (...args: any[]) => {
-  const logString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ')
-  void chrome.runtime.sendMessage({ action: MSG_LOG_MESSAGE, data: `[ERROR] ${logString}` })
-  originalConsole.error(...args)
-}
+console.log = (...args: any[]) => { forwardLogToBackground('LOG', args); originalConsole.log(...args) }
+console.debug = (...args: any[]) => { forwardLogToBackground('DEBUG', args); originalConsole.debug(...args) }
+console.info = (...args: any[]) => { forwardLogToBackground('INFO', args); originalConsole.info(...args) }
+console.warn = (...args: any[]) => { forwardLogToBackground('WARN', args); originalConsole.warn(...args) }
+console.error = (...args: any[]) => { forwardLogToBackground('ERROR', args); originalConsole.error(...args) }
 
 console.debug('%cFRAME:', 'color: magenta', window.location)
 
@@ -80,9 +69,13 @@ let messageCounter = 0
 // const media = new Map<MediaElement, { validation: C2paResult, icon: CrIcon, status: VALIDATION_STATUS }>()
 let _id: TabAndFrameId
 
-void chrome.runtime.sendMessage({ action: MSG_GET_ID }).then((id) => {
-  _id = id
-})
+try {
+  void chrome.runtime.sendMessage({ action: MSG_GET_ID })
+    .then((id) => { _id = id })
+    .catch(() => { /* SW may be suspended at load-time; _id stays undefined, the callers tolerate it */ })
+} catch {
+  // synchronous throw: extension context invalidated before first call — ignore
+}
 
 if (window.location.href.startsWith('chrome-extension:') || window.location.href.startsWith('moz-extension:')) {
   throw new Error('Ignoring extension IFrame')
@@ -407,7 +400,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 function sendToContent (message: unknown): void {
-  void chrome.runtime.sendMessage({ action: MSG_FORWARD_TO_CONTENT, data: message })
+  // Wrap sendMessage: after an extension reload the content-script keeps
+  // running but the runtime channel is dead, so chrome.runtime.sendMessage
+  // throws "Extension context invalidated." and the async/fire-and-forget
+  // call swallows the error silently — leaving the CR-overlay click inert
+  // with no diagnostic. Catch + log + show a one-shot page toast.
+  try {
+    void chrome.runtime.sendMessage({ action: MSG_FORWARD_TO_CONTENT, data: message })
+  } catch (err) {
+    console.warn('sendToContent failed (extension context likely invalidated):', (err as Error)?.message)
+    showExtensionReloadToast()
+  }
+}
+
+// Tiny in-page toast shown when the content script can no longer talk to the
+// background. Rendered once; subsequent failures update the text. This makes
+// the "click does nothing" post-reload failure mode self-explanatory.
+let _toastEl: HTMLDivElement | null = null
+function showExtensionReloadToast (): void {
+  try {
+    if (_toastEl != null) return
+    const toast = document.createElement('div')
+    toast.setAttribute('c2pa-toast', 'c2pa-toast')
+    toast.style.cssText = [
+      'position:fixed',
+      'bottom:16px',
+      'right:16px',
+      'z-index:2147483647',
+      'background:#1a1a1a',
+      'color:#ffffff',
+      'padding:10px 14px',
+      'border-radius:6px',
+      'font:13px/1.4 system-ui,-apple-system,sans-serif',
+      'box-shadow:0 4px 12px rgba(0,0,0,0.25)',
+      'max-width:320px'
+    ].map(s => `${s} !important`).join(';')
+    toast.textContent = 'Verifieddit was reloaded — refresh this tab to restore C2PA validation.'
+    document.body.appendChild(toast)
+    _toastEl = toast
+  } catch {
+    // nothing we can do if document is gone
+  }
 }
 
 let _lastContextTarget: MediaElement | null = null
