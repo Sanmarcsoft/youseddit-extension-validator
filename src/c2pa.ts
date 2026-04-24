@@ -241,11 +241,29 @@ async function serializeC2paReadResult (result: C2paReadResult): Promise<Extensi
   console.debug('serializeC2paReadResult: generated thumbnailData:', thumbnailData ? `${thumbnailData.substring(0, 50)}...[length: ${thumbnailData.length}]` : 'empty');
 
 
-  const sourceData = (result.source.type?.startsWith('video/') ?? false)
-    ? ''
-    : result.source.blob != null
-      ? await blobToDataURL(result.source.blob)
-      : ''
+  // Source-blob inlining budget. Raw bytes above this threshold would produce
+  // a base64 data URL that is then structured-cloned four times across
+  // inject → background → content-script → overlay-iframe, silently saturating
+  // chrome.runtime/chrome.tabs/postMessage and leaving the CR overlay click
+  // inert on large real-world C2PA-signed media (e.g. the 4.7 MB CBC fixture).
+  // Below the threshold we inline as before; above it we emit the empty string
+  // and rely on the overlay's existing thumbnail path + the caller's URL.
+  const SOURCE_INLINE_MAX_BYTES = 512 * 1024
+  const sourceBlobSize = result.source.blob?.size ?? 0
+  const sourceData: dataUrl =
+    (result.source.type?.startsWith('video/') ?? false)
+      ? ''
+      : result.source.blob == null
+        ? ''
+        : sourceBlobSize > SOURCE_INLINE_MAX_BYTES
+          ? ''
+          : await blobToDataURL(result.source.blob)
+
+  if (result.source.blob != null && sourceBlobSize > SOURCE_INLINE_MAX_BYTES) {
+    console.debug(
+      `serializeC2paReadResult: skipping sourceData inline (${sourceBlobSize} bytes > ${SOURCE_INLINE_MAX_BYTES} budget); falling back to thumbnail + URL.`
+    )
+  }
 
   console.debug('serializeC2paReadResult: generated sourceData:', sourceData ? `${sourceData.substring(0, 50)}...[length: ${sourceData.length}]` : 'empty');
 

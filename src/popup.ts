@@ -74,11 +74,20 @@ document.addEventListener('DOMContentLoaded', function (): void {
 
       // refresh the trust lists info in the option tab
       if (tabContentId === 'options') {
+        const info = document.getElementById('trust-list-info')
+        if (info !== null && info.innerHTML === '') {
+          // Paint an immediate placeholder so the Options tab never
+          // looks like it's forgotten to render trust lists (#59/#60 UX).
+          info.innerHTML = '<p class="detail-dim">Loading trust lists…</p>'
+        }
         void displayTrustListInfos()
       }
     })
   })
   void showResults()
+  // Pre-warm trust-list data so the Options tab is ready to render
+  // as soon as it's selected, not after a perceptible delay (#59/#60).
+  void displayTrustListInfos()
 })
 
 /**
@@ -268,28 +277,32 @@ tsaFileInput.addEventListener('change', createFileInputEventListener((fileConten
  * Displays the trust list info in the popup.
  */
 async function displayTrustListInfos (): Promise<void> {
-  void getTrustListInfos()
-    .then(
-      (tlis: TrustListInfo[]) => {
-        const trustListInfo = document.getElementById('trust-list-info') as HTMLDivElement
-        trustListInfo.style.display = 'block'
+  try {
+    const tlis = await getTrustListInfos()
+    const trustListInfo = document.getElementById('trust-list-info') as HTMLDivElement | null
+    if (trustListInfo == null) return
+    trustListInfo.style.display = 'block'
 
-        if (tlis.length === 0) {
-          trustListInfo.innerHTML = '<p>No trust list set</p>'
-        } else {
-          let listHtml = '<p>Trust Lists:</p><ul>'
-          tlis.forEach((tli, index) => {
-            const listItem = (tli.website.length > 0)
-              ? `<li><a href="${tli.website}" target="_blank">${tli.name}</a>`
-              : `<li>${tli.name}`
+    if (tlis == null || tlis.length === 0) {
+      trustListInfo.innerHTML = '<p class="detail-dim">No trust list loaded. Import a trust anchor above, or trust lists will appear here once the background service worker initialises.</p>'
+      return
+    }
 
-            // Add the delete link with a data-index attribute
-            listHtml += `${listItem} (<a href="#" class="delete-link" data-index="${index}">delete</a>)</li>`
-          })
-          listHtml += '</ul>'
-          trustListInfo.innerHTML = listHtml
-        }
-      })
+    let listHtml = '<p><b>Active trust lists</b></p><ul>'
+    tlis.forEach((tli, index) => {
+      const listItem = (tli.website.length > 0)
+        ? `<li><a href="${tli.website}" target="_blank">${tli.name}</a>`
+        : `<li>${tli.name}`
+      listHtml += `${listItem} (<a href="#" class="delete-link" data-index="${index}">delete</a>)</li>`
+    })
+    listHtml += '</ul>'
+    trustListInfo.innerHTML = listHtml
+  } catch (err) {
+    const trustListInfo = document.getElementById('trust-list-info')
+    if (trustListInfo != null) {
+      trustListInfo.innerHTML = `<p class="validation-errors">Trust-list lookup failed (service worker may be warming up — reopen the popup). Details: ${String((err as Error).message ?? err)}</p>`
+    }
+  }
 }
 
 // event listener for trust lists delete link
