@@ -399,7 +399,18 @@ async function loadDefaultTrustLists (): Promise<void> {
 export async function init (): Promise<void> {
   await loadTrustLists(); // Attempt to load existing trust lists first
   if (globalTrustLists.length === 0) {
-    await loadDefaultTrustLists();
+    try {
+      await loadDefaultTrustLists();
+      // Clear any prior error so the popup banner reflects current state.
+      void chrome.storage.session?.remove('trustListsInitError')
+    } catch (error) {
+      // Surface the failure via chrome.storage.session so the popup can
+      // render a banner, but keep init alive so the message handlers
+      // below still register. A SW that cannot answer GET_TRUSTLIST_INFOS
+      // is worse than one that answers with the explicit error state.
+      const message = error instanceof Error ? error.message : String(error)
+      void chrome.storage.session?.set({ trustListsInitError: message })
+    }
   } else {
   }
 
