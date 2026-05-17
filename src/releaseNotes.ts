@@ -1,22 +1,19 @@
 /*
  * Single source of truth for the "What's new" section in the About tab.
  *
- * Each entry ties a release-candidate tag to a short list of fixes that a
- * user can verify for themselves on https://www.verifieddit.com/demo. The
- * `verifyFragment` points at a specific fixture filename under
- * /demo-corpus/ so the deep-link scrolls straight to it.
+ * Public-facing copy. No internal QA / Playwright / test-fixture language;
+ * the popup renders this verbatim to end users. The "How to verify" lines
+ * are written as something a user can actually try on the web today.
  *
- * Add a new object at the top of RELEASE_NOTES for every new rc. Keep the
- * list ordered newest-first; popup.ts renders the first entry expanded by
- * default.
+ * Add a new object at the top of RELEASE_NOTES for every shipped version.
+ * Newest first; popup.ts renders the first entry expanded by default.
  */
 
 export interface ReleaseFix {
   title: string
   /**
-   * How to verify on /demo. `verifyFragment` is appended as a hash so the
-   * popup deep-link scrolls to the relevant <figure>/<img>. If omitted the
-   * link points at /demo without an anchor.
+   * Plain-English action a user can take to see the feature in action.
+   * Optional `verifyFragment` deep-links to a demo image fixture by name.
    */
   howToVerify: string
   verifyFragment?: string
@@ -33,58 +30,34 @@ export const DEMO_URL = 'https://www.verifieddit.com/demo'
 
 export const RELEASE_NOTES: readonly ReleaseEntry[] = [
   {
-    tag: 'v1.0.0-rc11',
-    date: '2026-04-24',
-    summary: 'CR overlay click finally opens the metadata panel.',
+    tag: 'v1.0.0',
+    date: '2026-05-17',
+    summary: 'Initial public release. Verify C2PA Content Credentials on any webpage.',
     fixes: [
       {
-        title: 'Click any CR badge and see the full provenance panel',
+        title: 'Automatic detection of signed media on every page',
         howToVerify:
-          'Open /demo, click the yellow CR badge on the CBC/Radio-Canada fixture (07-edge-realworld-cbc-signed.jpg). A panel opens showing "Image signed by unknown entity CBC/Radio-Canada", the WebClaimSigningCA → Truepic Lens certificate chain, trusted timestamp, and the 1-manifest tree.',
-        verifyFragment: '07-edge-realworld-cbc-signed.jpg'
+          'Open any page with C2PA-credentialed images (try the demo page link above). Verifieddit overlays a small badge in the corner of each verified piece of media — green for trusted, yellow for an unknown signer, red for an integrity failure.'
       },
       {
-        title: 'Post-reload failure is now self-explanatory',
+        title: 'Click a badge for the full provenance panel',
         howToVerify:
-          'Reload the extension from chrome://extensions with /demo still open. Click a CR badge — a small dark toast appears at the bottom-right saying "Verifieddit was reloaded — refresh this tab to restore C2PA validation." (Previously the click was silently inert.)',
-        verifyFragment: '01-greentrust-jpeg.jpg'
+          'Click any badge to open the provenance panel: who created the content, what tools touched it, the certificate trust chain, the trusted timestamp, and the ingredient history.'
       },
       {
-        title: 'Regression gate added',
+        title: 'Right-click to inspect any image, video, or audio',
         howToVerify:
-          'Playwright E2E (test/e2e/cr-click.spec.ts) drives a headed chromium with the unpacked extension, clicks the CBC badge, asserts the <c2pa-overlay> shadow DOM contains "CBC/Radio-Canada" and the "unknown" trust-list marker. CI runs this before every rc tag.'
-      }
-    ]
-  },
-  {
-    tag: 'v1.0.0-rc10',
-    date: '2026-04-24',
-    summary: 'Console-noise hotfix + source-data inline cap for large signed media.',
-    fixes: [
-      {
-        title: 'No-Manifest unsigned images no longer spam the console',
-        howToVerify:
-          'Open /demo and open DevTools on the page. Scroll through the fixtures. You should see no "Error validating image 1: [object Object]" lines — only a single debug-level "No C2PA manifest for image" per unsigned fixture, and real "C2PA validation error" entries only when something genuinely goes wrong.',
-        verifyFragment: '06-no-c2pa-plain-jpeg.jpg'
+          'Right-click any media element on any page and choose "Verify with Verifieddit." A new tab opens with the full Content Credentials inspection — works whether auto-scan is on or off.'
       },
       {
-        title: 'Large real-world C2PA media stays responsive',
+        title: 'Save a verification to your bookmarks',
         howToVerify:
-          'Click the 4.7 MB CBC fixture icon; extension no longer stalls while serialising a ~6 MB base64 of the source blob through chrome.runtime.sendMessage. (Behaviour visibly depends on rc11 for the click path itself.)',
-        verifyFragment: '07-edge-realworld-cbc-signed.jpg'
-      }
-    ]
-  },
-  {
-    tag: 'v1.0.0-rc9',
-    date: '2026-04-23',
-    summary: 'UI upgrade — toolbar icon + expandable Validation tab + ingredient tree.',
-    fixes: [
+          'Open the popup\'s Validation tab on a verified page, click "Save" next to any entry. The verification is saved to a dedicated "verifieddit.com" folder in your Chrome bookmarks for later reference.'
+      },
       {
-        title: 'Popup Validation tab is now an accordion',
+        title: '100% local processing, zero servers',
         howToVerify:
-          'Click the Verifieddit toolbar icon on /demo. Each row in the Validation tab expands to show signer / trust list / cert chain / TSA / AI / manifest count / ingredient tree.',
-        verifyFragment: '01-greentrust-jpeg.jpg'
+          'Every byte of verification work happens inside your browser using locally-bundled WebAssembly. No media is uploaded anywhere. No analytics, no telemetry, no account required. See the Privacy Policy linked from the listing.'
       }
     ]
   }
