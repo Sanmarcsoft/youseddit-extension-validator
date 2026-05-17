@@ -58,32 +58,23 @@ https://verifieddit.com/docs/privacy/
 ### storage
 Saves user preferences (auto-scan toggle, theme) and custom trust lists locally in the browser.
 
-### scripting
-Injects content scripts to detect and overlay C2PA icons on media elements across web pages.
-
 ### offscreen
-Creates an offscreen document to run C2PA WebAssembly verification in a background context, required because service workers cannot use WebAssembly directly.
-
-### notifications
-Displays a brief notification when the extension is installed or updated to confirm successful loading.
-
-### webRequest
-Monitors network requests to detect media files (images, videos) being loaded, enabling automatic C2PA credential detection.
+Creates an offscreen document to run C2PA WebAssembly verification in a background context. Required because MV3 service workers cannot load WebAssembly directly.
 
 ### tabs
-Sends messages between the background service worker and content scripts in browser tabs to coordinate C2PA validation results.
-
-### webNavigation
-Detects page navigation events to trigger automatic media scanning when users navigate to new pages.
+Reads the URL of open tabs to filter out non-http(s) tabs (chrome://, the Chrome Web Store, PDF viewers, extension option pages, devtools) before broadcasting C2PA validation messages. Without this filtering, messages produce "Receiving end does not exist" errors against tabs that cannot host the content script.
 
 ### activeTab
-Accesses the currently active tab to display validation results in the popup and coordinate with the content script.
+Accesses the currently active tab when the user clicks the toolbar action or selects an item from the right-click context menu, scoped to that single interaction.
 
 ### contextMenus
 Adds "Inspect Content Credentials" to the right-click context menu on images, videos, and audio elements.
 
 ### alarms
 Schedules periodic trust list refreshes (every 24 hours) to keep certificate validation up to date.
+
+### bookmarks
+Saves verification results as bookmarks under a dedicated "verifieddit.com" folder, so users can build a personal library of verified provenance records they have inspected.
 
 ### Host Permissions: <all_urls>
 The extension needs access to all URLs because C2PA content credentials can appear on any website. The extension scans image, video, and audio elements on the current page to detect and verify cryptographic provenance data embedded in media files. Without broad host access, users would need to manually allowlist every website, defeating the purpose of automatic content credential detection.

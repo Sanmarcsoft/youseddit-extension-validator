@@ -4,11 +4,7 @@
     "version": "1.0.0",
     "permissions": [
         "storage",
-        "scripting",
-        "notifications",
-        "webRequest",
         "tabs",
-        "webNavigation",
         "activeTab",
         "contextMenus",
         "alarms",
