@@ -186,6 +186,16 @@ document.addEventListener('DOMContentLoaded', function (): void {
   populateBuildInfo()
   renderWhatsNew()
   void renderInitErrorBanner()
+  // The popup can open in the millisecond window before c2pa.init or
+  // initTrustlist resolves. Re-render the banner whenever the writers
+  // touch the session storage keys we care about, so a delayed init
+  // failure still becomes visible to the user.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'session') return
+    if ('c2paInitError' in changes || 'trustListsInitError' in changes) {
+      void renderInitErrorBanner()
+    }
+  })
 
   const autoScanToggle = document.getElementById('toggleAutoScan') as ToggleSwitch
 
