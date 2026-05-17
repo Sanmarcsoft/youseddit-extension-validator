@@ -7,8 +7,6 @@ import { MSG_DISPLAY_C2PA_OVERLAY, MSG_FORWARD_TO_CONTENT, MSG_UPDATE_FRAME_HEIG
 import { type C2paOverlay } from './webComponents'
 import { type C2paResult } from './c2pa'
 
-console.debug('%cFRAME:', 'color: blue', window.location.href)
-
 export interface FrameMessage {
   secret: string
   action: string
@@ -24,7 +22,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     Populate the IFrame with C2PA validation results for a media element.
   */
   if (message.action === MSG_OPEN_OVERLAY) {
-    console.debug('overlayFrame: MSG_OPEN_OVERLAY received; overlay is', _overlay === null ? 'null (buffering)' : 'ready')
     const c2paResult = message.data.c2paResult as C2paResult
     const position = message.data.position as { x: number, y: number }
     if (_overlay !== null) {

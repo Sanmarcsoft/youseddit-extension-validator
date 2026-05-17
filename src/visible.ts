@@ -244,5 +244,4 @@ window.addEventListener('scroll', function () {
 window.addEventListener('click', function (event) {
   const x = Math.floor(event.pageX)
   const y = Math.floor(event.pageY)
-  console.debug('click', x, y)
 })

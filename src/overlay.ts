@@ -5,8 +5,6 @@
 
 import { MSG_UPDATE_FRAME_HEIGHT, OVERLAY_Z_INDEX, type MSG_PAYLOAD } from './constants'
 
-console.debug('Overlay.ts: load')
-
 export class C2paOverlay /* extends HTMLElement */ {
   private static singleInstance: C2paOverlay
   private readonly _iframe: HTMLIFrameElement

@@ -7,8 +7,6 @@ import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED } from './constants'
 import { type MediaElement } from './content'
 import { MediaRecord } from './mediaRecord'
 
-console.debug('Media module loaded')
-
 const mediaSelector = MediaRecord.MEDIA_ELEMENT_NODE_TYPES.join(',').toLocaleLowerCase()
 let _autoObserve: boolean
 
@@ -47,7 +45,6 @@ export class MediaMonitor {
         const media = MediaMonitor.lookup(node)
         if (media == null) {
           // Not previously observed and added
-          console.error('%cMediaElement not found', 'color: orange', node)
           return
         }
         const src = MediaRecord.getSrc(node)
@@ -62,7 +59,6 @@ export class MediaMonitor {
 
   private static _startMonitoring (): void {
     if (MediaMonitor._monitoring) {
-      console.error('Monitor already started')
       return
     }
 
@@ -79,7 +75,6 @@ export class MediaMonitor {
 
   private static _stopMonitoring (): void {
     if (!MediaMonitor._monitoring) {
-      console.error('Monitor already stopped')
       return
     }
     if (MediaMonitor._onMonitoringStopCallback != null) {
@@ -108,7 +103,6 @@ export class MediaMonitor {
     const storedInstance = MediaMonitor._mediaRecords.get(element)
 
     if (storedInstance == null) {
-      console.error('%cMediaElement does not exist:', 'color: orange', MediaRecord.getSrc(element))
       return
     }
 
@@ -185,21 +179,17 @@ export class MediaMonitor {
   }
 }
 
-
 void chrome.storage.local.get('autoScan').then((result) => {
   _autoObserve = result.autoScan ?? AUTO_SCAN_DEFAULT
-  console.debug('Auto-scan setting:', _autoObserve)
   
   // Start monitoring once DOM is ready
   const startMonitoringWhenReady = () => {
     if (document.body != null) {
-      console.debug('Starting MediaMonitor with auto-scan:', _autoObserve)
       MediaMonitor.monitoring = _autoObserve
     } else {
       // DOM not ready yet, wait for it
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-          console.debug('DOM ready, starting MediaMonitor with auto-scan:', _autoObserve)
           MediaMonitor.monitoring = _autoObserve
         })
       } else {

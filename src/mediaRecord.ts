@@ -9,8 +9,6 @@ import { type CrIcon } from './icon'
 
 export type MediaElement = (HTMLImageElement | HTMLVideoElement | HTMLAudioElement)
 
-console.debug('MediaRecord module loaded')
-
 const SOURCES_TO_IGNORE = ['chrome-extension:', 'moz-extension:', 'blob:', 'data:']
 
 type MediaStateTypes = 'image' | 'video' | 'audio' | 'none'
@@ -33,11 +31,9 @@ export class MediaRecord {
   public static MEDIA_ELEMENT_NODE_TYPES = ['IMG', 'VIDEO', 'AUDIO']
 
   constructor (mediaElement: MediaElement) {
-    console.trace(`${MediaRecord._i}MediaRecord created:`, mediaElement)
 
     if (IS_DEBUG) {
       if (mediaElement.getAttribute('c2pa:id') != null) {
-        console.warn('MediaRecord already assigned:', mediaElement)
       } else {
         mediaElement.setAttribute('c2pa:id', String(MediaRecord._i++))
       }
@@ -60,7 +56,6 @@ export class MediaRecord {
   public get src (): string {
     if (IS_DEBUG) {
       if (this._element.currentSrc == null) {
-        console.error('MediaElement currentSrc is empty:', this._element)
       }
     }
     return this._element.currentSrc
@@ -96,7 +91,6 @@ export class MediaRecord {
     // We expect the load event to be always be fired
     setTimeout(() => {
       if (!loaded) {
-        console.error('MediaElement ready timeout:', this._element)
       }
     }, 2000)
   }

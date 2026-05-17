@@ -10,7 +10,7 @@ import { type C2paError, type C2paResult } from './c2pa'
 import {
   MSG_GET_ID, MSG_L3_INSPECT_URL, MSG_REMOTE_INSPECT_URL, MSG_FORWARD_TO_CONTENT, REMOTE_VALIDATION_LINK,
   MSG_VALIDATE_URL, AWAIT_ASYNC_RESPONSE, MSG_C2PA_RESULT_FROM_CONTEXT, AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED,
-  MSG_LOG_MESSAGE, MSG_GET_LOGS, TRUSTLIST_UPDATE_INTERVAL, MSG_SAVE_BOOKMARK
+  TRUSTLIST_UPDATE_INTERVAL, MSG_SAVE_BOOKMARK
 } from './constants'
 import { saveVerificationBookmark, type SaveBookmarkRequest } from './bookmarks'
 import { sendMessageToAllTabs } from './utils'
@@ -21,19 +21,12 @@ import { sendMessageToAllTabs } from './utils'
 // Reintroducing any call here requires #83's acceptance criteria.
 // import { validateImageUrl as apiValidate, isApiFailure, type RecoveredCredential } from './verifiedditApi'
 
-const MAX_LOG_ENTRIES = 200 // Limit the number of log entries to store
-let extensionLogs: string[] = []
-
-console.debug('Background: Script: start')
-
 void initTrustlist()
 
 chrome.runtime.onInstalled.addListener(function (details) {
   if (details.reason === 'install') {
-    console.debug('This is a first-time install!')
     void chrome.storage.local.set({ autoScan: AUTO_SCAN_DEFAULT })
   } else if (details.reason === 'update') {
-    console.debug('The extension has been updated to version:', chrome.runtime.getManifest().version)
     // rc11.7 / #86 — one-shot migration to force auto-scan OFF for any
     // user who was silently stuck on the old rc<=11.6 build where
     // AUTO_SCAN=true was baked into the bundle as the install default.
@@ -43,11 +36,9 @@ chrome.runtime.onInstalled.addListener(function (details) {
     void chrome.storage.local.get('rc117AutoScanMigrationDone').then((stored) => {
       if (stored?.rc117AutoScanMigrationDone !== true) {
         void chrome.storage.local.set({ autoScan: false, rc117AutoScanMigrationDone: true })
-        console.debug('rc11.7 migration: forced autoScan=false (one-shot).')
       }
     })
   } else if (details.reason === 'chrome_update') {
-    console.debug('Chrome has been updated.')
   }
   createContextMenu()
 })
@@ -69,7 +60,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   void validateUrl(url).then(c2paResult => {
     if (c2paResult instanceof Error) {
-      console.error('Error validating URL:', c2paResult)
       return
     }
     const message = { action: MSG_C2PA_RESULT_FROM_CONTEXT, data: { url, c2paResult, frame: info.frameId } }
@@ -110,19 +100,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void sendMessageToAllTabs({ action: MSG_AUTO_SCAN_UPDATED, data })
   }
 
-  if (action === MSG_LOG_MESSAGE) {
-    const logEntry = data as string
-    extensionLogs.push(logEntry)
-    if (extensionLogs.length > MAX_LOG_ENTRIES) {
-      extensionLogs.shift() // Remove the oldest entry
-    }
-  }
-
-  if (action === MSG_GET_LOGS) {
-    sendResponse(extensionLogs)
-    return AWAIT_ASYNC_RESPONSE
-  }
-
   // rc14 / #93 — Save Verification bookmark. Content script fires this;
   // background has chrome.bookmarks.* and returns the structured result
   // (created | already-exists | error) so the overlay can show a toast.
@@ -134,36 +111,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 async function validateUrl (url: string): Promise<C2paResult | C2paError> {
-  console.debug(`Background: validateUrl: Starting validation for: ${url}`);
   const c2paResult = await c2paValidateUrl(url);
   
   if (c2paResult instanceof Error) {
     // rc11.6 / #83 — removed the anonymous cross-origin verifieddit.com
     // API fallback that rc12 shipped here. See issue #83 for context.
-    console.error(`Background: validateUrl: Error from c2paValidateUrl for ${url}:`, c2paResult);
     return c2paResult;
   }
 
-  console.debug(`Background: validateUrl: Initial c2paResult for ${url}:`, c2paResult);
   
   // Check trust list inclusion
   c2paResult.trustList = checkTrustListInclusion(c2paResult.certChain ?? []);
-  console.debug(`Background: validateUrl: trustList after check for ${url}:`, c2paResult.trustList);
   
   // Check TSA trust list inclusion if TST tokens exist
   if (c2paResult.tstTokens != null && c2paResult.tstTokens.length > 0) {
     const tstToken = c2paResult.tstTokens[0]; // TODO: for each token
     c2paResult.tsaTrustList = checkTSATrustListInclusion(tstToken.certChain ?? []);
-    console.debug(`Background: validateUrl: tsaTrustList after check for ${url}:`, c2paResult.tsaTrustList);
   } else {
-    console.debug(`Background: validateUrl: No TST tokens found for ${url}.`);
   }
 
   // rc11.6 / #83 — removed the anonymous cross-origin verifieddit.com
   // API fallback that rc12 shipped here. Reintroducing the path requires
   // per-install auth + server-side rate limiting + user consent per #83.
 
-  console.debug(`Background: validateUrl: Final c2paResult before returning for ${url}:`, c2paResult);
   return c2paResult;
 }
 
@@ -183,7 +153,6 @@ async function init (): Promise<void> {
         justification: 'Parse C2PA manifest DOM and run WebAssembly verification in a Web Worker (both forbidden in MV3 service workers)'
       })
       .catch((error) => {
-        console.error('Failed to create offscreen document', error)
       })
   }
 }
@@ -206,21 +175,18 @@ function setupTrustListRefreshAlarm (): void {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'trustListRefreshAlarm') {
     refreshTrustLists()
-      .then(() => { console.debug('Trust lists refresh completed successfully.') })
-      .catch((error) => { console.error('Error refreshing trust lists:', error) })
+      .then(() => {})
+      .catch((error) => {})
   }
 })
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.debug('Extension installed. Setting up trust list refresh alarm.')
   setupTrustListRefreshAlarm()
 })
 
 chrome.runtime.onStartup.addListener(() => {
-  console.debug('Browser started. Ensuring trust list refresh alarm is active.')
   setupTrustListRefreshAlarm()
 })
 
 void init()
 
-console.debug('Background: Script: end')
