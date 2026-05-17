@@ -19,7 +19,7 @@ English
 - **Publisher (displayed on listing):** SanMarcSoft LLC
 - **Developer website:** https://www.verifieddit.com
 - **Marketing site:** https://www.verifieddit.com
-- **Support / contact email:** TBD (SanMarcSoft LLC contact address)
+- **Support / contact email:** support@verifieddit.com (publicly displayed on the listing; mailbox confirmed-by-user 2026-05-17)
 - **Privacy policy URL:** https://www.verifieddit.com/docs/privacy/
 - **Source repository:** https://github.com/Sanmarcsoft/verifieddit-extension
 
