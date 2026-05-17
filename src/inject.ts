@@ -447,10 +447,10 @@ function showExtensionReloadToast (): void {
 }
 
 // Per-call, auto-dismissing in-page toast for the "no credentials" badge click.
-// Replaces window.alert() in content-script context — CWS policy prohibits
-// content scripts from spawning modal dialogs (host-page event-loop hijack,
-// origin-spoofing risk). Same visual idiom as showExtensionReloadToast but
-// non-singleton and self-removing.
+// Replaces the prior native modal dialog in content-script context (CWS policy
+// prohibits content scripts from spawning native dialogs — host-page event-loop
+// hijack, origin-spoofing risk). Same visual idiom as showExtensionReloadToast
+// but non-singleton and self-removing.
 function showNoCredentialsToast (note: string, url: string): void {
   try {
     const toast = document.createElement('div')
