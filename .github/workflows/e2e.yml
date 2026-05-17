@@ -8,6 +8,12 @@ on:
     branches:
       - feature/50-*
 
+# Force any v4/v5 action that still bundles Node 20 to run on Node 24.
+# Removes the GH Actions deprecation annotation that the CWS verification
+# chain (CLAUDE.md global rule) treats as a non-empty annotations panel.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   e2e:
     name: Run E2E Test Suite (TDD RED Pass)
@@ -21,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -38,7 +44,12 @@ jobs:
         continue-on-error: true
 
       - name: Upload test results
-        if: always()
+        # Only upload if there is something to upload — the TDD RED pass
+        # may produce no results, which would otherwise trip the "No files
+        # were found with the provided path" warning annotation. The check
+        # below means the upload is skipped when results/ is missing OR
+        # empty, eliminating annotation #2 from the check-run.
+        if: always() && hashFiles('test/e2e/results/**') != ''
         uses: actions/upload-artifact@v5
         with:
           name: e2e-test-results
