@@ -1,7 +1,7 @@
 {
   "name": "C2PA Official Trust List",
   "download_url": "",
-  "description": "Official C2PA trust anchors from c2pa-org/conformance-public \u2014 synced with verifieddit.com",
+  "description": "Official C2PA trust anchors from c2pa-org/conformance-public \u2014 synced with www.verifieddit.com",
   "website": "https://github.com/c2pa-org/conformance-public",
   "last_updated": "2026-04-24T12:15:00Z",
   "entities": [
@@ -314,7 +314,7 @@
     {
       "name": "Verifieddit Test Signer (local dev fixtures, Apr 2026)",
       "display_name": "Verifieddit Test Signer",
-      "contact": "https://verifieddit.com",
+      "contact": "https://www.verifieddit.com",
       "isCA": false,
       "jwks": {
         "keys": [

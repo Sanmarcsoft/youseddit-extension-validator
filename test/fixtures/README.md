@@ -1,7 +1,7 @@
 # Alpha-Gold Fixtures — Issue #39
 
 Fixtures supporting the Alpha-Gold MVP demo gate for the verifieddit extension
-(tracked in GitHub issue `Sanmarcsoft/youseddit-extension-validator#39`).
+(tracked in GitHub issue `Sanmarcsoft/verifieddit-extension#39`).
 
 All images in `./` and `./demo-corpus/` are signed (or deliberately not signed)
 on branch `feature/39-rc2-fixtures` using the regenerated local test PKI under
