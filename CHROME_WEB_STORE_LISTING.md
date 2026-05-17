@@ -20,7 +20,7 @@ English
 - **Developer website:** https://www.verifieddit.com
 - **Marketing site:** https://www.verifieddit.com
 - **Support / contact email:** support@verifieddit.com (publicly displayed on the listing; mailbox confirmed-by-user 2026-05-17)
-- **Privacy policy URL:** https://www.verifieddit.com/docs/privacy/
+- **Privacy policy URL:** https://www.verifieddit.com/privacy
 - **Source repository:** https://github.com/Sanmarcsoft/verifieddit-extension
 
 Listing the LLC as Publisher on the Chrome Web Store requires either (a) submitting from a Google Workspace account on a SanMarcSoft-owned domain, or (b) setting "SanMarcSoft LLC" as the verified Publisher name on an existing CWS developer account. CWS will display the registered publisher name to end users — verify spelling before submit.
@@ -61,7 +61,7 @@ Built on Microsoft's C2PA Extension Validator. View the source code at https://g
 Learn more at https://www.verifieddit.com
 
 ## Privacy Policy URL
-https://www.verifieddit.com/docs/privacy/
+https://www.verifieddit.com/privacy
 
 ## Permission Justifications
 
