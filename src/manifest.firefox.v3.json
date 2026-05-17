@@ -2,6 +2,12 @@
     "manifest_version": 3,
     "name": "verifieddit",
     "version": "1.0.0",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "verifieddit@verifieddit.com",
+            "strict_min_version": "109.0"
+        }
+    },
     "permissions": [
         "storage",
         "scripting",
