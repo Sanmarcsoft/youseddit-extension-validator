@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "verifieddit Alpha-Gold demo corpus",
-  "issue": "Sanmarcsoft/youseddit-extension-validator#39",
+  "issue": "Sanmarcsoft/verifieddit-extension#39",
   "branch": "feature/39-rc2-fixtures",
   "generated_at": "2026-04-21",
   "signer_fingerprint_sha256": "a1d71e68d2a48f08045700119c14a81d62d043a06ccc15249abc59f90b262e59",

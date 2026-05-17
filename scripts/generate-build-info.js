@@ -28,7 +28,7 @@ const exactTag    = git('describe --tags --exact-match', '');
 const buildDate   = new Date().toISOString();
 const buildHost   = (process.env.RUNNER_NAME || process.env.HOSTNAME || os.hostname() || 'unknown').replace(/[\r\n]/g, '');
 
-const repoUrl = 'https://github.com/Sanmarcsoft/youseddit-extension-validator';
+const repoUrl = 'https://github.com/Sanmarcsoft/verifieddit-extension';
 
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 

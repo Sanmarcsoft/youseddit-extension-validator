@@ -1,5 +1,7 @@
 # Plan for Renaming Extension to "verifieddit"
 
+> **STATUS: COMPLETE (2026-05-17).** Rebrand executed; GitHub repo renamed from `Sanmarcsoft/youseddit-extension-validator` to `Sanmarcsoft/verifieddit-extension`. This file is retained as historical record. Pulumi resource names in `infra/` deliberately not renamed (would trigger Scaleway bucket destroy/recreate).
+
 This document outlines the steps required to rename the browser extension from "youseddit" to "verifieddit".
 
 ## Identified Occurrences of Current Name

@@ -15,6 +15,16 @@ Developer Tools
 ## Language
 English
 
+## Developer / Publisher Identity
+- **Publisher (displayed on listing):** SanMarcSoft LLC
+- **Developer website:** https://www.verifieddit.com
+- **Marketing site:** https://www.verifieddit.com
+- **Support / contact email:** TBD (SanMarcSoft LLC contact address)
+- **Privacy policy URL:** https://www.verifieddit.com/docs/privacy/
+- **Source repository:** https://github.com/Sanmarcsoft/verifieddit-extension
+
+Listing the LLC as Publisher on the Chrome Web Store requires either (a) submitting from a Google Workspace account on a SanMarcSoft-owned domain, or (b) setting "SanMarcSoft LLC" as the verified Publisher name on an existing CWS developer account. CWS will display the registered publisher name to end users — verify spelling before submit.
+
 ## Single Purpose Description
 Verify the authenticity and provenance of images, videos, and audio on any webpage using the C2PA content credentials standard.
 
@@ -46,12 +56,12 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, FLAC, PDF, and more.
 
 **Open Source:**
-Built on Microsoft's C2PA Extension Validator. View the source code at https://github.com/Sanmarcsoft/youseddit-extension-validator
+Built on Microsoft's C2PA Extension Validator. View the source code at https://github.com/Sanmarcsoft/verifieddit-extension
 
-Learn more at https://verifieddit.com
+Learn more at https://www.verifieddit.com
 
 ## Privacy Policy URL
-https://verifieddit.com/docs/privacy/
+https://www.verifieddit.com/docs/privacy/
 
 ## Permission Justifications
 
