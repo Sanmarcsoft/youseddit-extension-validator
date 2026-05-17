@@ -79,13 +79,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   })
 })
 
-chrome.webRequest.onBeforeRequest.addListener(
-  function (details) {
-    console.debug('Background: Intercepted image request: ', details.url, 'color: #2784BC;')
-  },
-  { urls: ['*://*/*.jpg', '*://*/*.mp4'] }
-)
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender?.tab?.id
   const action = message.action
@@ -193,13 +186,6 @@ async function init (): Promise<void> {
         console.error('Failed to create offscreen document', error)
       })
   }
-
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icons/cr128.png',
-    title: 'Content Credentials',
-    message: 'Loaded'
-  })
 }
 
 async function openOrSwitchToTab (imageUrl: string): Promise<chrome.tabs.Tab> {

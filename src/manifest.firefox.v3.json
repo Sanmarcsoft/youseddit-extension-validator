@@ -12,11 +12,7 @@
     },
     "permissions": [
         "storage",
-        "scripting",
-        "notifications",
-        "webRequest",
         "tabs",
-        "webNavigation",
         "activeTab",
         "contextMenus",
         "alarms",
