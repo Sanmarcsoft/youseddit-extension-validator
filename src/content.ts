@@ -13,8 +13,6 @@ import { C2paOverlay } from './overlay'
 
 export type MediaElement = (HTMLImageElement | HTMLVideoElement | HTMLAudioElement)
 
-console.debug('%cCONTENT:', 'color: cornsilk', window.location.href)
-
 /*
   This is the overlay that will be displayed when a media element is validated.
 */

@@ -79,7 +79,6 @@ export class CrIcon {
     if (this._crDiv == null) return
     this._crDiv.onclick = null
     this._clickListener = undefined
-    console.debug('Removing CrIcon:', this._crDiv.title)
     this._crDiv.remove()
     this._crDiv = null
   }
@@ -133,11 +132,9 @@ export class CrIcon {
     this._crDiv.onclick = listener == null
       ? null
       : (ev: MouseEvent): void => {
-          console.debug('CrIcon onclick fired for:', this._crDiv?.title)
           try {
             listener.call(this._crDiv as HTMLDivElement, ev)
           } catch (err) {
-            console.error('CrIcon click handler threw:', err)
           }
         }
   }

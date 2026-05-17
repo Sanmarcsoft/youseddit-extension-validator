@@ -12,8 +12,6 @@ import { AWAIT_ASYNC_RESPONSE, MSG_C2PA_VALIDATE_URL, type MSG_PAYLOAD } from '.
 import { type TrustListMatch } from './trustlistProxy.js'
 import { blobToDataURL } from './utils.js'
 
-console.debug('C2pa: Script: start')
-
 let c2pa: C2pa | null = null
 
 export interface C2paResult extends ExtensionC2paResult {
@@ -39,7 +37,6 @@ export async function init (): Promise<void> {
         c2pa = newC2pa
       },
       (error: unknown) => {
-        console.error('Error initializing C2PA:', error)
       }
     )
 
@@ -54,18 +51,14 @@ export async function init (): Promise<void> {
 }
 
 export async function validateUrl (url: string): Promise<C2paResult | C2paError> {
-  console.debug(`C2pa: validateUrl: Starting C2PA read for URL: ${url}`);
   if (c2pa == null) {
-    console.error('C2pa: validateUrl: C2PA not initialized.');
     return new Error('C2PA not initialized') as C2paError;
   }
 
   let c2paReadResult: C2paReadResult | Error;
   try {
     c2paReadResult = await c2pa.read(url);
-    console.debug(`C2pa: validateUrl: c2pa.read successful for ${url}:`, c2paReadResult);
   } catch (error: any) {
-    console.error(`C2pa: validateUrl: Error during c2pa.read for ${url}:`, error);
     c2paReadResult = error;
   }
 
@@ -73,12 +66,8 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
     return { message: c2paReadResult.message, url, name: c2paReadResult.name } satisfies C2paError;
   }
 
-  console.debug(`C2pa: validateUrl: c2paReadResult.source.type: ${c2paReadResult.source.type}, c2paReadResult.source.blob size: ${c2paReadResult.source.blob?.size ?? 'N/A'}`);
-
   if (c2paReadResult.manifestStore?.activeManifest == null) {
-    console.debug(`C2pa: validateUrl: No active manifest found for ${url}.`);
     // Log the full c2paReadResult when no manifest is found for further debugging
-    console.debug(`C2pa: validateUrl: Full c2paReadResult when no manifest found for ${url}:`, c2paReadResult);
     return { message: 'No manifest found', url, name: 'No Manifest' } satisfies C2paError;
   }
 
@@ -128,7 +117,6 @@ export async function extractC2paManifest (type: string, mediaBuffer: Uint8Array
     The first, and only box, should have a 'cbor' type
   */
   if (contentBox?.type !== 'cbor' || !isContentBox(contentBox)) {
-    console.error('Expected cbor content-box in jumbf')
     return null
   }
 
@@ -136,15 +124,12 @@ export async function extractC2paManifest (type: string, mediaBuffer: Uint8Array
 
   const cose = await coseDecode(coseData)
   if (cose == null) {
-    console.error('Could not decode COSE')
   }
 
   return cose
 }
 
 void init()
-
-console.debug('C2pa: Script: end')
 
 export type dataUrl = string
 
@@ -228,18 +213,12 @@ async function serializeC2paReadResult (result: C2paReadResult): Promise<Extensi
 
   const activeManifestIndex = Object.values(c2paManifests).indexOf(c2paActiveManifest)
 
-  console.debug('serializeC2paReadResult: Processing thumbnail for filename:', result.source.metadata.filename);
-  console.debug('serializeC2paReadResult: result.source.thumbnail:', result.source.thumbnail);
-
   const thumbnailData =
   !(result.source.thumbnail.contentType?.startsWith('image/') ?? false)
     ? ''
     : result.source.thumbnail.blob != null
       ? await blobToDataURL(result.source.thumbnail.blob)
       : ''
-
-  console.debug('serializeC2paReadResult: generated thumbnailData:', thumbnailData ? `${thumbnailData.substring(0, 50)}...[length: ${thumbnailData.length}]` : 'empty');
-
 
   // Source-blob inlining budget. Raw bytes above this threshold would produce
   // a base64 data URL that is then structured-cloned four times across
@@ -260,13 +239,7 @@ async function serializeC2paReadResult (result: C2paReadResult): Promise<Extensi
           : await blobToDataURL(result.source.blob)
 
   if (result.source.blob != null && sourceBlobSize > SOURCE_INLINE_MAX_BYTES) {
-    console.debug(
-      `serializeC2paReadResult: skipping sourceData inline (${sourceBlobSize} bytes > ${SOURCE_INLINE_MAX_BYTES} budget); falling back to thumbnail + URL.`
-    )
   }
-
-  console.debug('serializeC2paReadResult: generated sourceData:', sourceData ? `${sourceData.substring(0, 50)}...[length: ${sourceData.length}]` : 'empty');
-
 
   const serializedResult = {
     manifestStore: {
@@ -285,6 +258,5 @@ async function serializeC2paReadResult (result: C2paReadResult): Promise<Extensi
     }
   };
 
-  console.debug('serializeC2paReadResult: returning serializedResult:', serializedResult);
   return serializedResult;
 }

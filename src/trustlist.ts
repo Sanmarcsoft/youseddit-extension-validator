@@ -123,7 +123,6 @@ async function processDownloadedTrustList (tl: TrustList): Promise<void> {
           jwk['x5t#S256'] = await calculateSha256CertThumbprintFromX5c(jwk.x5c[0])
         } catch (error) {
           // log the error, ignore the cert
-          console.error('calculateSha256CertThumbprintFromX5c error:', error, 'jwk:', jwk)
         }
       }
     }
@@ -151,7 +150,6 @@ function sigAlgToKeyType (sigAlg: string): ValidKeyTypes {
  */
 async function storeUpdatedTrustLists (message?: string): Promise<void> {
   await chrome.storage.local.set({ trustList: globalTrustLists })
-  console.debug(message)
   void notifyTabsOfTrustListUpdate()
 }
 
@@ -159,14 +157,12 @@ async function storeUpdatedTrustLists (message?: string): Promise<void> {
  * Adds a trust anchor to the built-in trust anchors list, returns the corresponding trust list info or throws an error
  */
 export async function addTrustAnchor (pemCert: string, tsa = false): Promise<void> {
-  console.debug(`addTrustAnchor called. tsa: ${tsa}`)
   if (pemCert == null || typeof pemCert !== 'string') {
     throw new Error('Invalid trust anchor')
   }
 
   const derCert = PEMtoDER(pemCert)
   const cert = await certificateFromDer(derCert)
-  console.debug('cert', cert)
   const x5c = bytesToBase64(derCert)
 
   // create an entity to add to the built-in trust anchor list
@@ -189,14 +185,12 @@ export async function addTrustAnchor (pemCert: string, tsa = false): Promise<voi
       ]
     }
   }
-  console.debug(`created trust anchor entity ${entity.name}`, entity)
 
   // find the local trust anchor list
   const listName = tsa ? LOCAL_TRUST_TSA_LIST_NAME : LOCAL_TRUST_ANCHOR_LIST_NAME
   const anchorTL = globalTrustLists.find(tl => tl.name === listName)
   if (anchorTL == null) {
     // list doesn't exist; create it
-    console.debug(`${listName} trust list not found; creating it`)
     const tl: TrustList = {
       name: listName,
       description: listName,
@@ -208,15 +202,12 @@ export async function addTrustAnchor (pemCert: string, tsa = false): Promise<voi
     globalTrustLists.push(tl)
   } else {
     // add the entity to the list
-    console.debug(`Updating the ${listName} trust list`)
     // add or replace the entity in the list
     const existingEntity = anchorTL.entities.find(e => e.name === entity.name)
     if (existingEntity != null) {
-      console.debug(`Replacing existing entity ${entity.name}`)
       const index = anchorTL.entities.indexOf(existingEntity)
       anchorTL.entities[index] = entity
     } else {
-      console.debug(`Adding new entity ${entity.name}`)
       anchorTL?.entities.push(entity)
     }
     // update the global trust list
@@ -231,7 +222,6 @@ export async function addTrustAnchor (pemCert: string, tsa = false): Promise<voi
  * Adds a trust list, returns the corresponding trust list info or throws an error
  */
 export async function addTrustList (tl: TrustList): Promise<void> {
-  console.debug('addTrustList called')
 
   if (typeof tl === 'undefined' /* TODO: more validation */) {
     throw new Error('Invalid trust list')
@@ -271,7 +261,6 @@ export async function addTSATrustFile (content: string): Promise<void> {
  * @param index index of the trust list to remove
  */
 export async function removeTrustList (index: number): Promise<void> {
-  console.debug('removeTrustList called')
 
   const name = globalTrustLists[index].name
 
@@ -287,13 +276,10 @@ export async function removeTrustList (index: number): Promise<void> {
 export async function loadTrustLists (): Promise<void> {
   // load the trust lists from storage
   const trustListStore = await chrome.storage.local.get('trustList') as { trustList: TrustList[] }
-  console.debug('getTrustList result:', trustListStore)
   const storedTrustList = trustListStore.trustList
   if (storedTrustList != null) {
     globalTrustLists = storedTrustList
-    console.debug(`Trust lists loaded, count: ${storedTrustList.length}`)
   } else {
-    console.debug('No trust list found')
   }
 }
 
@@ -303,25 +289,18 @@ export async function loadTrustLists (): Promise<void> {
  * @returns a trust list match object if found, otherwise null
  */
 export function checkTrustListInclusion (certChain: CertificateInfoExtended[], trustLists: TrustList[] = globalTrustLists): TrustListMatch | null {
-  console.debug('checkTrustListInclusion called with certChain:', certChain, 'and trustLists:', trustLists);
   if (trustLists != null && trustLists.length > 0) {
-    console.debug('checkTrustListInclusion: Iterating through trustLists.');
     // for each trust list
     for (const trustList of trustLists) { // Changed from globalTrustLists to trustLists parameter
-      console.debug('checkTrustListInclusion: Checking trustList:', trustList.name);
       // for each entity's certs in the list (current and expired), check if it matches a cert in the chain
       for (const entity of trustList.entities) {
-        console.debug('checkTrustListInclusion: Checking entity:', entity.name);
         const jwks = entity.jwks;
         for (const jwkCert of jwks.keys) {
-          console.debug('checkTrustListInclusion: Checking jwkCert:', jwkCert);
           // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
           for (const cert of certChain) {
-            console.debug('checkTrustListInclusion: Comparing with cert in chain:', cert.sha256Thumbprint);
             if ((jwkCert['x5t#S256'] != null) && jwkCert['x5t#S256'].toLowerCase() === cert.sha256Thumbprint && entity.isCA === cert.isCA) {
               // found a match
               const tlInfo = getInfoFromTrustList(trustList);
-              console.debug('Trust list match FOUND:', { tlInfo, entity, cert });
               return { tlInfo, entity, cert };
             }
           }
@@ -329,7 +308,6 @@ export function checkTrustListInclusion (certChain: CertificateInfoExtended[], t
       }
     }
   }
-  console.debug('checkTrustListInclusion: No trust list match found.');
   return null;
 }
 
@@ -339,23 +317,18 @@ export function checkTrustListInclusion (certChain: CertificateInfoExtended[], t
  * @returns a trust list match object if found, otherwise null
  */
 export function checkTSATrustListInclusion (certChain: CertificateInfoExtended[]): TrustListMatch | null {
-  console.debug('checkTSATrustListInclusion called')
   return checkTrustListInclusion(certChain, globalTrustLists.filter(tl => tl.name === LOCAL_TRUST_TSA_LIST_NAME))
 }
 
 // update the trust lists if they are outdated
 export async function refreshTrustLists (): Promise<void> {
-  console.debug('refreshTrustLists called')
   let trustListsUpdated = false
   if (globalTrustLists != null && globalTrustLists.length > 0) {
     const fetchPromises = globalTrustLists.map(async (trustList, index) => {
-      console.debug('Checking trust list: ' + trustList.name)
       if (trustList.download_url !== '') {
         const response = await fetch(trustList.download_url)
         const freshTrustList = await response.json() as TrustList
-        console.debug(`Trust list ${trustList.name} fetched`, freshTrustList.last_updated, trustList.last_updated)
         if (freshTrustList.last_updated > trustList.last_updated) {
-          console.debug(`Trust list ${trustList.name} is outdated, updating`, trustList.last_updated, freshTrustList.last_updated)
           await processDownloadedTrustList(freshTrustList)
           globalTrustLists[index] = freshTrustList
           trustListsUpdated = true
@@ -383,26 +356,19 @@ async function notifyTabsOfTrustListUpdate (): Promise<void> {
  *  So the init function needs to be called explicitly
  */
 async function loadDefaultTrustLists (): Promise<void> {
-  console.debug('Loading default trust lists...');
 
   try {
-    console.debug('Using imported defaultTestTrustList.');
     const testTrustList = defaultTestTrustList as TrustList;
     await processDownloadedTrustList(testTrustList);
     globalTrustLists.push(testTrustList);
-    console.debug('Default test-trust-list.json loaded successfully from import.');
   } catch (error) {
-    console.error('Failed to load default test-trust-list.json from import:', error);
   }
 
   try {
-    console.debug('Using imported defaultAiTrustList.');
     const aiTrustList = defaultAiTrustList as TrustList;
     await processDownloadedTrustList(aiTrustList);
     globalTrustLists.push(aiTrustList);
-    console.debug('Default ai-trust-list.json loaded successfully from import.');
   } catch (error) {
-    console.error('Failed to load default ai-trust-list.json from import:', error);
   }
 
   await storeUpdatedTrustLists('Default trust lists loaded.');
@@ -411,10 +377,8 @@ async function loadDefaultTrustLists (): Promise<void> {
 export async function init (): Promise<void> {
   await loadTrustLists(); // Attempt to load existing trust lists first
   if (globalTrustLists.length === 0) {
-    console.debug('No existing trust lists found, loading defaults.');
     await loadDefaultTrustLists();
   } else {
-    console.debug('Existing trust lists found, count:', globalTrustLists.length);
   }
 
   chrome.runtime.onMessage.addListener(

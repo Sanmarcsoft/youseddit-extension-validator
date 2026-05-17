@@ -11,8 +11,6 @@ import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
 import { type ToggleSwitch } from './components/toggle.js'
 import { RELEASE_NOTES, DEMO_URL, type ReleaseEntry, type ReleaseFix } from './releaseNotes.js'
 
-console.debug('popup.js: load')
-
 function setText (id: string, value: string): void {
   const el = document.getElementById(id)
   if (el !== null) el.textContent = value
@@ -457,7 +455,6 @@ function createFileInputEventListener (callback: (fileContents: string) => void)
         callback(fileContents)
       }
     } else {
-      console.debug('No file selected')
     }
   }
 }
@@ -468,7 +465,6 @@ trustFileInput.addEventListener('change', createFileInputEventListener((fileCont
     // eslint-disable-next-line no-void
     void addTrustFile(fileContents).then(displayTrustListInfos)
   } catch (e) {
-    console.error('Can\'t parse trust file')
   }
 }))
 
@@ -478,7 +474,6 @@ tsaFileInput.addEventListener('change', createFileInputEventListener((fileConten
     // eslint-disable-next-line no-void
     void addTSATrustFile(fileContents).then(displayTrustListInfos)
   } catch (e) {
-    console.error('Can\'t parse TSA trust file')
   }
 }))
 
@@ -499,9 +494,11 @@ async function displayTrustListInfos (): Promise<void> {
 
     let listHtml = '<p><b>Active trust lists</b></p><ul>'
     tlis.forEach((tli, index) => {
+      const safeName = esc(tli.name ?? '')
+      const safeWebsite = esc(tli.website ?? '')
       const listItem = (tli.website.length > 0)
-        ? `<li><a href="${tli.website}" target="_blank">${tli.name}</a>`
-        : `<li>${tli.name}`
+        ? `<li><a href="${safeWebsite}" target="_blank" rel="noopener">${safeName}</a>`
+        : `<li>${safeName}`
       listHtml += `${listItem} (<a href="#" class="delete-link" data-index="${index}">delete</a>)</li>`
     })
     listHtml += '</ul>'
@@ -509,7 +506,10 @@ async function displayTrustListInfos (): Promise<void> {
   } catch (err) {
     const trustListInfo = document.getElementById('trust-list-info')
     if (trustListInfo != null) {
-      trustListInfo.innerHTML = `<p class="validation-errors">Trust-list lookup failed (service worker may be warming up — reopen the popup). Details: ${String((err as Error).message ?? err)}</p>`
+      const p = document.createElement('p')
+      p.className = 'validation-errors'
+      p.textContent = `Trust-list lookup failed (service worker may be warming up — reopen the popup). Details: ${String((err as Error).message ?? err)}`
+      trustListInfo.replaceChildren(p)
     }
   }
 }

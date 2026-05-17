@@ -85,7 +85,6 @@ async function decode (bytes: Uint8Array): Promise<COSE_Sign1 | null> {
   const cbor = cborDecode(bytes) as { tag: string, value: Record<number, unknown> }
 
   if (cbor.tag == null) {
-    console.error('Unexpected COSE tag:', cbor.tag)
     return null
   }
 
@@ -93,7 +92,6 @@ async function decode (bytes: Uint8Array): Promise<COSE_Sign1 | null> {
     case 'COSE_Sign1':
       return await decodeCoseSign1(cbor.value)
     default:
-      console.error('Unexpected COSE tag:', cbor.tag)
       return null
   }
 }
@@ -101,7 +99,6 @@ async function decode (bytes: Uint8Array): Promise<COSE_Sign1 | null> {
 async function decodeCoseSign1 (fields: Record<number, unknown>): Promise<COSE_Sign1 | null> {
   const protectedHeader = cborDecode(fields[0] as Uint8Array) as ProtectedHeader
   if (protectedHeader == null) {
-    console.error('No protected header header in COSE')
     return null
   }
 
