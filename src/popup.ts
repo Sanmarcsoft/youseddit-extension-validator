@@ -147,9 +147,45 @@ async function renderTrustListsTab (): Promise<void> {
   }
 }
 
+async function renderInitErrorBanner (): Promise<void> {
+  const banner = document.getElementById('initErrorBanner')
+  if (banner == null) return
+  // chrome.storage.session is Chrome 102+. Use optional chain to no-op
+  // on older Chromes; the banner stays hidden, which is correct since
+  // the writer side also no-ops there.
+  const stored = await chrome.storage.session?.get(['c2paInitError', 'trustListsInitError']) ?? {}
+  const c2paErr = stored.c2paInitError as string | undefined
+  const tlErr = stored.trustListsInitError as string | undefined
+  if ((c2paErr == null || c2paErr === '') && (tlErr == null || tlErr === '')) return
+
+  const parts: string[] = []
+  if (c2paErr != null && c2paErr !== '') {
+    const title = document.createElement('div')
+    title.className = 'init-error-title'
+    title.textContent = 'C2PA engine failed to initialise'
+    banner.appendChild(title)
+    const detail = document.createElement('div')
+    detail.textContent = c2paErr
+    banner.appendChild(detail)
+    parts.push('c2pa')
+  }
+  if (tlErr != null && tlErr !== '') {
+    const title = document.createElement('div')
+    title.className = 'init-error-title'
+    title.style.marginTop = parts.length > 0 ? '6px' : '0'
+    title.textContent = 'Default trust lists failed to load'
+    banner.appendChild(title)
+    const detail = document.createElement('div')
+    detail.textContent = tlErr
+    banner.appendChild(detail)
+  }
+  banner.removeAttribute('hidden')
+}
+
 document.addEventListener('DOMContentLoaded', function (): void {
   populateBuildInfo()
   renderWhatsNew()
+  void renderInitErrorBanner()
 
   const autoScanToggle = document.getElementById('toggleAutoScan') as ToggleSwitch
 

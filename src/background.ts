@@ -21,7 +21,14 @@ import { sendMessageToAllTabs } from './utils'
 // Reintroducing any call here requires #83's acceptance criteria.
 // import { validateImageUrl as apiValidate, isApiFailure, type RecoveredCredential } from './verifiedditApi'
 
-void initTrustlist()
+// Catch initTrustlist rejection so an unhandled rejection in the SW
+// (e.g. corrupt bundled JSON, storage quota) doesn't leave the service
+// worker silent. The popup reads trustListsInitError from chrome.storage
+// .session and renders a banner so the user sees what's wrong.
+initTrustlist().catch((err) => {
+  const message = err instanceof Error ? err.message : String(err)
+  void chrome.storage.session?.set({ trustListsInitError: message })
+})
 
 chrome.runtime.onInstalled.addListener(function (details) {
   if (details.reason === 'install') {
