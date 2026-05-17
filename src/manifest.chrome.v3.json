@@ -6,7 +6,6 @@
     "version": "1.0.0",
     "permissions": [
         "storage",
-        "offscreen",
         "tabs",
         "activeTab",
         "contextMenus",
@@ -65,9 +64,7 @@
                 "c2pa.worker.js",
                 "icons/*.svg",
                 "toolkit_bg.wasm",
-                "iframe.html",
-                "test-trust-list.json",
-                "ai-trust-list.json"
+                "iframe.html"
             ],
             "matches": [
                 "<all_urls>"

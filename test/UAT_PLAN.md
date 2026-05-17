@@ -95,7 +95,7 @@ This User Acceptance Testing plan validates that the C2PA Image Verification Ext
 - **Origin Project**: `origin-cbc.jpg`
 
 ### Trust Lists:
-- `test-trust-list.json` - Standard test certificates
+- `default-trust-list.json` - Standard test certificates
 - `ai-trust-list.json` - AI model certificates
 - `trusted/` - Trusted certificate chains
 - `expired/` - Expired certificate test cases

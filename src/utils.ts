@@ -128,14 +128,13 @@ export function dataURLtoBlob (dataurl: string): Blob | null {
 }
 
 export async function sendMessageToAllTabs (message: MSG_PAYLOAD): Promise<void> {
-  const tabs = await chrome.tabs.query({})
-  // Only http(s) tabs can carry our content scripts. Filter out chrome://,
-  // the Web Store, PDF viewers, extension option pages, devtools, etc. —
-  // sending to them produces "Receiving end does not exist" rejections
-  // that clutter the console without representing a real failure.
+  // Pass URL match patterns to chrome.tabs.query so we never receive
+  // chrome://, extension, devtools, or PDF-viewer tabs back. Strengthens
+  // the `tabs` permission justification, and means we no longer read
+  // `tab.url` across every open tab.
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] })
   tabs.forEach(function (tab) {
     if (tab.id == null) return
-    if (!/^https?:\/\//.test(tab.url ?? '')) return
     // Swallow the rejection — it's expected for tabs whose content script
     // hasn't (yet) registered a listener, and the send is fire-and-forget.
     chrome.tabs.sendMessage(tab.id, message).catch(() => { /* expected */ })

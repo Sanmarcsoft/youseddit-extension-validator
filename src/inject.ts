@@ -161,11 +161,7 @@ function ensureNoCredentialsIcon (mediaRecord: MediaRecord, url: string): void {
     mr.icon.onClick = async () => {
       const note = `No embedded content credentials were found for this image. ` +
         `The file has no C2PA manifest, so nothing cryptographic can be verified locally.`
-      // Surface via the browser's own alert for now — a dedicated panel
-      // in <c2pa-overlay> for the no-credentials state is queued behind
-      // the #83 API re-enablement work (rc12.x). Alert is non-blocking
-      // in the extension context and sufficient for the one-line notice.
-      try { window.alert(note + `\n\n` + url) } catch { /* alerts blocked */ }
+      showNoCredentialsToast(note, url)
     }
   }
 }
@@ -445,6 +441,44 @@ function showExtensionReloadToast (): void {
     toast.textContent = 'Verifieddit was reloaded — refresh this tab to restore C2PA validation.'
     document.body.appendChild(toast)
     _toastEl = toast
+  } catch {
+    // nothing we can do if document is gone
+  }
+}
+
+// Per-call, auto-dismissing in-page toast for the "no credentials" badge click.
+// Replaces window.alert() in content-script context — CWS policy prohibits
+// content scripts from spawning modal dialogs (host-page event-loop hijack,
+// origin-spoofing risk). Same visual idiom as showExtensionReloadToast but
+// non-singleton and self-removing.
+function showNoCredentialsToast (note: string, url: string): void {
+  try {
+    const toast = document.createElement('div')
+    toast.setAttribute('c2pa-toast', 'c2pa-toast')
+    toast.style.cssText = [
+      'position:fixed',
+      'bottom:16px',
+      'right:16px',
+      'z-index:2147483647',
+      'background:#1a1a1a',
+      'color:#ffffff',
+      'padding:10px 14px',
+      'border-radius:6px',
+      'font:13px/1.4 system-ui,-apple-system,sans-serif',
+      'box-shadow:0 4px 12px rgba(0,0,0,0.25)',
+      'max-width:380px',
+      'word-break:break-all'
+    ].map(s => `${s} !important`).join(';')
+    const noteLine = document.createElement('div')
+    noteLine.textContent = note
+    const urlLine = document.createElement('div')
+    urlLine.style.cssText = 'margin-top:6px;opacity:0.75;font-size:11px !important'
+    const truncated = url.length > 140 ? url.slice(0, 140) + '…' : url
+    urlLine.textContent = truncated
+    toast.appendChild(noteLine)
+    toast.appendChild(urlLine)
+    document.body.appendChild(toast)
+    setTimeout(() => { try { toast.remove() } catch { /* gone already */ } }, 8000)
   } catch {
     // nothing we can do if document is gone
   }
