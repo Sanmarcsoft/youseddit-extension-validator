@@ -7,11 +7,14 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: WestBayBerry/dependency-guardian-action@v1
         with:
           api_key: ${{ secrets.DG_API_KEY }}

@@ -33,7 +33,7 @@ Verify the authenticity and provenance of images, videos, and audio on any webpa
 Verifieddit is a free, open-source browser extension that verifies Content Credentials (C2PA) embedded in images, videos, and audio files on any website you visit.
 
 **What are Content Credentials?**
-Content Credentials are a new open standard (C2PA) for proving where digital content came from and how it was created or modified. Major companies including Adobe, Google, Microsoft, and the BBC are embedding Content Credentials into their media.
+Content Credentials are a new open standard (C2PA) for proving where digital content came from and how it was created or modified. Major organisations including Adobe, Google, Microsoft, and the BBC have adopted the C2PA standard.
 
 **Key Features:**
 
@@ -56,7 +56,7 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, FLAC, PDF, and more.
 
 **Open Source:**
-Built on Microsoft's C2PA Extension Validator. View the source code at https://github.com/Sanmarcsoft/verifieddit-extension
+Built on the open-source C2PA Extension Validator (MIT-licensed, upstream by Microsoft). View the source code at https://github.com/Sanmarcsoft/verifieddit-extension
 
 Learn more at https://www.verifieddit.com
 
@@ -67,9 +67,6 @@ https://www.verifieddit.com/privacy
 
 ### storage
 Saves user preferences (auto-scan toggle, theme) and custom trust lists locally in the browser.
-
-### offscreen
-Creates an offscreen document to run C2PA WebAssembly verification in a background context. Required because MV3 service workers cannot load WebAssembly directly.
 
 ### tabs
 Reads the URL of open tabs to filter out non-http(s) tabs (chrome://, the Chrome Web Store, PDF viewers, extension option pages, devtools) before broadcasting C2PA validation messages. Without this filtering, messages produce "Receiving end does not exist" errors against tabs that cannot host the content script.
@@ -84,7 +81,7 @@ Adds "Inspect Content Credentials" to the right-click context menu on images, vi
 Schedules periodic trust list refreshes (every 24 hours) to keep certificate validation up to date.
 
 ### bookmarks
-Saves verification results as bookmarks under a dedicated "verifieddit.com" folder, so users can build a personal library of verified provenance records they have inspected.
+Saves verification results as bookmarks under a dedicated "verifieddit.com" folder. The permission is only exercised when the user explicitly clicks the "Save" button on the overlay panel for a successfully verified image, never automatically.
 
 ### Host Permissions: <all_urls>
 The extension needs access to all URLs because C2PA content credentials can appear on any website. The extension scans image, video, and audio elements on the current page to detect and verify cryptographic provenance data embedded in media files. Without broad host access, users would need to manually allowlist every website, defeating the purpose of automatic content credential detection.

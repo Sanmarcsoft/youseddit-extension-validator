@@ -4,9 +4,9 @@
     "short_name": "Verifieddit",
     "description": "Verify content authenticity using C2PA Content Credentials. Detect AI-generated and edited media directly in your browser.",
     "version": "1.0.0",
+    "minimum_chrome_version": "109",
     "permissions": [
         "storage",
-        "offscreen",
         "tabs",
         "activeTab",
         "contextMenus",
@@ -65,9 +65,7 @@
                 "c2pa.worker.js",
                 "icons/*.svg",
                 "toolkit_bg.wasm",
-                "iframe.html",
-                "test-trust-list.json",
-                "ai-trust-list.json"
+                "iframe.html"
             ],
             "matches": [
                 "<all_urls>"

@@ -21,7 +21,14 @@ import { sendMessageToAllTabs } from './utils'
 // Reintroducing any call here requires #83's acceptance criteria.
 // import { validateImageUrl as apiValidate, isApiFailure, type RecoveredCredential } from './verifiedditApi'
 
-void initTrustlist()
+// Catch initTrustlist rejection so an unhandled rejection in the SW
+// (e.g. corrupt bundled JSON, storage quota) doesn't leave the service
+// worker silent. The popup reads trustListsInitError from chrome.storage
+// .session and renders a banner so the user sees what's wrong.
+initTrustlist().catch((err) => {
+  const message = err instanceof Error ? err.message : String(err)
+  void chrome.storage.session?.set({ trustListsInitError: message })
+})
 
 chrome.runtime.onInstalled.addListener(function (details) {
   if (details.reason === 'install') {
@@ -141,22 +148,6 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
 // anonymous cross-origin API calls. When the per-install auth story lands
 // (tracked in #83 follow-up), reintroduce this together with the call sites.
 
-async function init (): Promise<void> {
-  if (chrome.offscreen !== undefined) {
-    if (await chrome.offscreen.hasDocument()) {
-      return
-    }
-    await chrome.offscreen
-      .createDocument({
-        url: 'offscreen.html',
-        reasons: [chrome.offscreen.Reason.DOM_PARSER, chrome.offscreen.Reason.WORKERS],
-        justification: 'Parse C2PA manifest DOM and run WebAssembly verification in a Web Worker (both forbidden in MV3 service workers)'
-      })
-      .catch((error) => {
-      })
-  }
-}
-
 async function openOrSwitchToTab (imageUrl: string): Promise<chrome.tabs.Tab> {
   // Build the Verifieddit /check URL with the image URL as a query parameter.
   // (#74) Always open a NEW tab — reusing the existing tab loses the previous
@@ -187,6 +178,4 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   setupTrustListRefreshAlarm()
 })
-
-void init()
 

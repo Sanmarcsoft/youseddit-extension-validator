@@ -213,6 +213,21 @@
 .validation-errors { color: #c83232; }
 .validation-errors > div { padding: 2px 0; }
 
+.init-error-banner {
+    background: #fdecea;
+    border-left: 3px solid #c83232;
+    color: #6e1717;
+    padding: 8px 10px;
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    line-height: 1.4;
+    border-radius: 3px;
+}
+.init-error-banner > .init-error-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
 .ingredient-header {
     font-weight: 600;
     color: #555;

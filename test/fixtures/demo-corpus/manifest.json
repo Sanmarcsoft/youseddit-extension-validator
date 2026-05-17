@@ -7,7 +7,7 @@
   "signer_fingerprint_sha256": "a1d71e68d2a48f08045700119c14a81d62d043a06ccc15249abc59f90b262e59",
   "signer_validity": { "not_before": "2026-04-21", "not_after": "2028-04-20" },
   "timestamp_authority": "http://timestamp.digicert.com",
-  "trust_list_file": "test/test-trust-list.json",
+  "trust_list_file": "test/default-trust-list.json",
   "tsa_trust_list_file": "test/tsa-trust-list.json",
   "images": [
     {

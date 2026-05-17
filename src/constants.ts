@@ -42,11 +42,6 @@ export const MSG_FORWARD_TO_CONTENT = 'MSG_FORWARD_TO_CONTENT'
 export const MSG_SHOW_CONTEXT_MENU = 'MSG_SHOW_CONTEXT_MENU'
 export const MSG_C2PA_RESULT_FROM_CONTEXT = 'MSG_C2PA_RESULT_FROM_CONTEXT'
 export const MSG_AUTO_SCAN_UPDATED = 'MSG_AUTO_SCAN_UPDATED'
-export const MSG_C2PA_VALIDATE_URL_OFFSCREEN = 'MSG_C2PA_VALIDATE_URL_OFFSCREEN'
-export const MSG_OFFSCREEN_READY = 'MSG_OFFSCREEN_READY'
-export const MSG_OFFSCREEN_INIT_ERROR = 'MSG_OFFSCREEN_INIT_ERROR'
-export const MSG_PING_OFFSCREEN = 'MSG_PING_OFFSCREEN'
-export const MSG_OFFSCREEN_KEEPALIVE = 'MSG_OFFSCREEN_KEEPALIVE'
 // rc14 / #93 — overlay "Save verification" button round-trips through
 // the background service worker since content scripts have no access
 // to chrome.bookmarks.*.

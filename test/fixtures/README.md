@@ -12,7 +12,7 @@ on branch `feature/39-rc2-fixtures` using the regenerated local test PKI under
 
 All three are signed by the local `test/trusted/` chain and timestamped by
 DigiCert's public TSA. The signer's SHA-256 thumbprint is appended as a
-new entity to `test/test-trust-list.json` so the extension recognises it as
+new entity to `test/default-trust-list.json` so the extension recognises it as
 trusted.
 
 | File | Source image | Format | Status | Signer | TSA | Claim generator |
@@ -79,7 +79,7 @@ that forward compatibility.
 # 1. Regenerate the PKI (leaves valid for 730 days by default):
 cd test && SIGNER_DAYS=730 bash generate-cert-chain.sh
 
-# 2. (Re)publish the signer fingerprint into test-trust-list.json.
+# 2. (Re)publish the signer fingerprint into default-trust-list.json.
 #    See the `update-trust-list` step in sprint history or re-run the
 #    Python helper in the branch commit body.
 

@@ -7,8 +7,9 @@ import { type CertificateInfoExtended, calculateSha256CertThumbprintFromX5c, PEM
 import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE } from './constants';
 import { bytesToBase64, sendMessageToAllTabs } from './utils';
 
-// Directly import the JSON files
-import defaultTestTrustList from '../test/test-trust-list.json';
+// Directly import the JSON files (bundled into the JS by Rollup; not shipped
+// as separate files in dist/, so they cannot be enumerated by web pages).
+import defaultTestTrustList from '../test/default-trust-list.json';
 import defaultAiTrustList from '../test/ai-trust-list.json';
 
 // valid JWK key types (to adhere to C2PA cert profile: https://c2pa.org/specifications/specifications/2.0/specs/C2PA_Specification.html#_certificate_profile)
@@ -327,6 +328,12 @@ export async function refreshTrustLists (): Promise<void> {
     const fetchPromises = globalTrustLists.map(async (trustList, index) => {
       if (trustList.download_url !== '') {
         const response = await fetch(trustList.download_url)
+        // Guard against captive portals / 5xx returning HTML 200; without this
+        // the next .json() throws and the outer catch silently keeps the user
+        // on a stale trust list (security degradation invisible to user).
+        if (!response.ok) {
+          throw new Error(`Trust list refresh failed for ${trustList.name}: HTTP ${response.status}`)
+        }
         const freshTrustList = await response.json() as TrustList
         if (freshTrustList.last_updated > trustList.last_updated) {
           await processDownloadedTrustList(freshTrustList)
@@ -357,18 +364,33 @@ async function notifyTabsOfTrustListUpdate (): Promise<void> {
  */
 async function loadDefaultTrustLists (): Promise<void> {
 
+  let defaultLoaded = 0
+  let lastError: unknown = null
+
   try {
     const testTrustList = defaultTestTrustList as TrustList;
     await processDownloadedTrustList(testTrustList);
     globalTrustLists.push(testTrustList);
+    defaultLoaded += 1
   } catch (error) {
+    lastError = error
   }
 
   try {
     const aiTrustList = defaultAiTrustList as TrustList;
     await processDownloadedTrustList(aiTrustList);
     globalTrustLists.push(aiTrustList);
+    defaultLoaded += 1
   } catch (error) {
+    lastError = error
+  }
+
+  // If BOTH default lists fail to load, every signed image renders untrusted
+  // and the user has no idea why. Throw so init() can surface it instead of
+  // silently persisting an empty trust list.
+  if (defaultLoaded === 0) {
+    const msg = lastError instanceof Error ? lastError.message : String(lastError)
+    throw new Error(`No default trust lists loaded: ${msg}`)
   }
 
   await storeUpdatedTrustLists('Default trust lists loaded.');
@@ -377,7 +399,18 @@ async function loadDefaultTrustLists (): Promise<void> {
 export async function init (): Promise<void> {
   await loadTrustLists(); // Attempt to load existing trust lists first
   if (globalTrustLists.length === 0) {
-    await loadDefaultTrustLists();
+    try {
+      await loadDefaultTrustLists();
+      // Clear any prior error so the popup banner reflects current state.
+      void chrome.storage.session?.remove('trustListsInitError')
+    } catch (error) {
+      // Surface the failure via chrome.storage.session so the popup can
+      // render a banner, but keep init alive so the message handlers
+      // below still register. A SW that cannot answer GET_TRUSTLIST_INFOS
+      // is worse than one that answers with the explicit error state.
+      const message = error instanceof Error ? error.message : String(error)
+      void chrome.storage.session?.set({ trustListsInitError: message })
+    }
   } else {
   }
 
