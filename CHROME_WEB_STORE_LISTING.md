@@ -90,4 +90,4 @@ The extension needs access to all URLs because C2PA content credentials can appe
 4. Overlay icon on a verified image
 
 ## Store Icon
-Use existing cr128.png (128x128)
+Use vd128.png (128x128), generated from the SanMarcSoft Verifieddit logo
