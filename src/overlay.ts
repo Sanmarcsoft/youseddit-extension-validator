@@ -14,6 +14,8 @@ export class C2paOverlay /* extends HTMLElement */ {
     iframe.className = 'c2paDialog'
     iframe.src = `${chrome.runtime.getURL('iframe.html')}`
     iframe.tabIndex = 0
+    // #129: name the frame for assistive tech (was an anonymous "frame").
+    iframe.title = 'Content Credentials verification'
     // rc11.2 / #70 — give the iframe real default dimensions + an opaque
     // background so it's actually a visible panel on first paint rather than
     // a 302×2 transparent slit hidden behind the page content. Width /

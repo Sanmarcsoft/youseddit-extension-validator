@@ -32,13 +32,16 @@ type StatusTone = 'verified' | 'authentic' | 'invalid' | 'unsigned'
  */
 const sharedStyles = css`
     :host {
-        --glass-bg: rgba(15, 23, 42, 0.86);
-        --glass-bg-soft: rgba(30, 41, 59, 0.45);
+        /* #129: alpha lifted to 0.97 so text stays legible over busy host
+         * pages (backdrop-filter cannot blur across the iframe boundary). */
+        --glass-bg: rgba(15, 23, 42, 0.97);
+        --glass-bg-soft: rgba(30, 41, 59, 0.6);
         --border-color: rgba(148, 163, 184, 0.18);
         --border-strong: rgba(148, 163, 184, 0.28);
         --text: #cbd5e1;
         --text-bright: #e2e8f0;
-        --text-dim: #64748b;
+        /* #129: slate-400 (~4.6:1 on the glass) instead of slate-500, for AA. */
+        --text-dim: #94a3b8;
         --accent: #7dd3fc;        /* sky-300 */
         --accent-bright: #38bdf8; /* sky-400 */
         --ok: #86efac;            /* emerald-300 */
@@ -49,6 +52,11 @@ const sharedStyles = css`
         --font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
         --font-size: 12px;
         --font-bold: 600;
+    }
+    /* #129: honour reduced-motion across every component using this stylesheet,
+     * not just the headline reveal — kills collapsible/pillar transitions too. */
+    @media (prefers-reduced-motion: reduce) {
+        * { animation: none !important; transition: none !important; }
     }`
 
 /* The c2pa-overlay host is transparent; the #card inside is the glass pane.
@@ -258,6 +266,18 @@ export class C2paOverlay extends LitElement {
 
       .bold { font-weight: var(--font-bold); color: var(--text-bright); }
 
+      /* #128/#129: screen-reader-only verdict summary (present in DOM + textContent). */
+      .sr-summary {
+        position: absolute;
+        width: 1px; height: 1px;
+        padding: 0; margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .vglyph { font-weight: 700; }
+
       /* ── Staged reveal animation ────────────────────────────────── */
       .reveal {
           opacity: 0;
@@ -422,7 +442,7 @@ export class C2paOverlay extends LitElement {
         ${rows.map(([k, v, cls, speed], i) => html`
           <div class="k reveal" style="animation-delay:${i * 110}ms">${k}</div>
           <div class="v ${cls} reveal" style="animation-delay:${i * 110}ms">
-            <c2pa-typewriter .text=${v} .speed=${speed} .startDelay=${i * 110 + 60}></c2pa-typewriter>
+            ${cls === 'ok' ? html`<span class="vglyph">✓ </span>` : cls === 'bad' ? html`<span class="vglyph">✗ </span>` : nothing}<c2pa-typewriter .text=${v} .speed=${speed} .startDelay=${i * 110 + 60}></c2pa-typewriter>
           </div>
         `)}
       </div>
@@ -455,8 +475,18 @@ export class C2paOverlay extends LitElement {
     // Pillars reveal after the log rows + a small beat.
     const pillarsDelay = 4 * 110 + 200
 
+    const trusted = this.status?.trusted === true
+    const hasErrors = this.status?.errors === true
+    // #128/#129: a plain-text, screen-reader summary in THIS shadow root (not the
+    // nested typewriter). Makes the verdict announceable via aria-live and keeps
+    // the signer + trust state available to overlay.shadowRoot.textContent.
+    const srSummary = `${mediaType} signed by ${this.signer ?? 'unknown'}. ` +
+      (trusted ? `Trusted: ${this.trustList ?? ''}.` : 'Signer unknown to your trust list.') +
+      (hasErrors ? ' Validation errors present.' : '')
+
     return html`
     <div id="card">
+      <div class="sr-summary" role="status" aria-live="polite">${srSummary}</div>
       <div class="header reveal" style="animation-delay:0ms">
         <div class="header-left">
           <span class="brand">Content Credentials</span>
@@ -496,14 +526,12 @@ export class C2paOverlay extends LitElement {
           <span slot="header">Ingredients</span>
           <div slot="content">
             ${(() => {
+              // #131: show the diagram when a model exists, else the grid — never both.
               const model = modelFromC2paResult(c2paResult)
               return model != null
                 ? renderIngredientDiagram(model)
                 : html`<c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>`
             })()}
-            ${activeManifest.ingredients != null && activeManifest.ingredients.length > 0
-              ? html`<c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>`
-              : ''}
           </div>
         </c2pa-collapsible>
         <c2pa-collapsible>
