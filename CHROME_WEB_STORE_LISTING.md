@@ -53,7 +53,7 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 - No account required
 
 **Supported Formats:**
-JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, FLAC, PDF, and more.
+JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, and PDF.
 
 **Open Source:**
 Built on the open-source C2PA Extension Validator (MIT-licensed, upstream by Microsoft). View the source code at https://github.com/Sanmarcsoft/verifieddit-extension
@@ -67,9 +67,6 @@ https://www.verifieddit.com/privacy
 
 ### storage
 Saves user preferences (auto-scan toggle, theme) and custom trust lists locally in the browser.
-
-### tabs
-Reads the URL of open tabs to filter out non-http(s) tabs (chrome://, the Chrome Web Store, PDF viewers, extension option pages, devtools) before broadcasting C2PA validation messages. Without this filtering, messages produce "Receiving end does not exist" errors against tabs that cannot host the content script.
 
 ### activeTab
 Accesses the currently active tab when the user clicks the toolbar action or selects an item from the right-click context menu, scoped to that single interaction.

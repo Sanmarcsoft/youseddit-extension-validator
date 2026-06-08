@@ -1,41 +1,47 @@
-<!-- BEGIN MICROSOFT SECURITY.MD V0.0.9 BLOCK -->
+# Security Policy
 
-## Security
+Verifieddit is published and maintained by **SanMarcSoft LLC**. It is a fork of
+Microsoft's [c2pa-extension-validator](https://github.com/microsoft/c2pa-extension-validator)
+(MIT). Security reports for **this** extension should go to SanMarcSoft, **not**
+to Microsoft.
 
-Microsoft takes the security of our software products and services seriously, which includes all source code repositories managed through our GitHub organizations, which include [Microsoft](https://github.com/Microsoft), [Azure](https://github.com/Azure), [DotNet](https://github.com/dotnet), [AspNet](https://github.com/aspnet) and [Xamarin](https://github.com/xamarin).
-
-If you believe you have found a security vulnerability in any Microsoft-owned repository that meets [Microsoft's definition of a security vulnerability](https://aka.ms/security.md/definition), please report it to us as described below.
-
-## Reporting Security Issues
+## Reporting a Vulnerability
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them to the Microsoft Security Response Center (MSRC) at [https://msrc.microsoft.com/create-report](https://aka.ms/security.md/msrc/create-report).
+Instead, email **<security@verifieddit.com>** with:
 
-If you prefer to submit without logging in, send email to [secure@microsoft.com](mailto:secure@microsoft.com).  If possible, encrypt your message with our PGP key; please download it from the [Microsoft Security Response Center PGP Key page](https://aka.ms/security.md/msrc/pgp).
+- Type of issue (e.g. trust-badge spoofing, manifest parsing, XSS, CSP bypass)
+- Full path(s) of the source file(s) involved
+- The affected tag / branch / commit or a direct URL
+- Any configuration required to reproduce
+- Step-by-step reproduction instructions
+- Proof-of-concept or exploit code, if available
+- The impact, and how an attacker might exploit it
 
-You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Additional information can be found at [microsoft.com/msrc](https://www.microsoft.com/msrc). 
+You should receive an acknowledgement within 72 hours. If you do not, please
+follow up to confirm we received the original report.
 
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+Because Verifieddit's purpose is to tell people what content to trust, we treat
+any flaw that can produce a **false "trusted" or "durable" verdict** as
+high-severity and prioritise it accordingly.
 
-  * Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)
-  * Full paths of source file(s) related to the manifestation of the issue
-  * The location of the affected source code (tag/branch/commit or direct URL)
-  * Any special configuration required to reproduce the issue
-  * Step-by-step instructions to reproduce the issue
-  * Proof-of-concept or exploit code (if possible)
-  * Impact of the issue, including how an attacker might exploit the issue
+## Scope
 
-This information will help us triage your report more quickly.
+In scope: the extension's trust evaluation, C2PA/COSE/JUMBF parsing, the
+certificate-chain and trust-list logic, the content-script/overlay injection
+surface, and the build/supply-chain pipeline.
 
-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/security.md/msrc/bounty) page for more details about our active programs.
+Out of scope: vulnerabilities in upstream dependencies (report those upstream,
+and tell us so we can pin or patch), and issues that require an already
+compromised browser or operating system.
 
 ## Preferred Languages
 
-We prefer all communications to be in English.
+We prefer all communications in English.
 
-## Policy
+## Disclosure
 
-Microsoft follows the principle of [Coordinated Vulnerability Disclosure](https://aka.ms/security.md/cvd).
-
-<!-- END MICROSOFT SECURITY.MD BLOCK -->
+SanMarcSoft follows coordinated vulnerability disclosure. We will agree a
+disclosure timeline with you and credit you in the release notes unless you
+prefer to remain anonymous.

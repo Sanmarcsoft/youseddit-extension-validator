@@ -56,7 +56,7 @@ The internet is now a mix of authentic media and synthetic media at industrial s
 
 ### Supported formats
 
-JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, FLAC, PDF, and other formats covered by the C2PA specification.
+JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, and PDF.
 
 ### Open source
 
@@ -89,12 +89,12 @@ Verifieddit has one purpose: to verify the authenticity and provenance of images
 
 ### What data the extension handles
 
-Verifieddit is built to a **local-first, zero-server** principle. The extension does **not** collect, transmit, or store any user data on any remote server operated by us or by any third party. Specifically:
+Verifieddit is built to a **local-first** principle: all C2PA verification runs inside your browser and no media ever leaves your machine. There is **one** case where data is sent to a server, and only when you ask for it: if you click **"Inspect on Verifieddit"** (or open a saved verification bookmark), the URL of that specific media file is sent to SanMarcSoft's website (`www.verifieddit.com`) so the site can pre-fill its verifier. That is a deliberate user action, never automatic. Specifically:
 
 | Data category | Handling |
 |---|---|
 | **Media files (images, videos, audio)** on pages you visit | Verifieddit reads media bytes that your browser has already loaded for the page, and processes them inside your browser using locally-bundled WebAssembly (WASM). **Nothing is uploaded.** No copy of the media leaves your machine. |
-| **URLs of verified media** | Not transmitted. Stored only inside your own browser when you explicitly click "Save Verification", in which case the URL is saved as a standard Chrome bookmark in a dedicated "verifieddit.com" folder under your own bookmarks. |
+| **URLs of verified media** | Sent to `www.verifieddit.com` (as a `?url=` query parameter) **only** when you explicitly click "Inspect on Verifieddit", so the site can pre-fill its verifier. Also stored inside your own browser when you click "Save Verification" — saved as a Chrome bookmark pointing to `www.verifieddit.com/?url=…&saved=1`, so opening that bookmark later navigates to verifieddit.com with the URL. Never transmitted automatically; auto-scan does not trigger this. |
 | **Verification results** | Computed and displayed in your browser only. Not transmitted. Not retained beyond the current page session unless you click "Save Verification" (see above). |
 | **User preferences** (auto-scan toggle, imported trust lists) | Stored locally in `chrome.storage.local`. Never synced to any server. Never transmitted. |
 | **Diagnostic state** (ephemeral init errors so the popup can show a banner if the C2PA engine fails to load) | Stored in `chrome.storage.session`, which is wiped automatically when the browser is closed. Never transmitted. |
@@ -107,10 +107,11 @@ Verifieddit is built to a **local-first, zero-server** principle. The extension 
 
 The extension performs network requests only in the following narrow, user-initiated scenarios:
 
-1. **Fetching the bytes of a media element** that your browser is already displaying on the page you are visiting. This is the same HTTP fetch that would occur if you right-clicked the image and chose "Save As" — it reuses your browser's cache where possible and goes to the same origin as the page. Verifieddit does not redirect the fetch elsewhere and does not store the result.
-2. **Refreshing a trust list** only if you, the user, have explicitly imported a trust list with a `download_url` field. The bundled default trust lists do not set a `download_url` and are therefore never re-fetched at runtime. Custom imported trust lists are fetched only from the exact URL you provided when you imported them.
+1. **Fetching the bytes of a media element** that your browser is already displaying on the page you are visiting, to read its embedded credentials. This is a separate HTTP request from the extension's background context to the same URL the page loaded the media from. It does not carry your page-session cookies (cross-origin requests from the background do not include credentials), but the media's origin server does see your IP address. The retrieved bytes are processed locally in WebAssembly and discarded; nothing is uploaded.
+2. **Opening the Verifieddit inspector** when you explicitly click "Inspect on Verifieddit" (or open a saved verification bookmark). Your browser navigates to `https://www.verifieddit.com/?url=<media-url>`; the URL of the media you inspected is included as a query parameter and processed by SanMarcSoft's website under its own privacy policy.
+3. **Refreshing a trust list** only if you have explicitly imported a trust list with a `download_url` field. The bundled default trust lists set no `download_url` and are never re-fetched. Imported lists are fetched only from the exact URL you provided, with credentials omitted.
 
-The extension does **not** call any first-party API operated by us, and does **not** make any cross-origin request that would reveal which pages you visit or which media you inspected.
+Apart from the user-initiated navigation to `www.verifieddit.com` above, the extension makes no other call to any first-party server.
 
 ### Data sharing
 
@@ -123,18 +124,17 @@ Because we do not receive any data, there is no retention. Local browser state (
 ### Compliance with Google Chrome Web Store policies
 
 - **Single Purpose policy**: every feature and permission in Verifieddit serves the single purpose of verifying media provenance. See "Single purpose" above.
-- **User Data policy**: Verifieddit's use of permissions is limited to providing the single user-facing feature. The extension does not collect personal or sensitive user data, does not transmit any data off-device, does not sell or transfer data, and uses data only for the user-facing functionality each permission supports.
+- **User Data policy**: Verifieddit's use of permissions is limited to providing the single user-facing feature. The only data sent off-device is "website content" — the URL of a media file you choose to inspect — and only on your explicit action (the "Inspect on Verifieddit" link or opening a saved bookmark). That data is used solely to provide the verification feature on `www.verifieddit.com`; it is not sold, not used for advertising, and not transferred to other third parties. In the CWS Data Safety form this is declared as **Website content → App functionality**.
 
 ### Permissions and what they actually do
 
 | Permission | Used for |
 |---|---|
 | `storage` | Save your auto-scan preference and a local cache of the loaded trust lists, both inside your own browser. |
-| `tabs` | Filter your open tabs to http(s) origins so verification messages are only delivered to pages that can render them. We do not read or transmit the URL or title of any tab. |
 | `activeTab` | Scope verification work to the tab you are actively viewing when you click the extension icon or use the right-click context menu. |
 | `contextMenus` | Add "Inspect Content Credentials" to your right-click menu on images, videos, and audio elements. |
 | `alarms` | Schedule a periodic refresh of any custom trust list you have imported (bundled lists are never re-fetched). |
-| `bookmarks` | Save a verification result as a Chrome bookmark in a dedicated "verifieddit.com" folder, only when you explicitly click the **Save** button. The permission is never exercised automatically. |
+| `bookmarks` *(optional)* | Requested **only** at the moment you click **Save** on a verification, never on install. Used to save the result as a Chrome bookmark in a dedicated "verifieddit.com" folder. If you decline, the rest of the extension is unaffected. |
 | Host permission: `<all_urls>` | Allow the extension to detect C2PA Content Credentials on media from any website. Content Credentials are an open standard that may appear on any site; narrowing this scope would defeat the extension's purpose. The extension only reads media that is already visible on the page in your browser. |
 
 ### Contact
