@@ -14,9 +14,7 @@
         "storage",
         "activeTab",
         "contextMenus",
-        "alarms"
-    ],
-    "optional_permissions": [
+        "alarms",
         "bookmarks"
     ],
     "host_permissions": [

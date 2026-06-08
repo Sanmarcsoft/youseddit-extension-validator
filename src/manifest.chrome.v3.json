@@ -10,9 +10,7 @@
         "activeTab",
         "contextMenus",
         "alarms",
-        "offscreen"
-    ],
-    "optional_permissions": [
+        "offscreen",
         "bookmarks"
     ],
     "host_permissions": [

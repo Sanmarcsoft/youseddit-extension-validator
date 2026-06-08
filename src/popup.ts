@@ -456,36 +456,23 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
       const imageUrl = row.getAttribute('data-url') ?? ''
       const title = row.getAttribute('data-title') ?? 'Verifieddit verification'
       if (imageUrl === '') return
-      // `bookmarks` is an optional permission (#114): request it at the moment
-      // of use, in this user-gesture handler, instead of declaring it on
-      // install. Granting it here enables the background's chrome.bookmarks.*.
-      void (async () => {
-        let granted = false
-        try {
-          granted = await chrome.permissions.request({ permissions: ['bookmarks'] })
-        } catch {
-          granted = false
-        }
-        if (!granted) {
-          saveBtn.textContent = 'Permission needed'
-          return
-        }
-        saveBtn.disabled = true
-        saveBtn.textContent = 'Saving…'
-        chrome.runtime.sendMessage(
-          { action: MSG_SAVE_BOOKMARK, data: { imageUrl, title } },
-          (resp: { status?: 'created' | 'already-exists' | 'error' }) => {
-            if (chrome.runtime.lastError != null || resp?.status === 'error') {
-              saveBtn.textContent = 'Save failed'
-              return
-            }
-            saveBtn.textContent = resp?.status === 'already-exists' ? '✓ Already saved' : '✓ Saved'
-            saveBtn.style.background = '#eef9f0'
-            saveBtn.style.borderColor = '#2a8a3c'
-            saveBtn.style.color = '#1f6a2c'
+      // `bookmarks` is a required permission again (the optional-permission
+      // approach broke the in-page overlay's Save, which cannot prompt).
+      saveBtn.disabled = true
+      saveBtn.textContent = 'Saving…'
+      chrome.runtime.sendMessage(
+        { action: MSG_SAVE_BOOKMARK, data: { imageUrl, title } },
+        (resp: { status?: 'created' | 'already-exists' | 'error' }) => {
+          if (chrome.runtime.lastError != null || resp?.status === 'error') {
+            saveBtn.textContent = 'Save failed'
+            return
           }
-        )
-      })()
+          saveBtn.textContent = resp?.status === 'already-exists' ? '✓ Already saved' : '✓ Saved'
+          saveBtn.style.background = '#eef9f0'
+          saveBtn.style.borderColor = '#2a8a3c'
+          saveBtn.style.color = '#1f6a2c'
+        }
+      )
     })
   }
   if (btn != null && panel != null) {
