@@ -24,6 +24,18 @@ interface IconTextItem {
 
 type StatusTone = 'verified' | 'authentic' | 'invalid' | 'unsigned'
 
+// A C2PA validation_status code is a real INTEGRITY failure (→ "invalid"/red)
+// unless it is merely a trust/expiry signal. signingCredential.untrusted just
+// means the signer is not in the trust list (shown separately as the trust
+// state); signingCredential.expired / timeStamp.untrusted are expiry/trust, not
+// tampering. Treating those as "invalid" wrongly implies the content was
+// altered. Everything else in the list (hash/signature mismatch, missing
+// assertions, malformed claims, …) is a genuine failure.
+const NON_FATAL_VALIDATION_CODE = /\.(untrusted|expired)$/i
+function isFatalValidationCode (code: string): boolean {
+  return code !== '' && !NON_FATAL_VALIDATION_CODE.test(code)
+}
+
 /*
  * Dark "frosted glass" theme tokens shared across every custom element in this
  * module. The verifier panel is rebuilt to match the trusteddit.com
@@ -301,7 +313,7 @@ export class C2paOverlay extends LitElement {
 
   private trustList?: string
 
-  private status?: { errors: boolean, trusted: boolean, tone: StatusTone }
+  private status?: { errors: boolean, trusted: boolean, tone: StatusTone, expired: boolean }
 
   @property({ type: Boolean })
     additionalInfoCollapsed = true
@@ -356,8 +368,13 @@ export class C2paOverlay extends LitElement {
     this.trustList = newValue?.trustList?.tlInfo.name ?? 'unknown'
   }
 
-  private setStatus (c2paResult: C2paResult): { errors: boolean, trusted: boolean, tone: StatusTone } {
-    const errors = (c2paResult.manifestStore?.validationStatus ?? []).length > 0
+  private setStatus (c2paResult: C2paResult): { errors: boolean, trusted: boolean, tone: StatusTone, expired: boolean } {
+    const codes = c2paResult.manifestStore?.validationStatus ?? []
+    // Only genuine integrity failures make a credential "invalid". An untrusted
+    // or expired signer is not a failure — it is signed, intact, just not in the
+    // trust list (or past its cert validity).
+    const errors = codes.some(isFatalValidationCode)
+    const expired = codes.some((c) => /\.expired$/i.test(c))
     const trusted = c2paResult.trustList != null
     const signed = (c2paResult.certChain?.length ?? 0) > 0 ||
       (c2paResult.manifestStore?.manifests?.length ?? 0) > 0
@@ -366,7 +383,7 @@ export class C2paOverlay extends LitElement {
       : !signed
           ? 'unsigned'
           : trusted ? 'verified' : 'authentic'
-    return { errors, trusted, tone }
+    return { errors, trusted, tone, expired }
   }
 
   private readonly handleClick = (): void => {
@@ -435,6 +452,9 @@ export class C2paOverlay extends LitElement {
     ]
     if (errors) {
       rows.push(['result', 'validation errors present', 'bad', 14])
+    } else if (this.status?.expired === true) {
+      // Expired signer cert is an expiry note, not an integrity failure.
+      rows.push(['cert', 'signing certificate expired', 'dim', 14])
     }
 
     return html`
@@ -450,11 +470,14 @@ export class C2paOverlay extends LitElement {
   }
 
   private renderErrors (validation: string[]): TemplateResult | typeof nothing {
-    if (this.status?.errors !== true) return nothing
+    // Only show genuine integrity failures here — not untrusted/expired, which
+    // are surfaced as the trust state and the expiry note respectively.
+    const fatal = validation.filter(isFatalValidationCode)
+    if (fatal.length === 0) return nothing
     return html`
       <div class="errors reveal" style="animation-delay:560ms">
         <div class="eh">⚠ Validation errors</div>
-        <ul>${validation.map((v) => html`<li>${v}</li>`)}</ul>
+        <ul>${fatal.map((v) => html`<li>${v}</li>`)}</ul>
       </div>
     `
   }
