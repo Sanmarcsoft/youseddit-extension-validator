@@ -74,7 +74,7 @@ Verifieddit verifies the authenticity and provenance of images, videos, and audi
 
 > This draft is generated from a direct audit of the v1.0.0 source code and the
 > bundled artifact `releases/verifieddit-chrome-1.0.0.zip` (SHA-256
-> `65d66a547ee6e19ae3809a9dfd11a7dc2222f42bb96ae21407eadfba3d97d749`). It is
+> `6503e2ec7fc72c4c6583982ab76f2ac662545a3de95c447428d4ed5915d4d624`). It is
 > intended to be reviewed and published at <https://www.verifieddit.com/privacy>
 > (the URL referenced by the Chrome Web Store listing). The published version
 > may already cover this ground.
