@@ -48,7 +48,9 @@ chrome.runtime.onInstalled.addListener(function (details) {
     })
   } else if (details.reason === 'chrome_update') {
   }
-  createContextMenu()
+  // Context-menu creation now happens unconditionally at SW startup (see the
+  // top-level removeAll -> createContextMenu below), which also covers install.
+  // Calling it here too would race that and throw "duplicate id".
 })
 
 function createContextMenu (): void {
