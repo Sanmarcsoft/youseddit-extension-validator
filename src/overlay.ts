@@ -28,19 +28,23 @@ export class C2paOverlay /* extends HTMLElement */ {
     // `.replace(';', '!important;')` only hardened the first declaration.
     const important = (rules: Record<string, string>): string =>
       Object.entries(rules).map(([k, v]) => `${k}: ${v} !important`).join('; ')
+    // Transparent, chromeless iframe: the <c2pa-overlay> custom element draws
+    // its own frosted-glass card (rounded corners, border, shadow) and floats
+    // over the host page. The iframe needs a little extra width/height beyond
+    // the card so the card's drop-shadow isn't clipped by overflow:hidden.
     iframe.style.cssText = important({
       position: 'absolute',
       'z-index': String(OVERLAY_Z_INDEX),
       visibility: 'hidden',
       resize: 'none',
       overflow: 'hidden',
-      background: '#ffffff',
-      'color-scheme': 'light',
-      width: '340px',
-      'min-height': '180px',
-      'border-radius': '6px',
-      border: '1px solid #DDDDDD',
-      'box-shadow': '0px 4px 16px rgba(0, 0, 0, 0.18)'
+      background: 'transparent',
+      'color-scheme': 'dark',
+      width: '372px',
+      'min-height': '200px',
+      'border-radius': '16px',
+      border: 'none',
+      'box-shadow': 'none'
     })
     this._iframe = iframe
     this.hide()

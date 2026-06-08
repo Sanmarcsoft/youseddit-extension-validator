@@ -10,6 +10,7 @@ import { isContentBox, decode as jumbfDecode } from './certs/jumbf.js'
 import { getManifestFromMetadata } from './certs/metadata.js'
 import { AWAIT_ASYNC_RESPONSE, MSG_C2PA_VALIDATE_URL, type MSG_PAYLOAD } from './constants.js'
 import { type TrustListMatch } from './trustlistProxy.js'
+import { type DurablePillars } from './durableCredentials.js'
 import { blobToDataURL } from './utils.js'
 
 let c2pa: C2pa | null = null
@@ -21,6 +22,12 @@ export interface C2paResult extends ExtensionC2paResult {
   trustList: TrustListMatch | null
   tsaTrustList: TrustListMatch | null
   editsAndActivity: TranslatedDictionaryCategory[] | null
+  // Assertion labels harvested from the manifest JUMBF (e.g. 'c2pa.hash.data',
+  // 'c2pa.soft_binding'). Used to detect Durable Content Credentials offline.
+  assertionLabels: string[]
+  // Durable Content Credentials "3 pillars" verdict. Computed in the
+  // background service worker once trust + timestamp signals are known.
+  durablePillars: DurablePillars | null
 }
 
 export interface C2paError extends Error {
@@ -82,7 +89,7 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
 
   const sourceBuffer = await c2paReadResult.source.arrayBuffer()
 
-  const cose = await extractC2paManifest(c2paReadResult.source.type, new Uint8Array(sourceBuffer))
+  const { cose, assertionLabels } = await extractManifestParts(c2paReadResult.source.type, new Uint8Array(sourceBuffer))
 
   const editsAndActivity = ((c2paReadResult.manifestStore?.activeManifest) != null) ? await selectEditsAndActivity(c2paReadResult.manifestStore?.activeManifest) : null
 
@@ -93,16 +100,27 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
     tsaTrustList: null,
     certChain: cose?.unprotected?.x5chain ?? cose?.protected.x5chain ?? null,
     tstTokens: cose?.unprotected?.sigTst?.tstTokens ?? null,
-    editsAndActivity
+    editsAndActivity,
+    assertionLabels,
+    // Computed downstream in the background SW (detectDurablePillars) once the
+    // timestamp/trust signals are resolved.
+    durablePillars: null
   }
 
   return result
 }
 
-export async function extractC2paManifest (type: string, mediaBuffer: Uint8Array): Promise<COSE_Sign1 | null> {
+/**
+ * Decode the manifest JUMBF once and return both the COSE signature (for the
+ * certificate chain / RFC 3161 timestamp) and the full set of assertion box
+ * labels (for Durable Content Credentials detection). The JUMBF decoder
+ * flattens every labelled box recursively, so `assertionLabels` includes
+ * nested assertions such as `c2pa.hash.data` and `c2pa.soft_binding`.
+ */
+export async function extractManifestParts (type: string, mediaBuffer: Uint8Array): Promise<{ cose: COSE_Sign1 | null, assertionLabels: string[] }> {
   const rawManifestBuffer = getManifestFromMetadata(type, mediaBuffer)
   if (rawManifestBuffer == null) {
-    return null
+    return { cose: null, assertionLabels: [] }
   }
 
   /*
@@ -110,12 +128,16 @@ export async function extractC2paManifest (type: string, mediaBuffer: Uint8Array
   */
   const jumbf = jumbfDecode(rawManifestBuffer)
 
+  // Every labelled box (signature, claim, and each assertion) is registered
+  // flat in jumbf.labels by the decoder.
+  const assertionLabels = Object.keys(jumbf.labels)
+
   /*
     C2PA manifest files are expected to have a jumbf box with a label 'c2pa.signature' containing a cbor box
   */
   const jumbfBox = jumbf.labels['c2pa.signature']
   if (jumbfBox == null || jumbfBox.boxes.length === 0 || jumbfBox.boxes[0].type !== 'cbor') {
-    return null
+    return { cose: null, assertionLabels }
   }
 
   const contentBox = jumbfBox.boxes[0]
@@ -124,16 +146,21 @@ export async function extractC2paManifest (type: string, mediaBuffer: Uint8Array
     The first, and only box, should have a 'cbor' type
   */
   if (contentBox?.type !== 'cbor' || !isContentBox(contentBox)) {
-    return null
+    return { cose: null, assertionLabels }
   }
 
   const coseData = contentBox.data
 
   const cose = await coseDecode(coseData)
-  if (cose == null) {
-  }
 
-  return cose
+  return { cose, assertionLabels }
+}
+
+/**
+ * Backwards-compatible wrapper returning only the COSE signature.
+ */
+export async function extractC2paManifest (type: string, mediaBuffer: Uint8Array): Promise<COSE_Sign1 | null> {
+  return (await extractManifestParts(type, mediaBuffer)).cose
 }
 
 void init()

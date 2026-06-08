@@ -11,6 +11,10 @@ import { bytesToBase64, sendMessageToAllTabs } from './utils';
 // as separate files in dist/, so they cannot be enumerated by web pages).
 import defaultTestTrustList from '../test/default-trust-list.json';
 import defaultAiTrustList from '../test/ai-trust-list.json';
+// Trusteddit.com anchors: the CA chain (signing) + the TSA chain (timestamps).
+// Trusting the Trusteddit-Journalist-Issuer-CA trusts every leaf it issues.
+import trustedditTrustList from '../test/trusteddit-trust-list.json';
+import trustedditTsaTrustList from '../test/trusteddit-tsa-trust-list.json';
 
 // valid JWK key types (to adhere to C2PA cert profile: https://c2pa.org/specifications/specifications/2.0/specs/C2PA_Specification.html#_certificate_profile)
 type ValidKeyTypes = 'RSA' /* sha*WithRSAEncryption and id-RSASSA-PSS */ | 'EC' /* ecdsa-with-* */ | 'OKP' /* id-Ed25519 */
@@ -380,6 +384,25 @@ async function loadDefaultTrustLists (): Promise<void> {
     const aiTrustList = defaultAiTrustList as TrustList;
     await processDownloadedTrustList(aiTrustList);
     globalTrustLists.push(aiTrustList);
+    defaultLoaded += 1
+  } catch (error) {
+    lastError = error
+  }
+
+  try {
+    const tdTrustList = trustedditTrustList as TrustList;
+    await processDownloadedTrustList(tdTrustList);
+    globalTrustLists.push(tdTrustList);
+    defaultLoaded += 1
+  } catch (error) {
+    lastError = error
+  }
+
+  try {
+    // Named 'Local TSA Anchors' so checkTSATrustListInclusion picks it up.
+    const tdTsaTrustList = trustedditTsaTrustList as TrustList;
+    await processDownloadedTrustList(tdTsaTrustList);
+    globalTrustLists.push(tdTsaTrustList);
     defaultLoaded += 1
   } catch (error) {
     lastError = error

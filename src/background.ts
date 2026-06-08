@@ -7,6 +7,7 @@ import 'c2pa'
 import { validateUrl as c2paValidateUrl } from './c2paProxy'
 import { init as initTrustlist, checkTrustListInclusion, refreshTrustLists, checkTSATrustListInclusion } from './trustlist'
 import { type C2paError, type C2paResult } from './c2pa'
+import { detectDurablePillars } from './durableCredentials'
 import {
   MSG_GET_ID, MSG_L3_INSPECT_URL, MSG_REMOTE_INSPECT_URL, MSG_FORWARD_TO_CONTENT, REMOTE_VALIDATION_LINK,
   MSG_VALIDATE_URL, AWAIT_ASYNC_RESPONSE, MSG_C2PA_RESULT_FROM_CONTEXT, AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED,
@@ -131,11 +132,23 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
   c2paResult.trustList = checkTrustListInclusion(c2paResult.certChain ?? []);
   
   // Check TSA trust list inclusion if TST tokens exist
-  if (c2paResult.tstTokens != null && c2paResult.tstTokens.length > 0) {
-    const tstToken = c2paResult.tstTokens[0]; // TODO: for each token
+  const hasTimestamp = c2paResult.tstTokens != null && c2paResult.tstTokens.length > 0;
+  if (hasTimestamp) {
+    const tstToken = c2paResult.tstTokens![0]; // TODO: for each token
     c2paResult.tsaTrustList = checkTSATrustListInclusion(tstToken.certChain ?? []);
   } else {
   }
+
+  // Durable Content Credentials — the "3 pillars" verdict (offline detection).
+  //   P1 signed & timestamped : a COSE cert chain + an RFC 3161 timestamp token
+  //   P2 durable watermark    : a c2pa.soft_binding assertion is present
+  //   P3 cloud-recoverable    : registered in the manifest store (soft binding)
+  const signed = (c2paResult.certChain?.length ?? 0) > 0;
+  c2paResult.durablePillars = detectDurablePillars({
+    signed,
+    hasTimestamp,
+    assertionLabels: c2paResult.assertionLabels
+  });
 
   // rc11.6 / #83 — removed the anonymous cross-origin verifieddit.com
   // API fallback that rc12 shipped here. Reintroducing the path requires
