@@ -49,6 +49,11 @@ for (const url of urls) {
   console.log('  certChain    :', (r?.certChain?.length ?? 0) + ' certs')
   console.log('  trust        :', trusted ? `TRUSTED — ${r.trustList.entity?.name} (${r.trustList.tlInfo?.name})` : 'not in trust list')
   console.log('  validation   :', codes.length > 0 ? JSON.stringify(codes) : '(clean)')
+  const p = r?.durablePillars
+  if (p != null) {
+    console.log('  durable      :', `P1 signed+ts=${p.signedAndTimestamped} | P2 watermark=${p.trustmark} | P3 manifestStore=${p.manifestStore} | count=${p.count}/3`)
+  }
+  console.log('  storeProbe   :', r?.manifestStoreVerified === true ? 'REGISTERED (P3 verified)' : 'no match / not probed')
 }
 
 await ctx.close()
