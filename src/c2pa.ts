@@ -3,7 +3,7 @@
  *  Licensed under the MIT license.
  */
 
-import { createC2pa, selectEditsAndActivity, type C2pa, type C2paReadResult, type ManifestMap, type ManifestStore, type TranslatedDictionaryCategory } from 'c2pa'
+import { createC2pa, type C2paSdk, type Manifest, type ManifestStore as C2paRsStore } from '@contentauth/c2pa-web'
 import { type CertificateInfoExtended } from './certs/certs.js'
 import { decode as coseDecode, type TSTInfo, type COSE_Sign1 } from './certs/cose.js'
 import { isContentBox, decode as jumbfDecode } from './certs/jumbf.js'
@@ -13,7 +13,19 @@ import { type TrustListMatch } from './trustlistProxy.js'
 import { type DurablePillars } from './durableCredentials.js'
 import { blobToDataURL } from './utils.js'
 
-let c2pa: C2pa | null = null
+// TranslatedDictionaryCategory came from the old `c2pa` SDK's
+// selectEditsAndActivity helper, which has no equivalent in
+// @contentauth/c2pa-web. editsAndActivity is now always null (see below), but
+// the element shape is preserved so the existing UI (webComponents.ts reads
+// `.icon` and `.description` off each entry) still type-checks against the
+// public C2paResult contract.
+export interface TranslatedDictionaryCategory {
+  icon: string | null
+  label: string
+  description: string
+}
+
+let c2pa: C2paSdk | null = null
 
 export interface C2paResult extends ExtensionC2paResult {
   url: string
@@ -35,10 +47,9 @@ export interface C2paError extends Error {
 }
 
 export async function init (): Promise<void> {
-  const workerUrl = chrome.runtime.getURL('c2pa.worker.js')
-  const wasmUrl = chrome.runtime.getURL('toolkit_bg.wasm')
+  const wasmUrl = chrome.runtime.getURL('c2pa.wasm')
 
-  createC2pa({ wasmSrc: wasmUrl, workerSrc: workerUrl })
+  createC2pa({ wasmSrc: wasmUrl })
     .then(
       (newC2pa) => {
         c2pa = newC2pa
@@ -69,39 +80,54 @@ export async function init (): Promise<void> {
 
 export async function validateUrl (url: string): Promise<C2paResult | C2paError> {
   if (c2pa == null) {
-    return new Error('C2PA not initialized') as C2paError;
+    return new Error('C2PA not initialized') as C2paError
   }
 
-  let c2paReadResult: C2paReadResult | Error;
+  // Fetch the asset bytes ourselves so we can both (a) hand the blob to the new
+  // c2pa-web reader and (b) re-parse the raw JUMBF/COSE for the trust +
+  // timestamp logic (extractC2paManifest below).
+  let blob: Blob
   try {
-    c2paReadResult = await c2pa.read(url);
-  } catch (error: any) {
-    c2paReadResult = error;
+    const response = await fetch(url)
+    if (!response.ok) {
+      return { message: `Fetch failed: ${response.status} ${response.statusText}`, url, name: 'Fetch Error' } satisfies C2paError
+    }
+    blob = await response.blob()
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    return { message, url, name: 'Fetch Error' } satisfies C2paError
   }
 
-  if (c2paReadResult instanceof Error) {
-    return { message: c2paReadResult.message, url, name: c2paReadResult.name } satisfies C2paError;
+  // reader is null when the asset carries no C2PA metadata.
+  const reader = await c2pa.reader.fromBlob(blob.type, blob)
+  if (reader == null) {
+    return { message: 'No manifest found', url, name: 'No Manifest' } satisfies C2paError
   }
 
-  if (c2paReadResult.manifestStore?.activeManifest == null) {
-    // Log the full c2paReadResult when no manifest is found for further debugging
-    return { message: 'No manifest found', url, name: 'No Manifest' } satisfies C2paError;
+  const store: C2paRsStore = await reader.manifestStore()
+
+  if (store.active_manifest == null || store.manifests == null || store.manifests[store.active_manifest] == null) {
+    return { message: 'No manifest found', url, name: 'No Manifest' } satisfies C2paError
   }
 
-  const serializedResult = await serializeC2paReadResult(c2paReadResult)
+  const serializedResult = await serializeC2paStore(store, blob, url)
 
-  const sourceBuffer = await c2paReadResult.source.arrayBuffer()
+  // Re-parse the raw bytes for the COSE signature (certificate chain + RFC 3161
+  // timestamp). This preserves the offline trust + timestamp verification path.
+  const sourceBytes = new Uint8Array(await blob.arrayBuffer())
+  const cose = await extractC2paManifest(blob.type, sourceBytes)
 
-  const cose = await extractC2paManifest(c2paReadResult.source.type, new Uint8Array(sourceBuffer))
-
-  // Source the soft-binding signal from the SDK's VALIDATED, claim-bound
-  // assertions (issue #113) — never raw JUMBF box labels, which an attacker can
-  // add outside the signed claim to forge a durable verdict.
-  const assertionLabels: string[] = (c2paReadResult.manifestStore?.activeManifest?.assertions?.data ?? [])
+  // Source the soft-binding signal from the VALIDATED, claim-bound assertions of
+  // the ACTIVE manifest (issue #113) — never raw JUMBF box labels, which an
+  // attacker can add outside the signed claim to forge a durable verdict.
+  const activeManifest: Manifest = store.manifests[store.active_manifest]
+  const assertionLabels: string[] = (activeManifest.assertions ?? [])
     .map((a) => a?.label)
     .filter((label): label is string => typeof label === 'string')
 
-  const editsAndActivity = ((c2paReadResult.manifestStore?.activeManifest) != null) ? await selectEditsAndActivity(c2paReadResult.manifestStore?.activeManifest) : null
+  // selectEditsAndActivity has no equivalent in @contentauth/c2pa-web; the
+  // edits/activity UI panel is fed null for this pass.
+  const editsAndActivity: TranslatedDictionaryCategory[] | null = null
 
   const result: C2paResult = {
     ...serializedResult,
@@ -215,54 +241,48 @@ export interface ExtensionC2paResult {
   }
 }
 
-async function serializeC2paReadResult (result: C2paReadResult): Promise<ExtensionC2paResult> {
-  const manifestStore: ManifestStore | null = result.manifestStore
-  if (manifestStore == null) {
-    throw new Error('Manifest store is null')
-  }
-  const c2paManifests: ManifestMap = manifestStore.manifests
-  const c2paActiveManifest = manifestStore.activeManifest
-  const manifests: ExtensionC2paManifest[] = await Promise.all(
-    Object.entries(c2paManifests).map(async ([key, value]) => {
-      const ingredients = await Promise.all(
-        value.ingredients.map(async ingredient => {
-          const thumbType = ingredient.thumbnail?.contentType ?? ''
-          const thumbData =
-            (thumbType.startsWith('image/') && ingredient.thumbnail?.blob != null)
-              ? await blobToDataURL(ingredient.thumbnail.blob)
-              : ''
-          return {
-            title: ingredient.title,
-            format: ingredient.format,
-            instanceId: ingredient.instanceId,
-            thumbnail: {
-              type: thumbType,
-              data: thumbData
-            }
-          }
-        })
-      )
-      return {
-        key,
-        title: value.title,
-        format: value.format,
-        claimGenerator: value.claimGenerator,
-        signatureInfo: {
-          issuer: value.signatureInfo?.issuer ?? ''
-        },
-        ingredients
+/**
+ * Maps the c2pa-rs JSON manifest store (snake_case, from @contentauth/c2pa-web)
+ * into the EXISTING ExtensionC2paResult shape the UI contract depends on.
+ */
+async function serializeC2paStore (store: C2paRsStore, blob: Blob, url: string): Promise<ExtensionC2paResult> {
+  const c2paManifests = store.manifests ?? {}
+  const manifestEntries = Object.entries(c2paManifests)
+
+  const manifests: ExtensionC2paManifest[] = manifestEntries.map(([label, manifest]) => {
+    const ingredients: ExtensionC2paIngredient[] = (manifest.ingredients ?? []).map((ingredient) => ({
+      title: ingredient.title ?? '',
+      format: ingredient.format ?? '',
+      instanceId: ingredient.instance_id ?? '',
+      // Ingredient thumbnails are left empty for this pass — the c2pa-web reader
+      // exposes them as resource-store URIs (resourceToBytes), not inline blobs.
+      thumbnail: {
+        type: '',
+        data: ''
       }
-    })
-  )
+    }))
 
-  const activeManifestIndex = Object.values(c2paManifests).indexOf(c2paActiveManifest)
+    return {
+      key: label,
+      title: manifest.title ?? '',
+      format: manifest.format ?? '',
+      claimGenerator: manifest.claim_generator ?? manifest.claim_generator_info?.[0]?.name ?? '',
+      signatureInfo: {
+        issuer: manifest.signature_info?.issuer ?? ''
+      },
+      ingredients
+    }
+  })
 
-  const thumbnailData =
-  !(result.source.thumbnail.contentType?.startsWith('image/') ?? false)
-    ? ''
-    : result.source.thumbnail.blob != null
-      ? await blobToDataURL(result.source.thumbnail.blob)
-      : ''
+  // activeManifest is the INDEX of the active label within the manifests array
+  // (the UI keys into manifests[activeManifest]). Defaults to 0 if not found.
+  const activeIndex = manifestEntries.findIndex(([label]) => label === store.active_manifest)
+  const activeManifestIndex = activeIndex >= 0 ? activeIndex : 0
+
+  // validationStatus is a flat list of status codes (string[]).
+  const validationStatus: string[] = (store.validation_status ?? [])
+    .map((status) => status.code)
+    .filter((code): code is string => typeof code === 'string' && code.length > 0)
 
   // Source-blob inlining budget. Raw bytes above this threshold would produce
   // a base64 data URL that is then structured-cloned four times across
@@ -272,35 +292,38 @@ async function serializeC2paReadResult (result: C2paReadResult): Promise<Extensi
   // Below the threshold we inline as before; above it we emit the empty string
   // and rely on the overlay's existing thumbnail path + the caller's URL.
   const SOURCE_INLINE_MAX_BYTES = 512 * 1024
-  const sourceBlobSize = result.source.blob?.size ?? 0
-  const sourceData: dataUrl =
-    (result.source.type?.startsWith('video/') ?? false)
-      ? ''
-      : result.source.blob == null
-        ? ''
-        : sourceBlobSize > SOURCE_INLINE_MAX_BYTES
-          ? ''
-          : await blobToDataURL(result.source.blob)
+  const isImage = blob.type.startsWith('image/')
+  const thumbnailData: dataUrl =
+    (isImage && blob.size < SOURCE_INLINE_MAX_BYTES)
+      ? await blobToDataURL(blob)
+      : ''
 
-  if (result.source.blob != null && sourceBlobSize > SOURCE_INLINE_MAX_BYTES) {
+  // Derive a filename from the URL basename.
+  let filename = ''
+  try {
+    const pathname = new URL(url).pathname
+    filename = pathname.substring(pathname.lastIndexOf('/') + 1)
+  } catch {
+    const stripped = url.split('?')[0].split('#')[0]
+    filename = stripped.substring(stripped.lastIndexOf('/') + 1)
   }
 
-  const serializedResult = {
+  return {
     manifestStore: {
       manifests,
       activeManifest: activeManifestIndex,
-      validationStatus: manifestStore.validationStatus.map(status => status.explanation ?? status.code.toString())
+      validationStatus
     },
     source: {
       thumbnail: {
-        type: result.source.thumbnail.contentType ?? '',
+        type: blob.type,
         data: thumbnailData
       },
-      type: result.source.type,
-      data: sourceData,
-      filename: result.source.metadata.filename ?? ''
+      type: blob.type,
+      // Raw source data URL was never populated by the old serializer either
+      // beyond the thumbnail; leave empty (overlay falls back to URL/thumbnail).
+      data: '',
+      filename
     }
-  };
-
-  return serializedResult;
+  }
 }

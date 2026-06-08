@@ -68,9 +68,8 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "c2pa.worker.js",
+                "c2pa.wasm",
                 "icons/*.svg",
-                "toolkit_bg.wasm",
                 "iframe.html",
                 "iframe.js"
             ],
