@@ -119,8 +119,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 async function validateUrl (url: string): Promise<C2paResult | C2paError> {
-  const c2paResult = await c2paValidateUrl(url);
-  
+  const c2paResult = await c2paValidateWithRetry(url);
+
   if (c2paResult instanceof Error) {
     // rc11.6 / #83 — removed the anonymous cross-origin verifieddit.com
     // API fallback that rc12 shipped here. See issue #83 for context.
@@ -171,6 +171,52 @@ async function openOrSwitchToTab (imageUrl: string): Promise<chrome.tabs.Tab> {
   return await chrome.tabs.create({ url: target.toString() })
 }
 
+// Offscreen document that hosts the c2pa engine (issue #134). The MV3 service
+// worker cannot create a Web Worker or parse a DOM, both of which the c2pa
+// toolkit requires. offscreen.html loads c2pa.js, which runs createC2pa() and
+// registers the MSG_C2PA_VALIDATE_URL handler this SW routes validation to.
+// (Restored after f0e5a60 deleted offscreen.html/.ts as "dead code", which
+// silently disabled all manifest validation.)
+async function ensureOffscreen (): Promise<void> {
+  // chrome.offscreen is Chrome-only; Firefox runs the engine in its background.
+  if (typeof chrome === 'undefined' || chrome.offscreen === undefined) return
+  try {
+    if (await chrome.offscreen.hasDocument()) return
+    await chrome.offscreen.createDocument({
+      url: 'offscreen.html',
+      reasons: [chrome.offscreen.Reason.DOM_PARSER, chrome.offscreen.Reason.WORKERS],
+      justification: 'Parse C2PA manifest DOM and run WebAssembly verification in a Web Worker (both forbidden in MV3 service workers).'
+    })
+  } catch (error) {
+    // createDocument races against an existing document; only that is benign.
+    const msg = error instanceof Error ? error.message : String(error)
+    if (!/already|single offscreen/i.test(msg)) {
+      console.error('Failed to create offscreen document', error)
+    }
+  }
+}
+
+// Validate via the offscreen engine, ensuring it exists and is initialized.
+// The offscreen document initializes c2pa asynchronously on load, so a request
+// that arrives first may get "C2PA not initialized" (or no listener yet); retry
+// briefly before giving up.
+async function c2paValidateWithRetry (url: string): Promise<C2paResult | C2paError> {
+  await ensureOffscreen()
+  let last: C2paResult | C2paError | undefined
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const result = await c2paValidateUrl(url).catch(() => undefined)
+    last = result
+    const notReady = result == null ||
+      (result as C2paError)?.message === 'C2PA not initialized'
+    if (!notReady) return result as C2paResult | C2paError
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+  const message = (last as C2paError)?.message ?? 'C2PA engine did not become ready'
+  const err = new Error(message) as C2paError
+  err.url = url
+  return err
+}
+
 // trust list refresh alarm (run once a day) TODO: create an option
 function setupTrustListRefreshAlarm (): void {
   void chrome.alarms.create('trustListRefreshAlarm', { delayInMinutes: 1, periodInMinutes: TRUSTLIST_UPDATE_INTERVAL })
@@ -186,9 +232,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   setupTrustListRefreshAlarm()
+  void ensureOffscreen()
 })
 
 chrome.runtime.onStartup.addListener(() => {
   setupTrustListRefreshAlarm()
+  void ensureOffscreen()
 })
+
+// Also create the offscreen engine eagerly whenever the service worker spins
+// up (onStartup does not fire on SW wake), so validation is ready on first use.
+void ensureOffscreen()
 
