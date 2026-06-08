@@ -286,11 +286,22 @@ async function updateTrustLists (): Promise<void> {
   })
 }
 
+// A validation_status code is a real INTEGRITY failure (→ red 'error' badge)
+// unless it is merely a trust/expiry signal. signingCredential.untrusted means
+// the signer is not in the trust list (surfaced as the amber 'warning' state);
+// .expired is a cert-validity signal. Neither means the content was altered, so
+// neither should turn the badge red. Mirrors isFatalValidationCode in
+// webComponents.ts — keep the two in sync.
+const NON_FATAL_VALIDATION_CODE = /\.(untrusted|expired)$/i
+function hasFatalValidation (codes: string[] | undefined | null): boolean {
+  return (codes ?? []).some((c) => c !== '' && !NON_FATAL_VALIDATION_CODE.test(c))
+}
+
 function getC2PAStatus(c2pa: C2paResult): VALIDATION_STATUS {
 
   // Check for AI content first
   if (c2pa.trustList?.tlInfo.name === 'AI trust list') {
-    if (c2pa.manifestStore.validationStatus.length > 0) {
+    if (hasFatalValidation(c2pa.manifestStore.validationStatus)) {
       return 'ai-error';
     }
     return 'ai-success';
@@ -300,8 +311,10 @@ function getC2PAStatus(c2pa: C2paResult): VALIDATION_STATUS {
   if (!c2pa.manifestStore.validationStatus) {
     return 'error'; // Should not happen if manifestStore exists
   }
-  // if there are validation errors, return the error status
-  if (c2pa.manifestStore.validationStatus.length > 0) {
+  // if there are genuine integrity failures, return the error status. Untrusted/
+  // expired signers are NOT failures — they fall through to the trust-list check
+  // below and surface as the amber 'warning' state.
+  if (hasFatalValidation(c2pa.manifestStore.validationStatus)) {
     return 'error';
   }
   // if there is no trust list, return the warning status
