@@ -36,6 +36,10 @@ export interface CertificateInfo {
 export interface CertificateInfoExtended extends CertificateInfo {
   sha256Thumbprint: string
   signatureAlgorithm: string
+  // Base64 DER of the certificate, retained so the trust layer can rebuild a
+  // Certificate object and verify chain-path signatures (not just thumbprints).
+  // Survives structured-clone messaging where Certificate objects would not.
+  der: string
 }
 
 export async function calculateSha256CertThumbprintFromDer (der: Uint8Array): Promise<string> {
@@ -58,8 +62,41 @@ export async function certificateFromDer (der: Uint8Array): Promise<CertificateI
   const certInfoEx = certInfo as CertificateInfoExtended
   certInfoEx.sha256Thumbprint = sha256Thumbprint
   certInfoEx.signatureAlgorithm = cert.signatureAlgorithm
+  certInfoEx.der = Buffer.from(der).toString('base64')
 
   return certInfoEx
+}
+
+/**
+ * Rebuild an @fidm/x509 Certificate from a base64-DER string. Returns null on
+ * any parse error (treated as "cannot verify" by callers — fail closed).
+ */
+export function certObjectFromDerBase64 (der: string): Certificate | null {
+  try {
+    const derBytes = Buffer.from(der, 'base64')
+    return Certificate.fromPEM(Buffer.from(DERtoPEM(derBytes), 'utf-8'))
+  } catch {
+    return null
+  }
+}
+
+/**
+ * True iff `parent` actually signed `child` (real signature verification, not
+ * a DN/thumbprint heuristic). Both args are base64-DER. Fails closed on any
+ * error. This is the primitive that closes the trust-badge spoof: a cert that
+ * is merely present in an attacker-controlled chain array does NOT verify a
+ * leaf it did not sign.
+ */
+export function verifyParentSignedChild (parentDer: string, childDer: string): boolean {
+  try {
+    const parent = certObjectFromDerBase64(parentDer)
+    const child = certObjectFromDerBase64(childDer)
+    if (parent == null || child == null) return false
+    // @fidm checkSignature returns null on success, an Error on failure.
+    return parent.checkSignature(child) === null
+  } catch {
+    return false
+  }
 }
 
 /**

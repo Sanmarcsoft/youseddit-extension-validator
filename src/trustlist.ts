@@ -3,7 +3,7 @@
  *  Licensed under the MIT license.
  */
 
-import { type CertificateInfoExtended, calculateSha256CertThumbprintFromX5c, PEMtoDER, certificateFromDer, distinguishedNameToString } from './certs/certs';
+import { type CertificateInfoExtended, calculateSha256CertThumbprintFromX5c, PEMtoDER, certificateFromDer, distinguishedNameToString, verifyParentSignedChild } from './certs/certs';
 import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE } from './constants';
 import { bytesToBase64, sendMessageToAllTabs } from './utils';
 
@@ -293,27 +293,99 @@ export async function loadTrustLists (): Promise<void> {
  * @param certChain a certificate chain
  * @returns a trust list match object if found, otherwise null
  */
+/**
+ * Build the signature-VERIFIED certificate path starting from the signing leaf
+ * (certChain[0]) and walking upward: at each step we look for a cert in the
+ * supplied chain that *actually signed* the current cert (real signature check,
+ * not DN/thumbprint matching). A cert merely present in the array but which did
+ * not sign anything on the path is never added.
+ *
+ * This is the heart of the trust-spoof fix (issue #112): an attacker can paste
+ * a trusted CA cert into the COSE x5chain, but it will not appear on the
+ * verified path because it did not sign the attacker's leaf.
+ */
+function buildVerifiedPath (certChain: CertificateInfoExtended[]): CertificateInfoExtended[] {
+  const leaf = certChain[0]
+  const path: CertificateInfoExtended[] = [leaf]
+  const used = new Set<string>([leaf.sha256Thumbprint])
+  let current = leaf
+  // Bounded by the chain length; each iteration adds at most one cert.
+  for (let i = 0; i < certChain.length; i++) {
+    let next: CertificateInfoExtended | null = null
+    for (const candidate of certChain) {
+      if (used.has(candidate.sha256Thumbprint)) continue
+      if (candidate.der != null && current.der != null && verifyParentSignedChild(candidate.der, current.der)) {
+        next = candidate
+        break
+      }
+    }
+    if (next == null) break
+    path.push(next)
+    used.add(next.sha256Thumbprint)
+    current = next
+  }
+  return path
+}
+
+/**
+ * Match a single certificate against the trust lists by SHA-256 thumbprint and
+ * CA flag.
+ */
+function matchCertToTrustLists (cert: CertificateInfoExtended, trustLists: TrustList[]): TrustListMatch | null {
+  for (const trustList of trustLists) {
+    for (const entity of trustList.entities) {
+      for (const jwkCert of entity.jwks.keys) {
+        if ((jwkCert['x5t#S256'] != null) && jwkCert['x5t#S256'].toLowerCase() === cert.sha256Thumbprint && entity.isCA === cert.isCA) {
+          return { tlInfo: getInfoFromTrustList(trustList), entity, cert }
+        }
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Checks whether the signing certificate chains, via a signature-VERIFIED path,
+ * to a trusted anchor. Replaces the previous "any thumbprint present in the
+ * chain" logic, which trusted a cert merely co-located in an attacker-supplied
+ * array (issue #112, CRITICAL-1).
+ *
+ * Trust is granted only when EITHER:
+ *  (a) a trusted entity sits on the verified path from the leaf, OR
+ *  (b) a trusted CA anchor we hold actually signed the top of the verified path
+ *      (covers chains that omit the root and embed only leaf+intermediates).
+ */
 export function checkTrustListInclusion (certChain: CertificateInfoExtended[], trustLists: TrustList[] = globalTrustLists): TrustListMatch | null {
-  if (trustLists != null && trustLists.length > 0) {
-    // for each trust list
-    for (const trustList of trustLists) { // Changed from globalTrustLists to trustLists parameter
-      // for each entity's certs in the list (current and expired), check if it matches a cert in the chain
+  if (certChain == null || certChain.length === 0) return null
+  if (trustLists == null || trustLists.length === 0) return null
+
+  // 1. Verified path from the signing leaf upward.
+  const path = buildVerifiedPath(certChain)
+
+  // 2. A trusted entity that sits ON the verified path (leaf or any verified CA).
+  for (const cert of path) {
+    const match = matchCertToTrustLists(cert, trustLists)
+    if (match != null) return match
+  }
+
+  // 3. A trusted CA anchor we hold that actually signed the top of the path,
+  //    even if that anchor was not embedded in the chain.
+  const top = path[path.length - 1]
+  if (top.der != null) {
+    for (const trustList of trustLists) {
       for (const entity of trustList.entities) {
-        const jwks = entity.jwks;
-        for (const jwkCert of jwks.keys) {
-          // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-          for (const cert of certChain) {
-            if ((jwkCert['x5t#S256'] != null) && jwkCert['x5t#S256'].toLowerCase() === cert.sha256Thumbprint && entity.isCA === cert.isCA) {
-              // found a match
-              const tlInfo = getInfoFromTrustList(trustList);
-              return { tlInfo, entity, cert };
-            }
+        if (!entity.isCA) continue
+        for (const jwk of entity.jwks.keys) {
+          const anchorDer = jwk.x5c?.[0]
+          if (anchorDer != null && verifyParentSignedChild(anchorDer, top.der)) {
+            return { tlInfo: getInfoFromTrustList(trustList), entity, cert: top }
           }
         }
       }
     }
   }
-  return null;
+
+  return null
 }
 
 /**
