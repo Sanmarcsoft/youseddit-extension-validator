@@ -12,10 +12,11 @@
     },
     "permissions": [
         "storage",
-        "tabs",
         "activeTab",
         "contextMenus",
-        "alarms",
+        "alarms"
+    ],
+    "optional_permissions": [
         "bookmarks"
     ],
     "background": {

@@ -78,6 +78,12 @@ async function ensureFolder (parentId: string): Promise<chrome.bookmarks.Bookmar
  */
 export async function saveVerificationBookmark (req: SaveBookmarkRequest): Promise<SaveBookmarkResult> {
   try {
+    // `bookmarks` is an optional permission (#114). If it has not been granted
+    // (e.g. the request came from the in-page overlay, which cannot prompt for
+    // it), fail gracefully instead of throwing on an undefined chrome.bookmarks.
+    if (chrome.bookmarks == null) {
+      return { status: 'error', error: 'bookmarks permission not granted' }
+    }
     const settings = await getBookmarkSettings()
     const folder = await ensureFolder(settings.parentId)
     if (folder.id == null) return { status: 'error', error: 'Folder has no id' }
