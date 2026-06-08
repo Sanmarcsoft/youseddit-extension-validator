@@ -63,6 +63,7 @@
         {
             "resources": [
                 "c2pa.wasm",
+                "c2pa-web.worker.js",
                 "icons/*.svg",
                 "iframe.html"
             ],

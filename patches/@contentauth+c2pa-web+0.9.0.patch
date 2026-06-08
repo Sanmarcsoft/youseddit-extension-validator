@@ -1,0 +1,12 @@
+diff --git a/node_modules/@contentauth/c2pa-web/dist/c2pa-Cy_f_Zk_.js b/node_modules/@contentauth/c2pa-web/dist/c2pa-Cy_f_Zk_.js
+--- a/node_modules/@contentauth/c2pa-web/dist/c2pa-Cy_f_Zk_.js
++++ b/node_modules/@contentauth/c2pa-web/dist/c2pa-Cy_f_Zk_.js
+@@ -4,7 +4,7 @@
+ function L(e) {
+   let t;
+   try {
+-    if (t = h && (self.URL || self.webkitURL).createObjectURL(h), !t) throw "";
++    if (t = (typeof globalThis < "u" && globalThis.__C2PA_WORKER_URL__) || (h && (self.URL || self.webkitURL).createObjectURL(h)), !t) throw "";
+     const o = new Worker(t, {
+       name: e == null ? void 0 : e.name
+     });
