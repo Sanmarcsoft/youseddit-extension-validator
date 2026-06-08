@@ -149,7 +149,10 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
   c2paResult.durablePillars = detectDurablePillars({
     signed,
     hasTimestamp,
-    assertionLabels: c2paResult.assertionLabels
+    assertionLabels: c2paResult.assertionLabels,
+    // P3 'verified' only when the offscreen byBinding probe found the credential
+    // registered in the manifest store.
+    manifestStoreVerified: c2paResult.manifestStoreVerified
   });
 
   // rc11.6 / #83 — removed the anonymous cross-origin verifieddit.com

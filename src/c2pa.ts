@@ -10,7 +10,8 @@ import { isContentBox, decode as jumbfDecode } from './certs/jumbf.js'
 import { getManifestFromMetadata } from './certs/metadata.js'
 import { AWAIT_ASYNC_RESPONSE, MSG_C2PA_VALIDATE_URL, type MSG_PAYLOAD } from './constants.js'
 import { type TrustListMatch } from './trustlistProxy.js'
-import { type DurablePillars } from './durableCredentials.js'
+import { type DurablePillars, hasSoftBinding } from './durableCredentials.js'
+import { probeManifestStore } from './manifestStore.js'
 import { blobToDataURL } from './utils.js'
 
 // TranslatedDictionaryCategory came from the old `c2pa` SDK's
@@ -40,6 +41,10 @@ export interface C2paResult extends ExtensionC2paResult {
   // Durable Content Credentials "3 pillars" verdict. Computed in the
   // background service worker once trust + timestamp signals are known.
   durablePillars: DurablePillars | null
+  // True when a live manifest-store byBinding probe confirmed this asset's
+  // credential is REGISTERED and recoverable (Pillar 3 'verified'). Probed in
+  // the offscreen/background validate path where the image bytes are available.
+  manifestStoreVerified: boolean
 }
 
 export interface C2paError extends Error {
@@ -136,6 +141,17 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
   // edits/activity UI panel is fed null for this pass.
   const editsAndActivity: TranslatedDictionaryCategory[] | null = null
 
+  // Durable Content Credentials — Pillar 3 (cloud-recoverable). When the asset
+  // DECLARES a soft binding (P2) and is an image, probe the manifest store with
+  // its perceptual fingerprint to confirm the credential is actually REGISTERED
+  // and recoverable. Only computed fingerprints are sent (privacy); failure
+  // fails closed to 'declared'. Done here in the offscreen/background validate
+  // path because the decoded image bytes are available.
+  let manifestStoreVerified = false
+  if (hasSoftBinding(assertionLabels) && blob.type.startsWith('image/')) {
+    manifestStoreVerified = await probeManifestStore(blob)
+  }
+
   const result: C2paResult = {
     ...serializedResult,
     url,
@@ -145,6 +161,7 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
     tstTokens: cose?.unprotected?.sigTst?.tstTokens ?? null,
     editsAndActivity,
     assertionLabels,
+    manifestStoreVerified,
     // Computed downstream in the background SW (detectDurablePillars) once the
     // timestamp/trust signals are resolved.
     durablePillars: null
