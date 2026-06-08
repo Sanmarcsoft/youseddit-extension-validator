@@ -43,14 +43,17 @@ export async function init (): Promise<void> {
       (newC2pa) => {
         c2pa = newC2pa
         // Clear any prior init error so popups don't render a stale banner.
-        void chrome.storage.session?.remove('c2paInitError')
+        // NOTE: this module now runs in the offscreen document, whose restricted
+        // API surface may not expose chrome.storage — guard chrome.storage too,
+        // not just .session, or the success path throws (#134 follow-up).
+        void chrome.storage?.session?.remove('c2paInitError')
       },
       (error: unknown) => {
         // WASM init failure leaves c2pa null forever. Surface to the popup
         // via chrome.storage.session (ephemeral, no persistence) so the user
         // sees a banner instead of silently empty badge state.
         const message = error instanceof Error ? error.message : String(error)
-        void chrome.storage.session?.set({ c2paInitError: message })
+        void chrome.storage?.session?.set({ c2paInitError: message })
       }
     )
 
