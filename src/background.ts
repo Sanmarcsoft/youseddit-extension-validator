@@ -244,3 +244,14 @@ chrome.runtime.onStartup.addListener(() => {
 // up (onStartup does not fire on SW wake), so validation is ready on first use.
 void ensureOffscreen()
 
+// MV3 context menus do NOT survive a service-worker restart, and the SW is
+// torn down and respawned constantly. Creating the menu only in onInstalled
+// (above) means it silently disappears the first time the SW cycles — the user
+// sees no "Verify with Verifieddit" right-click option. Recreate it on every
+// SW startup; removeAll first avoids the duplicate-id error.
+try {
+  chrome.contextMenus.removeAll(() => { createContextMenu() })
+} catch {
+  createContextMenu()
+}
+
