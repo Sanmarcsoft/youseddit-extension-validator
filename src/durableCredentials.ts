@@ -1,52 +1,58 @@
 /*
  *  Durable Content Credentials — the "3 pillars" detection.
  *
- *  Ported from the validated implementations in trusteddit-www
- *  (detectDurablePillars) and verifieddit-www (detectDurableCredentials).
+ *  Hardened after the 2026-06-08 RedTeam audit (issue #113, CRITICAL-2):
+ *   - Soft-binding presence is taken from the C2PA SDK's VALIDATED, claim-bound
+ *     assertions (activeManifest.assertions), never from raw JUMBF box labels.
+ *     A stray `c2pa.soft_binding`-labelled box added outside the signed claim
+ *     can no longer light a pillar.
+ *   - P3 ("manifest store / cloud-recoverable") is NOT asserted offline. We can
+ *     confirm a soft binding is PRESENT (P2), but not that it is REGISTERED and
+ *     recoverable without a live byBinding probe. P3 is therefore a tri-state:
+ *     'verified' only after a probe, 'declared' when a soft binding is present
+ *     but unprobed, 'absent' otherwise. Only 'verified' counts toward the score.
  *
- *  Pure, offline, dependency-free. It works entirely from data the C2PA read
- *  pipeline already produces:
- *    - `signed`        — the asset carries a COSE signature / cert chain
- *    - `hasTimestamp`  — an RFC 3161 timestamp token is embedded
- *    - `assertionLabels` — labels harvested from the manifest JUMBF
+ *  The pillars describe the asset's durability FEATURES. They are only a trust
+ *  POSITIVE when the signer is itself verified-trusted — the overlay carries
+ *  that context (see c2pa-pillars `signerTrusted`).
  *
- *  The three pillars (matching the trusteddit.com verifier):
+ *  Pillars (matching the trusteddit.com verifier):
  *    P1 — Signed & timestamped : C2PA signature + RFC 3161 timestamp
- *    P2 — Durable watermark    : a c2pa.soft_binding assertion (TrustMark)
- *    P3 — Cloud-recoverable    : registered in the manifest store (soft binding)
- *
- *  P2 and P3 are both satisfied by the presence of the signed
- *  `c2pa.soft_binding` assertion: the binding key it carries is the watermark
- *  (P2) and the value registered in the manifest store for byBinding recovery
- *  (P3). A credential with only P1 is "embed-only" — valid, but lost when the
- *  file is re-encoded or its metadata is stripped.
+ *    P2 — Durable watermark    : a signed c2pa.soft_binding assertion (TrustMark)
+ *    P3 — Cloud-recoverable    : registered in the manifest store (probe-only)
  */
+
+export type ManifestStoreState = 'verified' | 'declared' | 'absent'
 
 export interface DurablePillars {
   /** P1 — signed AND carries an RFC 3161 timestamp. */
   signedAndTimestamped: boolean
-  /** P2 — durable watermark: a c2pa.soft_binding assertion is present. */
+  /** P2 — durable watermark: a signed c2pa.soft_binding assertion is present. */
   trustmark: boolean
-  /** P3 — cloud-recoverable: registered in the manifest store (soft binding). */
-  manifestStore: boolean
-  /** All three pillars present. */
+  /**
+   * P3 — manifest-store recoverability.
+   *  'verified' — confirmed by a live byBinding probe (online only)
+   *  'declared' — a soft binding is present but registration is unprobed
+   *  'absent'   — no soft binding
+   */
+  manifestStore: ManifestStoreState
+  /** Offline-provable durability: signed+timestamped AND a durable binding. */
   durable: boolean
-  /** Pillars achieved, 0–3. */
+  /** Pillars in a positive (green) state: P1 + P2 + (P3 only when 'verified'). */
   count: number
-  /** True when only P1 holds — signature valid but no durable binding. */
+  /** Signed+timestamped but no durable binding — lost if re-encoded/stripped. */
   embedOnly: boolean
 }
 
 /**
  * Assertion labels that indicate a soft binding (TrustMark watermark or
- * perceptual fingerprint). C2PA stores these as a `c2pa.soft_binding`
- * assertion box; tooling has historically emitted both the underscore and
- * hyphen spellings, so we match either.
+ * perceptual fingerprint). Tooling has emitted both spellings.
  */
 const SOFT_BINDING_PATTERN = /soft[_-]?binding/i
 
 /**
- * True when any of the supplied assertion labels denotes a soft binding.
+ * True when any of the supplied (signed, claim-bound) assertion labels denotes
+ * a soft binding.
  */
 export function hasSoftBinding (assertionLabels: readonly string[] | null | undefined): boolean {
   if (assertionLabels == null) return false
@@ -61,26 +67,32 @@ export function detectDurablePillars (opts: {
   signed: boolean
   /** An RFC 3161 timestamp token is embedded in the signature. */
   hasTimestamp: boolean
-  /** Assertion labels harvested from the manifest JUMBF. */
+  /** SIGNED, claim-bound assertion labels (from the SDK, not raw JUMBF). */
   assertionLabels?: readonly string[] | null
+  /** True only when a live manifest-store byBinding probe confirmed recovery. */
+  manifestStoreVerified?: boolean
 }): DurablePillars {
   const softBinding = hasSoftBinding(opts.assertionLabels)
 
   const signedAndTimestamped = opts.signed && opts.hasTimestamp
   const trustmark = softBinding
-  const manifestStore = softBinding
+  const manifestStore: ManifestStoreState =
+    opts.manifestStoreVerified === true
+      ? 'verified'
+      : softBinding ? 'declared' : 'absent'
 
   const count =
     (signedAndTimestamped ? 1 : 0) +
     (trustmark ? 1 : 0) +
-    (manifestStore ? 1 : 0)
+    (manifestStore === 'verified' ? 1 : 0)
 
   return {
     signedAndTimestamped,
     trustmark,
     manifestStore,
-    durable: signedAndTimestamped && trustmark && manifestStore,
+    // Durability we can actually prove offline: signed+timestamped + a binding.
+    durable: signedAndTimestamped && trustmark,
     count,
-    embedOnly: signedAndTimestamped && count === 1
+    embedOnly: signedAndTimestamped && !trustmark
   }
 }

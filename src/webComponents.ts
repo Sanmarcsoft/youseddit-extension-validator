@@ -477,7 +477,7 @@ export class C2paOverlay extends LitElement {
       ${this.renderLog(c2paResult)}
 
       ${pillars != null
-        ? html`<c2pa-pillars class="reveal" style="animation-delay:${pillarsDelay}ms; display:block" .pillars=${pillars}></c2pa-pillars>`
+        ? html`<c2pa-pillars class="reveal" style="animation-delay:${pillarsDelay}ms; display:block" .pillars=${pillars} .signerTrusted=${this.status?.trusted === true}></c2pa-pillars>`
         : nothing}
 
       ${this.renderErrors(c2paResult.manifestStore.validationStatus)}
@@ -632,14 +632,19 @@ const PILLAR_DEFS: Array<{ key: keyof DurablePillars, label: string, sub: string
   {
     key: 'manifestStore',
     label: 'Cloud-recoverable',
-    sub: 'manifest store',
+    sub: 'manifest store · probe',
     icon: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>`
   }
 ]
 
+type PillarState = 'on' | 'declared' | 'off'
+
 @customElement('c2pa-pillars')
 export class C2paPillars extends LitElement {
   @property({ type: Object }) pillars: DurablePillars | null = null
+  // Durability is only a TRUST positive when the signer is itself trusted.
+  // When false, the pillars are shown but flagged as self-asserted (issue #113).
+  @property({ type: Boolean }) signerTrusted = false
 
   static styles = [
     sharedStyles,
@@ -678,6 +683,7 @@ export class C2paPillars extends LitElement {
 
       .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
       .cell {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -689,41 +695,78 @@ export class C2paPillars extends LitElement {
         transition: border-color 0.3s ease, background 0.3s ease, opacity 0.3s ease;
       }
       .cell.on  { border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.06); }
+      .cell.declared { border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.06); }
       .cell.off { background: rgba(15, 23, 42, 0.35); opacity: 0.55; }
 
       .cell svg { width: 22px; height: 22px; }
       .cell.on  svg { color: var(--ok); filter: drop-shadow(0 0 6px var(--ok-glow)); }
+      .cell.declared svg { color: var(--warn); }
       .cell.off svg { color: var(--text-dim); }
 
       .cell .l { font-size: 9.5px; font-weight: var(--font-bold); line-height: 1.2; }
       .cell.on  .l { color: var(--text-bright); }
+      .cell.declared .l { color: var(--text-bright); }
       .cell.off .l { color: var(--text-dim); }
-      .cell .s { font-size: 8.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+      /* Sublabel: lift to slate-400 for AA contrast on the glass (#94a3b8). */
+      .cell .s { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: #94a3b8; }
 
-      .note { margin-top: 8px; font-size: 9.5px; line-height: 1.4; color: var(--text-dim); }
+      .badge {
+        margin-top: 2px;
+        font-size: 8px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--warn);
+      }
+      .glyph { font-weight: 700; }
+
+      .note { margin-top: 8px; font-size: 10px; line-height: 1.45; color: #94a3b8; }
+      .note.warn {
+        margin-top: 8px;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        background: rgba(245, 158, 11, 0.08);
+        border-radius: 6px;
+        padding: 6px 8px;
+        color: var(--warn);
+      }
+      @media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
     `]
+
+  private stateFor (p: DurablePillars, key: keyof DurablePillars): PillarState {
+    if (key === 'manifestStore') {
+      return p.manifestStore === 'verified' ? 'on' : p.manifestStore === 'declared' ? 'declared' : 'off'
+    }
+    return p[key] === true ? 'on' : 'off'
+  }
 
   render (): TemplateResult | typeof nothing {
     const p = this.pillars
     if (p == null) return nothing
+    const glyph = (s: PillarState): string => s === 'on' ? '✓' : s === 'declared' ? '?' : '✗'
     return html`
       <div class="wrap">
         <div class="head">
           <span class="label">Durable Content Credentials</span>
-          <span class="chip ${p.durable ? 'on' : 'off'}">${p.count}/3 pillars</span>
+          <span class="chip ${p.durable && this.signerTrusted ? 'on' : 'off'}">${p.count}/3 verified</span>
         </div>
         <div class="grid">
           ${PILLAR_DEFS.map((def) => {
-            const on = p[def.key] === true
+            const st = this.stateFor(p, def.key)
             return html`
-              <div class="cell ${on ? 'on' : 'off'}">
+              <div class="cell ${st}">
                 ${def.icon}
-                <span class="l">${def.label}</span>
+                <span class="l"><span class="glyph">${glyph(st)}</span> ${def.label}</span>
                 <span class="s">${def.sub}</span>
+                ${st === 'declared' ? html`<span class="badge">declared · unverified</span>` : nothing}
               </div>
             `
           })}
         </div>
+        ${!this.signerTrusted
+          ? html`<p class="note warn">⚠ Signer is not in a trust list — these durability features are self-asserted by the signer, not independently verified.</p>`
+          : nothing}
+        ${p.manifestStore === 'declared'
+          ? html`<p class="note">Cloud recovery is declared in the manifest but not probed offline; open the Verifieddit page to confirm registration.</p>`
+          : nothing}
         ${!p.durable
           ? html`<p class="note">${p.embedOnly
               ? 'Embed-only credential — the signature is valid, but with no durable binding it is lost if the file is re-encoded or stripped.'

@@ -89,7 +89,14 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
 
   const sourceBuffer = await c2paReadResult.source.arrayBuffer()
 
-  const { cose, assertionLabels } = await extractManifestParts(c2paReadResult.source.type, new Uint8Array(sourceBuffer))
+  const cose = await extractC2paManifest(c2paReadResult.source.type, new Uint8Array(sourceBuffer))
+
+  // Source the soft-binding signal from the SDK's VALIDATED, claim-bound
+  // assertions (issue #113) — never raw JUMBF box labels, which an attacker can
+  // add outside the signed claim to forge a durable verdict.
+  const assertionLabels: string[] = (c2paReadResult.manifestStore?.activeManifest?.assertions?.data ?? [])
+    .map((a) => a?.label)
+    .filter((label): label is string => typeof label === 'string')
 
   const editsAndActivity = ((c2paReadResult.manifestStore?.activeManifest) != null) ? await selectEditsAndActivity(c2paReadResult.manifestStore?.activeManifest) : null
 
