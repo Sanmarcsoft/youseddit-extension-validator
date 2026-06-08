@@ -7,7 +7,7 @@
   "scripts": {
     "clean": "rimraf dist && rimraf node_modules/.cache/rollup-plugin-typescript2",
     "prebuild": "node update-version.js && node scripts/generate-build-info.js",
-    "postinstall": "patch-package",
+    "postinstall": "patch-package --error-on-fail",
     "build": "cross-env NODE_ENV=production rollup -c",
     "build:debug": "cross-env NODE_ENV=development rollup -c",
     "build:dev": "cross-env NODE_ENV=development rollup -c --watch",

@@ -9,8 +9,8 @@ import { readFileSync } from 'fs'
 import { Buffer } from 'buffer'
 import { certificateFromDer, PEMtoDER, type CertificateInfoExtended } from '../src/certs/certs'
 import { checkTrustListInclusion } from '../src/trustlist'
-import trustedditTL from './trusteddit-trust-list.json'
-import defaultTL from './default-trust-list.json'
+import trustedditTL from '../src/trust-anchors/trusteddit-trust-list.json'
+import defaultTL from '../src/trust-anchors/default-trust-list.json'
 
 const PKI = '/config/workspace/projects/sanmarcsoft/trusteddit-pki-services/certs/'
 const certFromPem = async (p: string): Promise<CertificateInfoExtended> =>

@@ -9,12 +9,14 @@ import { bytesToBase64, sendMessageToAllTabs } from './utils';
 
 // Directly import the JSON files (bundled into the JS by Rollup; not shipped
 // as separate files in dist/, so they cannot be enumerated by web pages).
-import defaultTestTrustList from '../test/default-trust-list.json';
-import defaultAiTrustList from '../test/ai-trust-list.json';
+// #125: production trust anchors live under src/trust-anchors/ (NOT test/), so
+// fixtures and real roots-of-trust can never be confused or swapped.
+import defaultTestTrustList from './trust-anchors/default-trust-list.json';
+import defaultAiTrustList from './trust-anchors/ai-trust-list.json';
 // Trusteddit.com anchors: the CA chain (signing) + the TSA chain (timestamps).
 // Trusting the Trusteddit-Journalist-Issuer-CA trusts every leaf it issues.
-import trustedditTrustList from '../test/trusteddit-trust-list.json';
-import trustedditTsaTrustList from '../test/trusteddit-tsa-trust-list.json';
+import trustedditTrustList from './trust-anchors/trusteddit-trust-list.json';
+import trustedditTsaTrustList from './trust-anchors/trusteddit-tsa-trust-list.json';
 
 // valid JWK key types (to adhere to C2PA cert profile: https://c2pa.org/specifications/specifications/2.0/specs/C2PA_Specification.html#_certificate_profile)
 type ValidKeyTypes = 'RSA' /* sha*WithRSAEncryption and id-RSASSA-PSS */ | 'EC' /* ecdsa-with-* */ | 'OKP' /* id-Ed25519 */
@@ -82,6 +84,40 @@ export interface TrustListMatch {
 }
 
 let globalTrustLists: TrustList[] = []
+
+// Hosts permitted to serve auto-refreshed trust lists (#124). A custom list's
+// download_url is only re-fetched if its host is on (or a subdomain of) this set.
+const ALLOWED_REFRESH_HOSTS = ['contentcredentials.org', 'c2pa.org', 'trusteddit.com', 'verifieddit.com']
+
+function isAllowedRefreshHost (urlString: string): boolean {
+  let host: string
+  try {
+    host = new URL(urlString).hostname.toLowerCase()
+  } catch {
+    return false
+  }
+  return ALLOWED_REFRESH_HOSTS.some((h) => host === h || host.endsWith('.' + h))
+}
+
+/**
+ * Structural validation of untrusted trust-list JSON before it is accepted into
+ * the trust store (#124). Rejects malformed shapes before they reach the x509
+ * parser via processDownloadedTrustList.
+ */
+export function validateTrustListShape (tl: unknown): tl is TrustList {
+  if (typeof tl !== 'object' || tl === null) return false
+  const t = tl as Record<string, unknown>
+  if (typeof t.description !== 'string') return false
+  if (!Array.isArray(t.entities)) return false
+  for (const e of t.entities) {
+    if (typeof e !== 'object' || e === null) return false
+    const ent = e as Record<string, unknown>
+    if (typeof ent.name !== 'string' || typeof ent.isCA !== 'boolean') return false
+    const jwks = ent.jwks as Record<string, unknown> | undefined
+    if (jwks == null || !Array.isArray(jwks.keys)) return false
+  }
+  return true
+}
 
 const getInfoFromTrustList = (tl: TrustList): TrustListInfo => {
   const tli: TrustListInfo = {
@@ -228,7 +264,9 @@ export async function addTrustAnchor (pemCert: string, tsa = false): Promise<voi
  */
 export async function addTrustList (tl: TrustList): Promise<void> {
 
-  if (typeof tl === 'undefined' /* TODO: more validation */) {
+  // #124: validate the structure of an imported (untrusted) trust list before
+  // it reaches the x509 parser, rather than the previous `typeof tl` no-op.
+  if (!validateTrustListShape(tl)) {
     throw new Error('Invalid trust list')
   }
 
@@ -403,14 +441,23 @@ export async function refreshTrustLists (): Promise<void> {
   if (globalTrustLists != null && globalTrustLists.length > 0) {
     const fetchPromises = globalTrustLists.map(async (trustList, index) => {
       if (trustList.download_url !== '') {
-        const response = await fetch(trustList.download_url)
+        // #124: only refresh from an allowlisted host, with credentials omitted.
+        if (!isAllowedRefreshHost(trustList.download_url)) {
+          throw new Error(`Trust list refresh for ${trustList.name}: host not allowlisted`)
+        }
+        const response = await fetch(trustList.download_url, { credentials: 'omit' })
         // Guard against captive portals / 5xx returning HTML 200; without this
         // the next .json() throws and the outer catch silently keeps the user
         // on a stale trust list (security degradation invisible to user).
         if (!response.ok) {
           throw new Error(`Trust list refresh failed for ${trustList.name}: HTTP ${response.status}`)
         }
-        const freshTrustList = await response.json() as TrustList
+        const raw: unknown = await response.json()
+        // #124: validate the untrusted shape before it reaches the x509 parser.
+        if (!validateTrustListShape(raw)) {
+          throw new Error(`Trust list refresh for ${trustList.name}: malformed schema`)
+        }
+        const freshTrustList = raw
         if (freshTrustList.last_updated > trustList.last_updated) {
           await processDownloadedTrustList(freshTrustList)
           globalTrustLists[index] = freshTrustList
