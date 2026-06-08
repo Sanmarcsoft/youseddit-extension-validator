@@ -12,6 +12,7 @@
     "build:debug": "cross-env NODE_ENV=development rollup -c",
     "build:dev": "cross-env NODE_ENV=development rollup -c --watch",
     "serve:fixtures": "npx http-server test/e2e/fixtures -p 3000 -c-1",
+    "e2e:verify": "node scripts/e2e-verify.mjs",
     "test": "npm run build && npx playwright test",
     "test:debug": "npx playwright test --debug"
   },

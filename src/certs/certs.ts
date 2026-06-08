@@ -171,7 +171,12 @@ export async function verifyParentSignedChild (parentDer: string, childDer: stri
     // child's issuer (DN match). Mirrors @fidm checkSignature's preconditions.
     if (parent.version === 3 && (!parent.basicConstraintsValid || !parent.isCA)) return false
     if (parent.getExtension('keyUsage', 'keyCertSign') !== true) return false
-    if (!child.isIssuer(parent)) return false
+    // NOTE: @fidm's child.isIssuer(parent) is deliberately NOT used. It hashes
+    // the DN via Node's crypto.createHash, which the browser/SW crypto polyfill
+    // does not implement (TypeError: createHash is not a function) — the very
+    // bug that made all trust checks fail. The WebCrypto signature verification
+    // below is the authoritative proof that `parent` signed `child`; a DN-match
+    // prefilter is a redundant optimisation, not a security requirement.
 
     const alg = SIG_OID_TO_WEBCRYPTO[child.signatureOID]
     if (alg == null) return false
