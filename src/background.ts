@@ -131,13 +131,13 @@ async function validateUrl (url: string): Promise<C2paResult | C2paError> {
 
   
   // Check trust list inclusion
-  c2paResult.trustList = checkTrustListInclusion(c2paResult.certChain ?? []);
-  
+  c2paResult.trustList = await checkTrustListInclusion(c2paResult.certChain ?? []);
+
   // Check TSA trust list inclusion if TST tokens exist
   const hasTimestamp = c2paResult.tstTokens != null && c2paResult.tstTokens.length > 0;
   if (hasTimestamp) {
     const tstToken = c2paResult.tstTokens![0]; // TODO: for each token
-    c2paResult.tsaTrustList = checkTSATrustListInclusion(tstToken.certChain ?? []);
+    c2paResult.tsaTrustList = await checkTSATrustListInclusion(tstToken.certChain ?? []);
   } else {
   }
 

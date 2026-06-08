@@ -80,20 +80,116 @@ export function certObjectFromDerBase64 (der: string): Certificate | null {
   }
 }
 
+// Signature-algorithm OID → WebCrypto verify parameters.
+const SIG_OID_TO_WEBCRYPTO: Record<string, { name: 'ECDSA' | 'RSASSA-PKCS1-v1_5', hash: string }> = {
+  '1.2.840.10045.4.3.2': { name: 'ECDSA', hash: 'SHA-256' }, // ecdsa-with-SHA256
+  '1.2.840.10045.4.3.3': { name: 'ECDSA', hash: 'SHA-384' }, // ecdsa-with-SHA384
+  '1.2.840.10045.4.3.4': { name: 'ECDSA', hash: 'SHA-512' }, // ecdsa-with-SHA512
+  '1.2.840.113549.1.1.11': { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+  '1.2.840.113549.1.1.12': { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-384' },
+  '1.2.840.113549.1.1.13': { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-512' }
+}
+
+// EC named-curve OID (DER value bytes) → WebCrypto curve + coordinate byte size.
+const EC_CURVES: Array<{ bytes: number[], curve: string, size: number }> = [
+  { bytes: [0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07], curve: 'P-256', size: 32 }, // prime256v1
+  { bytes: [0x2b, 0x81, 0x04, 0x00, 0x22], curve: 'P-384', size: 48 }, // secp384r1
+  { bytes: [0x2b, 0x81, 0x04, 0x00, 0x23], curve: 'P-521', size: 66 } // secp521r1
+]
+
+function findEcCurve (spki: Uint8Array): { curve: string, size: number } | null {
+  for (const c of EC_CURVES) {
+    for (let i = 0; i + c.bytes.length <= spki.length; i++) {
+      let hit = true
+      for (let j = 0; j < c.bytes.length; j++) {
+        if (spki[i + j] !== c.bytes[j]) { hit = false; break }
+      }
+      if (hit) return { curve: c.curve, size: c.size }
+    }
+  }
+  return null
+}
+
+// DER ECDSA-Sig-Value (SEQUENCE { INTEGER r, INTEGER s }) → fixed-width r‖s
+// (IEEE P1363), which is the form WebCrypto's ECDSA verify expects.
+function derEcdsaToRaw (der: Uint8Array, size: number): Uint8Array | null {
+  if (der[0] !== 0x30) return null
+  let i = 2
+  if ((der[1] & 0x80) !== 0) i = 2 + (der[1] & 0x7f) // long-form SEQUENCE length
+  if (der[i] !== 0x02) return null
+  const rLen = der[i + 1]
+  let r = der.subarray(i + 2, i + 2 + rLen)
+  i = i + 2 + rLen
+  if (der[i] !== 0x02) return null
+  const sLen = der[i + 1]
+  let s = der.subarray(i + 2, i + 2 + sLen)
+  const trimLeadingZeros = (b: Uint8Array): Uint8Array => {
+    let k = 0
+    while (k < b.length - 1 && b[k] === 0) k++
+    return b.subarray(k)
+  }
+  r = trimLeadingZeros(r)
+  s = trimLeadingZeros(s)
+  if (r.length > size || s.length > size) return null
+  const out = new Uint8Array(size * 2)
+  out.set(r, size - r.length)
+  out.set(s, size * 2 - s.length)
+  return out
+}
+
+function publicKeySpkiDer (cert: Certificate): Uint8Array {
+  // @fidm's PublicKey.toPEM() emits an SPKI "PUBLIC KEY" block. Strip any PEM
+  // armour (not just CERTIFICATE, which PEMtoDER assumes) and decode.
+  const b64 = cert.publicKey.toPEM().replace(/-----[A-Z0-9 ]+-----/g, '').replace(/\s+/g, '')
+  return new Uint8Array(Buffer.from(b64, 'base64'))
+}
+
 /**
  * True iff `parent` actually signed `child` (real signature verification, not
  * a DN/thumbprint heuristic). Both args are base64-DER. Fails closed on any
  * error. This is the primitive that closes the trust-badge spoof: a cert that
  * is merely present in an attacker-controlled chain array does NOT verify a
- * leaf it did not sign.
+ * leaf it did not sign (issue #112).
+ *
+ * Verification uses WebCrypto (`crypto.subtle.verify`), NOT @fidm's
+ * `checkSignature`. @fidm verifies via Node's `crypto.createVerify`, which is
+ * absent in the extension's browser/service-worker/offscreen runtimes (the
+ * rollup node-crypto polyfill cannot verify ECDSA P-384). That silently made
+ * every chain fail to verify in-browser, so every signed asset rendered
+ * "not in trust list" even when its CA was bundled (#137). WebCrypto is native
+ * in all of those contexts (and in bun), and supports ECDSA P-256/384/521 and
+ * RSA. The @fidm parse is still used for the CA / issuer guards below.
  */
-export function verifyParentSignedChild (parentDer: string, childDer: string): boolean {
+export async function verifyParentSignedChild (parentDer: string, childDer: string): Promise<boolean> {
   try {
     const parent = certObjectFromDerBase64(parentDer)
     const child = certObjectFromDerBase64(childDer)
     if (parent == null || child == null) return false
-    // @fidm checkSignature returns null on success, an Error on failure.
-    return parent.checkSignature(child) === null
+
+    // Preserve the #112 security guards before spending a crypto verify: the
+    // parent must be a CA permitted to sign certs, and must actually be the
+    // child's issuer (DN match). Mirrors @fidm checkSignature's preconditions.
+    if (parent.version === 3 && (!parent.basicConstraintsValid || !parent.isCA)) return false
+    if (parent.getExtension('keyUsage', 'keyCertSign') !== true) return false
+    if (!child.isIssuer(parent)) return false
+
+    const alg = SIG_OID_TO_WEBCRYPTO[child.signatureOID]
+    if (alg == null) return false
+
+    const spki = publicKeySpkiDer(parent)
+    const tbs = child.tbsCertificate.DER as Uint8Array
+
+    if (alg.name === 'ECDSA') {
+      const ec = findEcCurve(spki)
+      if (ec == null) return false
+      const key = await crypto.subtle.importKey('spki', spki, { name: 'ECDSA', namedCurve: ec.curve }, false, ['verify'])
+      const sig = derEcdsaToRaw(child.signature as Uint8Array, ec.size)
+      if (sig == null) return false
+      return await crypto.subtle.verify({ name: 'ECDSA', hash: alg.hash }, key, sig, tbs)
+    }
+
+    const key = await crypto.subtle.importKey('spki', spki, { name: 'RSASSA-PKCS1-v1_5', hash: alg.hash }, false, ['verify'])
+    return await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, child.signature as Uint8Array, tbs)
   } catch {
     return false
   }

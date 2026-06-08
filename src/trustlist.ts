@@ -342,7 +342,7 @@ export async function loadTrustLists (): Promise<void> {
  * a trusted CA cert into the COSE x5chain, but it will not appear on the
  * verified path because it did not sign the attacker's leaf.
  */
-function buildVerifiedPath (certChain: CertificateInfoExtended[]): CertificateInfoExtended[] {
+async function buildVerifiedPath (certChain: CertificateInfoExtended[]): Promise<CertificateInfoExtended[]> {
   const leaf = certChain[0]
   const path: CertificateInfoExtended[] = [leaf]
   const used = new Set<string>([leaf.sha256Thumbprint])
@@ -352,7 +352,7 @@ function buildVerifiedPath (certChain: CertificateInfoExtended[]): CertificateIn
     let next: CertificateInfoExtended | null = null
     for (const candidate of certChain) {
       if (used.has(candidate.sha256Thumbprint)) continue
-      if (candidate.der != null && current.der != null && verifyParentSignedChild(candidate.der, current.der)) {
+      if (candidate.der != null && current.der != null && await verifyParentSignedChild(candidate.der, current.der)) {
         next = candidate
         break
       }
@@ -393,12 +393,12 @@ function matchCertToTrustLists (cert: CertificateInfoExtended, trustLists: Trust
  *  (b) a trusted CA anchor we hold actually signed the top of the verified path
  *      (covers chains that omit the root and embed only leaf+intermediates).
  */
-export function checkTrustListInclusion (certChain: CertificateInfoExtended[], trustLists: TrustList[] = globalTrustLists): TrustListMatch | null {
+export async function checkTrustListInclusion (certChain: CertificateInfoExtended[], trustLists: TrustList[] = globalTrustLists): Promise<TrustListMatch | null> {
   if (certChain == null || certChain.length === 0) return null
   if (trustLists == null || trustLists.length === 0) return null
 
   // 1. Verified path from the signing leaf upward.
-  const path = buildVerifiedPath(certChain)
+  const path = await buildVerifiedPath(certChain)
 
   // 2. A trusted entity that sits ON the verified path (leaf or any verified CA).
   for (const cert of path) {
@@ -415,7 +415,7 @@ export function checkTrustListInclusion (certChain: CertificateInfoExtended[], t
         if (!entity.isCA) continue
         for (const jwk of entity.jwks.keys) {
           const anchorDer = jwk.x5c?.[0]
-          if (anchorDer != null && verifyParentSignedChild(anchorDer, top.der)) {
+          if (anchorDer != null && await verifyParentSignedChild(anchorDer, top.der)) {
             return { tlInfo: getInfoFromTrustList(trustList), entity, cert: top }
           }
         }
@@ -431,8 +431,8 @@ export function checkTrustListInclusion (certChain: CertificateInfoExtended[], t
  * @param certChain a certificate chain
  * @returns a trust list match object if found, otherwise null
  */
-export function checkTSATrustListInclusion (certChain: CertificateInfoExtended[]): TrustListMatch | null {
-  return checkTrustListInclusion(certChain, globalTrustLists.filter(tl => tl.name === LOCAL_TRUST_TSA_LIST_NAME))
+export async function checkTSATrustListInclusion (certChain: CertificateInfoExtended[]): Promise<TrustListMatch | null> {
+  return await checkTrustListInclusion(certChain, globalTrustLists.filter(tl => tl.name === LOCAL_TRUST_TSA_LIST_NAME))
 }
 
 // update the trust lists if they are outdated

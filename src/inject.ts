@@ -279,11 +279,11 @@ export interface MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD {
 
 async function updateTrustLists (): Promise<void> {
   await loadTrustLists()
-  MediaMonitor.all.forEach((mediaRecord) => {
-    if (mediaRecord.state.c2pa?.certChain == null) return
-    mediaRecord.state.c2pa.trustList = checkTrustListInclusion(mediaRecord.state.c2pa.certChain)
+  for (const mediaRecord of MediaMonitor.all) {
+    if (mediaRecord.state.c2pa?.certChain == null) continue
+    mediaRecord.state.c2pa.trustList = await checkTrustListInclusion(mediaRecord.state.c2pa.certChain)
     setIcon(mediaRecord)
-  })
+  }
 }
 
 // A validation_status code is a real INTEGRITY failure (→ red 'error' badge)
