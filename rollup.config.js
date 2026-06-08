@@ -84,8 +84,11 @@ const watch = {
 const plugins = [
   replace({
     preventAssignment: true,
-    ...Object.keys(process.env).reduce((acc, key) => {
-      acc[`process.env.${key}`] = JSON.stringify(process.env[key])
+    // #121: only inline an explicit allowlist of env vars. Spreading the whole
+    // process.env would bake the build machine's secrets (tokens, paths) into
+    // the public CRX. Never add a secret-bearing var here.
+    ...['NODE_ENV', 'AUTO_SCAN'].reduce((acc, key) => {
+      acc[`process.env.${key}`] = JSON.stringify(process.env[key] ?? '')
       return acc
     }, {})
   }),

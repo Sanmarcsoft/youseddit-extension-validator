@@ -115,7 +115,11 @@ async function postWithResponse <T> (message: unknown): Promise<T> {
       }
     }
     window.addEventListener('message', listener)
-    window.parent.postMessage({ type: MSG_CHILD_REQUEST, data: message, id: counter, src: document.location.href }, '*')
+    // #123: drop `src: document.location.href` — the receiver never reads it and
+    // it leaked the frame URL to any listener. The remaining payload is
+    // non-sensitive frame-geometry coordination; the receiver authenticates the
+    // sender via `event.source === window.parent`.
+    window.parent.postMessage({ type: MSG_CHILD_REQUEST, data: message, id: counter }, '*')
   })
 }
 
