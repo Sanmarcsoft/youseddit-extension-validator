@@ -56,12 +56,12 @@ export async function init (): Promise<void> {
 
   // Firefox MV3 forbids blob: workers in the extension page CSP (and strips
   // blob: from the manifest CSP), so c2pa-web's default blob worker is blocked.
-  // The patched c2pa-web (patches/@contentauth+c2pa-web+0.9.0.patch) honours
-  // this override; point it at the packaged worker file (a chrome-/moz-extension
-  // URL, allowed by 'self'). Works in both browsers, eliminating the blob.
-  ;(globalThis as unknown as Record<string, string>).__C2PA_WORKER_URL__ = chrome.runtime.getURL('c2pa-web.worker.js')
+  // c2pa-web 0.11+ supports a native `workerSrc` (a URL) — point it at the
+  // packaged worker file (a chrome-/moz-extension URL, allowed by 'self'),
+  // which works in both browsers and avoids the blocked blob: worker. No patch.
+  const workerUrl = new URL(chrome.runtime.getURL('c2pa-web.worker.js'))
 
-  createC2pa({ wasmSrc: wasmUrl })
+  createC2pa({ wasmSrc: wasmUrl, workerSrc: workerUrl })
     .then(
       (newC2pa) => {
         c2pa = newC2pa
