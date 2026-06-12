@@ -19,7 +19,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@contentauth/toolkit": "^0.11.1",
+    "@contentauth/toolkit": "^0.13.14",
     "@fidm/asn1": "^1.0.4",
     "@fidm/x509": "^1.2.1",
     "@playwright/test": "^1.40.1",
@@ -35,7 +35,7 @@
     "@types/webextension-polyfill": "^0.10.7",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "c2pa-wc": "^0.13.0",
+    "c2pa-wc": "^0.14.17",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
@@ -57,6 +57,6 @@
     "typescript": "^5.4.3"
   },
   "dependencies": {
-    "@contentauth/c2pa-web": "^0.9.0"
+    "@contentauth/c2pa-web": "^0.11.0"
   }
 }
