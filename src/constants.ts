@@ -42,10 +42,6 @@ export const MSG_FORWARD_TO_CONTENT = 'MSG_FORWARD_TO_CONTENT'
 export const MSG_SHOW_CONTEXT_MENU = 'MSG_SHOW_CONTEXT_MENU'
 export const MSG_C2PA_RESULT_FROM_CONTEXT = 'MSG_C2PA_RESULT_FROM_CONTEXT'
 export const MSG_AUTO_SCAN_UPDATED = 'MSG_AUTO_SCAN_UPDATED'
-// rc14 / #93 — overlay "Save verification" button round-trips through
-// the background service worker since content scripts have no access
-// to chrome.bookmarks.*.
-export const MSG_SAVE_BOOKMARK = 'MSG_SAVE_BOOKMARK'
 
 export const DEFAULT_MSG_TIMEOUT = 5000 /* 5 sec */
 // Verifieddit's own in-browser validator page — replaces the upstream

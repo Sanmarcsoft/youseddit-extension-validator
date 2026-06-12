@@ -77,9 +77,6 @@ Adds "Inspect Content Credentials" to the right-click context menu on images, vi
 ### alarms
 Schedules periodic trust list refreshes (every 24 hours) to keep certificate validation up to date.
 
-### bookmarks
-Saves verification results as bookmarks under a dedicated "verifieddit.com" folder. The permission is only exercised when the user explicitly clicks the "Save" button on the overlay panel for a successfully verified image, never automatically.
-
 ### Host Permissions: <all_urls>
 The extension needs access to all URLs because C2PA content credentials can appear on any website. The extension scans image, video, and audio elements on the current page to detect and verify cryptographic provenance data embedded in media files. Without broad host access, users would need to manually allowlist every website, defeating the purpose of automatic content credential detection.
 

@@ -10,8 +10,7 @@
         "activeTab",
         "contextMenus",
         "alarms",
-        "offscreen",
-        "bookmarks"
+        "offscreen"
     ],
     "host_permissions": [
         "<all_urls>"

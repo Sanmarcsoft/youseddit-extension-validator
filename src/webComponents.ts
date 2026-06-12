@@ -8,7 +8,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
 import { type DurablePillars } from './durableCredentials'
-import { MSG_L3_INSPECT_URL, MSG_SAVE_BOOKMARK } from './constants'
+import { MSG_L3_INSPECT_URL } from './constants'
 import { modelFromC2paResult, renderIngredientDiagram } from './ingredientDiagram'
 
 /*
@@ -221,7 +221,7 @@ export class C2paOverlay extends LitElement {
       .errors ul { margin: 6px 0 0; padding-left: 18px; }
       .errors li { color: #fecdd3; font-size: 11px; margin-bottom: 2px; }
 
-      /* ── Footer (inspect link + save) ───────────────────────────── */
+      /* ── Footer (inspect link) ──────────────────────────────────── */
       .footer {
           margin-top: 14px;
           padding-top: 12px;
@@ -240,19 +240,6 @@ export class C2paOverlay extends LitElement {
           border-bottom: 1px dotted rgba(125, 211, 252, 0.5);
       }
       .link:hover { color: var(--accent-bright); }
-
-      .saveBtn {
-          margin-left: auto;
-          padding: 4px 10px;
-          font-size: 11px;
-          color: var(--text-bright);
-          background: rgba(56, 189, 248, 0.12);
-          border: 1px solid rgba(56, 189, 248, 0.3);
-          border-radius: 6px;
-          cursor: pointer;
-      }
-      .saveBtn:hover { background: rgba(56, 189, 248, 0.2); }
-      .saveBtn:disabled { opacity: 0.6; cursor: default; }
 
       .more {
           display: inline-block;
@@ -393,44 +380,6 @@ export class C2paOverlay extends LitElement {
     })
   }
 
-  @property({ attribute: false }) saveState: 'idle' | 'saving' | 'saved' | 'exists' | 'error' = 'idle'
-  private readonly handleSaveBookmark = (): void => {
-    const result = this.c2paResult
-    if (result == null) return
-    this.saveState = 'saving'
-    const name = result.source?.filename ?? 'verification'
-    const statusLabel = (this.status?.errors === true)
-      ? 'Invalid'
-      : (this.status?.trusted === true ? 'Trusted' : 'Signer unknown')
-    const signer = (this._c2paResult?.manifestStore?.manifests[this._c2paResult.manifestStore.activeManifest]?.signatureInfo?.issuer as string | undefined) ?? ''
-    const signerSuffix = signer !== '' ? ` (${signer})` : ''
-    const title = `Verifieddit · ${decodeURIComponent(name)} · ${statusLabel}${signerSuffix}`
-    chrome.runtime.sendMessage(
-      { action: MSG_SAVE_BOOKMARK, data: { imageUrl: result.url, title } },
-      (resp: { status?: 'created' | 'already-exists' | 'error', error?: string }) => {
-        if (chrome.runtime.lastError != null) {
-          this.saveState = 'error'
-          return
-        }
-        this.saveState = resp?.status === 'created' ? 'saved'
-          : resp?.status === 'already-exists' ? 'exists'
-            : 'error'
-      }
-    )
-  }
-
-  private renderSaveButton (): TemplateResult {
-    const label = this.saveState === 'saving' ? 'Saving…'
-      : this.saveState === 'saved' ? '✓ Saved'
-        : this.saveState === 'exists' ? '✓ Already saved'
-          : this.saveState === 'error' ? 'Save failed'
-            : 'Save verification'
-    const disabled = this.saveState === 'saving'
-    return html`
-      <button class="saveBtn" @click="${this.handleSaveBookmark}" ?disabled="${disabled}">${label}</button>
-    `
-  }
-
   /* Build the staged + typewritten monospace verification log. */
   private renderLog (c2paResult: C2paResult): TemplateResult {
     const trusted = this.status?.trusted === true
@@ -537,7 +486,6 @@ export class C2paOverlay extends LitElement {
 
       <div class="footer reveal" style="animation-delay:${pillarsDelay + 160}ms">
         <span>Inspect on <span class="link" @click="${this.handleClick}">Verifieddit</span></span>
-        ${this.renderSaveButton()}
       </div>
 
       <div class="additional-info">

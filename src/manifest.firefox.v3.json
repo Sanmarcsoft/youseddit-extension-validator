@@ -14,8 +14,7 @@
         "storage",
         "activeTab",
         "contextMenus",
-        "alarms",
-        "bookmarks"
+        "alarms"
     ],
     "host_permissions": [
         "<all_urls>"

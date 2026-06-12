@@ -260,8 +260,8 @@ export interface MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD {
   name: string
   status: VALIDATION_STATUS
   thumbnail: string | null
-  // rc14 (#93) — original image URL so the popup's Save-verification
-  // button per row can post MSG_SAVE_BOOKMARK with the right payload.
+  // Original image URL, used to populate each popup row's data-url and the
+  // "Inspect on Verifieddit" deep link.
   url: string
   // rc9 (#59) — detail fields rendered inside the expandable Validation row
   signer: string

@@ -50,11 +50,6 @@ export const RELEASE_NOTES: readonly ReleaseEntry[] = [
           'Right-click any media element on any page and choose "Verify with Verifieddit." A new tab opens with the full Content Credentials inspection — works whether auto-scan is on or off.'
       },
       {
-        title: 'Save a verification to your bookmarks',
-        howToVerify:
-          'Open the popup\'s Validation tab on a verified page, click "Save" next to any entry. The verification is saved to a dedicated "verifieddit.com" folder in your Chrome bookmarks for later reference.'
-      },
-      {
         title: '100% local processing, zero servers',
         howToVerify:
           'Every byte of verification work happens inside your browser using locally-bundled WebAssembly. No media is uploaded anywhere. No analytics, no telemetry, no account required. See the Privacy Policy linked from the listing.'

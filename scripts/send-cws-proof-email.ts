@@ -72,7 +72,7 @@ const htmlBody = `
   <ul style="font-size:13px;line-height:1.6;margin:0">
     <li>name: <em>Verifieddit - C2PA Content Credential Verifier</em> (46 chars)</li>
     <li>version: 1.0.0 / minimum_chrome_version: 109</li>
-    <li>permissions (6): <code>storage, tabs, activeTab, contextMenus, alarms, bookmarks</code></li>
+    <li>permissions (5): <code>storage, activeTab, contextMenus, alarms, offscreen</code></li>
     <li>host_permissions: <code>&lt;all_urls&gt;</code> (necessary for C2PA discovery on any site)</li>
     <li>web_accessible_resources (4): <code>c2pa.worker.js</code>, <code>icons/*.svg</code>, <code>toolkit_bg.wasm</code>, <code>iframe.html</code> (trust-list JSONs intentionally absent)</li>
     <li>icons + action.default_icon: 16 / 32 / 48 / 128</li>

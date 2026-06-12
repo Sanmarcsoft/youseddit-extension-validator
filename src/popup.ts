@@ -6,7 +6,7 @@
 import { type TrustListInfo, getTrustListInfos, removeTrustList, addTSATrustFile, addTrustFile } from './trustlistProxy.js'
 import packageManifest from '../package.json'
 import { BUILD_INFO } from './build-info'
-import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, MSG_RESPONSE_C2PA_ENTRIES, MSG_SAVE_BOOKMARK } from './constants.js'
+import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, MSG_RESPONSE_C2PA_ENTRIES } from './constants.js'
 import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
 import { type ToggleSwitch } from './components/toggle.js'
 import { RELEASE_NOTES, DEMO_URL, type ReleaseEntry, type ReleaseFix } from './releaseNotes.js'
@@ -408,7 +408,6 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
         <img class="v-thumb" src="${esc(thumbSrc)}" alt="">
         <div class="v-name">${esc(decodeURIComponent(r.name))}</div>
         <span class="v-pill ${statusCls}">${esc(statusText)}</span>
-        <button class="v-save" title="Save verification to the verifieddit.com bookmark folder" aria-label="Save verification" style="margin-left:auto;padding:2px 8px;font-size:11px;background:transparent;border:1px solid #1f4d7a;color:#1f4d7a;border-radius:4px;cursor:pointer">★ Save</button>
         <span class="v-disclosure">▸</span>
       </button>
       <div class="v-details" id="${rowId}" hidden>
@@ -446,35 +445,6 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
   validationEntries.appendChild(node)
   const btn = node.querySelector<HTMLButtonElement>('.v-summary')
   const panel = node.querySelector<HTMLElement>('.v-details')
-  const saveBtn = node.querySelector<HTMLButtonElement>('.v-save')
-  const row = node as HTMLElement
-  if (saveBtn != null) {
-    saveBtn.addEventListener('click', (ev) => {
-      // Don't also toggle the surrounding summary button.
-      ev.stopPropagation()
-      ev.preventDefault()
-      const imageUrl = row.getAttribute('data-url') ?? ''
-      const title = row.getAttribute('data-title') ?? 'Verifieddit verification'
-      if (imageUrl === '') return
-      // `bookmarks` is a required permission again (the optional-permission
-      // approach broke the in-page overlay's Save, which cannot prompt).
-      saveBtn.disabled = true
-      saveBtn.textContent = 'Saving…'
-      chrome.runtime.sendMessage(
-        { action: MSG_SAVE_BOOKMARK, data: { imageUrl, title } },
-        (resp: { status?: 'created' | 'already-exists' | 'error' }) => {
-          if (chrome.runtime.lastError != null || resp?.status === 'error') {
-            saveBtn.textContent = 'Save failed'
-            return
-          }
-          saveBtn.textContent = resp?.status === 'already-exists' ? '✓ Already saved' : '✓ Saved'
-          saveBtn.style.background = '#eef9f0'
-          saveBtn.style.borderColor = '#2a8a3c'
-          saveBtn.style.color = '#1f6a2c'
-        }
-      )
-    })
-  }
   if (btn != null && panel != null) {
     btn.addEventListener('click', () => {
       const open = panel.hasAttribute('hidden') === false
