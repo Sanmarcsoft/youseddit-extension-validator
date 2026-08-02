@@ -41,25 +41,30 @@ const MIN_ZOOM = 0.25
 const MAX_ZOOM = 1.8
 
 /**
- * Per-state palette. Hues match the sites' Tailwind tokens (blue/emerald/red/
- * neutral/slate + violet for telemetry), re-tuned for the overlay's dark glass
- * surface so the cards stay legible against it.
+ * Per-state palette, taken from verifieddit.com's own tokens: sky-600 for the
+ * active manifest, emerald-600 for valid, rose-700 for invalid, slate for
+ * unsigned and assertions, amber-700 for telemetry. Tints are kept low-alpha
+ * so the card reads as tinted paper on the warm off-white canvas, the way the
+ * site's status chips do, rather than as a saturated block of colour.
  */
 interface StateStyle { accent: string, bg: string, badgeBg: string, label: string }
 
 const STATE_STYLES: Record<ProvenanceValidationState, StateStyle> = {
-  current: { accent: '#60a5fa', bg: 'rgba(37, 99, 235, 0.16)', badgeBg: 'rgba(59, 130, 246, 0.28)', label: 'Active' },
-  valid: { accent: '#34d399', bg: 'rgba(5, 150, 105, 0.16)', badgeBg: 'rgba(16, 185, 129, 0.26)', label: 'Valid' },
-  invalid: { accent: '#f87171', bg: 'rgba(220, 38, 38, 0.18)', badgeBg: 'rgba(239, 68, 68, 0.30)', label: 'Invalid' },
-  unsigned: { accent: '#94a3b8', bg: 'rgba(100, 116, 139, 0.16)', badgeBg: 'rgba(148, 163, 184, 0.24)', label: 'Unsigned' },
-  assertion: { accent: '#cbd5e1', bg: 'rgba(71, 85, 105, 0.18)', badgeBg: 'rgba(148, 163, 184, 0.22)', label: 'Assertion' }
+  current: { accent: '#0284c7', bg: 'rgba(2, 132, 199, 0.07)', badgeBg: 'rgba(2, 132, 199, 0.12)', label: 'Active' },
+  valid: { accent: '#059669', bg: 'rgba(5, 150, 105, 0.07)', badgeBg: 'rgba(5, 150, 105, 0.12)', label: 'Valid' },
+  invalid: { accent: '#be123c', bg: 'rgba(190, 18, 60, 0.07)', badgeBg: 'rgba(190, 18, 60, 0.12)', label: 'Invalid' },
+  unsigned: { accent: '#64748b', bg: 'rgba(100, 116, 139, 0.06)', badgeBg: 'rgba(100, 116, 139, 0.12)', label: 'Unsigned' },
+  assertion: { accent: '#475569', bg: 'rgba(71, 85, 105, 0.05)', badgeBg: 'rgba(71, 85, 105, 0.10)', label: 'Assertion' }
 }
 
-/** Telemetry assertions get a distinct violet treatment, as on the sites. */
+/**
+ * Telemetry gets the amber the site uses for its audit chip, not the violet
+ * that reads as generic "AI accent" and appears nowhere on verifieddit.com.
+ */
 const TELEMETRY_STYLE: StateStyle = {
-  accent: '#a78bfa',
-  bg: 'rgba(109, 40, 217, 0.18)',
-  badgeBg: 'rgba(139, 92, 246, 0.28)',
+  accent: '#b45309',
+  bg: 'rgba(180, 83, 9, 0.07)',
+  badgeBg: 'rgba(180, 83, 9, 0.13)',
   label: 'Telemetry'
 }
 
@@ -88,19 +93,27 @@ export class C2paProvenanceGraph extends LitElement {
   private fittedGraph: ProvenanceGraph | null = null
 
   static styles = css`
-    :host { display: block; }
+    :host {
+      display: block;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+    }
 
+    /* Canvas matches verifieddit.com: warm off-white, never pure white, with a
+     * hairline rule instead of a shadowed card. The site draws its structure
+     * with 1px borders and whitespace, so the diagram does too. */
     .frame {
       position: relative;
       height: 360px;
+      min-height: 220px;
       margin: 8px 0 4px;
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      border-radius: 10px;
-      background:
-        radial-gradient(120% 90% at 0% 0%, rgba(56, 189, 248, 0.06), transparent 60%),
-        rgba(2, 6, 23, 0.55);
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 8px;
+      background: #fafaf7;
       overflow: hidden;
       touch-action: none;
+      /* The frame itself is user-resizable: drag the bottom-right corner to
+       * give a deep provenance chain more room without entering full screen. */
+      resize: vertical;
     }
 
     .frame.fullscreen {
@@ -110,7 +123,8 @@ export class C2paProvenanceGraph extends LitElement {
       height: 100vh;
       margin: 0;
       border-radius: 0;
-      background: #020617;
+      background: #fafaf7;
+      resize: none;
     }
 
     .viewport {
@@ -129,19 +143,32 @@ export class C2paProvenanceGraph extends LitElement {
       border: 1px solid;
       border-radius: 9px;
       padding: 8px 9px;
-      color: #e2e8f0;
-      box-shadow: 0 6px 18px -8px rgba(2, 6, 23, 0.9);
+      color: #1e293b;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       cursor: default;
     }
 
     /* An expanded node grows past its laid-out NODE_H, so it overlaps whatever
-     * the layout put below or beside it. z-index lifts it above the others, but
-     * the per-kind background set inline on .node is deliberately translucent,
-     * so the covered node used to show THROUGH the detail panel and the two
-     * layers of text were unreadable. ::before paints an opaque base inside the
-     * expanded node's own stacking context: behind the kind tint (so the tint
-     * still reads), in front of every other node (so nothing bleeds through). */
-    .node.expanded { z-index: 5; }
+     * the layout put below or beside it. This is the one place glass earns its
+     * keep: the panel genuinely floats over the graph, so blurring what is
+     * behind it is functional, not decoration. Without it the covered node
+     * showed through the per-kind translucent tint and two layers of text sat
+     * at the same coordinates, both unreadable.
+     *
+     * ::before carries the frost inside the expanded node's own stacking
+     * context: behind the kind tint so the tint still reads, in front of every
+     * other node so nothing bleeds through. */
+    .node.expanded {
+      z-index: 5;
+      /* Drag the corner to size a node around a long claim generator or a
+       * deep assertion list. min-width keeps it from collapsing below the
+       * column width the layout reserved. */
+      resize: both;
+      overflow: auto;
+      min-width: ${NODE_W}px;
+      min-height: ${NODE_H}px;
+      box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.28);
+    }
 
     .node.expanded::before {
       content: '';
@@ -149,9 +176,11 @@ export class C2paProvenanceGraph extends LitElement {
       inset: 0;
       z-index: -1;
       border-radius: inherit;
-      background: #0b1220;
+      background: rgba(250, 250, 247, 0.82);
+      backdrop-filter: blur(12px) saturate(115%);
+      -webkit-backdrop-filter: blur(12px) saturate(115%);
     }
-    .node.active { box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.45), 0 6px 18px -8px rgba(2, 6, 23, 0.9); }
+    .node.active { box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.35), 0 1px 2px rgba(15, 23, 42, 0.04); }
 
     .node-head { display: flex; align-items: flex-start; gap: 6px; }
     .node-main { min-width: 0; flex: 1; }
@@ -161,10 +190,9 @@ export class C2paProvenanceGraph extends LitElement {
       font-size: 12px;
       font-weight: 700;
       line-height: 1.25;
-      color: #f1f5f9;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      color: #0f172a;
+      overflow-wrap: anywhere;
+      white-space: normal;
     }
 
     .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; }
@@ -175,8 +203,8 @@ export class C2paProvenanceGraph extends LitElement {
       font-size: 9px;
       font-weight: 600;
       letter-spacing: 0.02em;
-      background: rgba(148, 163, 184, 0.18);
-      color: #cbd5e1;
+      background: rgba(15, 23, 42, 0.06);
+      color: #334155;
     }
 
     .badge {
@@ -191,8 +219,8 @@ export class C2paProvenanceGraph extends LitElement {
 
     .dot { width: 5px; height: 5px; border-radius: 50%; }
 
-    .rel { margin: 4px 0 0; font-size: 10px; font-style: italic; color: #94a3b8; }
-    .children-hint { margin: 4px 0 0; font-size: 10px; font-weight: 600; color: #c4b5fd; }
+    .rel { margin: 4px 0 0; font-size: 10px; font-style: italic; color: #64748b; }
+    .children-hint { margin: 4px 0 0; font-size: 10px; font-weight: 600; color: #b45309; }
 
     .toggle {
       flex-shrink: 0;
@@ -205,10 +233,10 @@ export class C2paProvenanceGraph extends LitElement {
       border: 0;
       border-radius: 4px;
       background: transparent;
-      color: #94a3b8;
+      color: #64748b;
       cursor: pointer;
     }
-    .toggle:hover { background: rgba(148, 163, 184, 0.18); color: #e2e8f0; }
+    .toggle:hover { background: rgba(15, 23, 42, 0.06); color: #0f172a; }
     .toggle svg { width: 14px; height: 14px; transition: transform 120ms ease; }
     .toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 
@@ -224,31 +252,31 @@ export class C2paProvenanceGraph extends LitElement {
 
     .row { display: flex; flex-direction: column; }
     .row-k { font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; }
-    .row-v { font-size: 11px; color: #cbd5e1; overflow-wrap: anywhere; }
+    .row-v { font-size: 11px; color: #334155; overflow-wrap: anywhere; }
 
     .assertion-list { margin: 2px 0 0; padding-left: 12px; }
-    .assertion-list li { font-size: 11px; color: #cbd5e1; overflow-wrap: anywhere; }
+    .assertion-list li { font-size: 11px; color: #334155; overflow-wrap: anywhere; }
 
     .fields {
       margin: 3px 0 0;
       border: 1px solid rgba(148, 163, 184, 0.18);
       border-radius: 5px;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15, 23, 42, 0.04);
       padding: 4px 5px;
     }
     .field { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 1px 0; }
     .field dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; color: #64748b; overflow-wrap: anywhere; }
-    .field dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: #e2e8f0; text-align: right; overflow-wrap: anywhere; }
+    .field dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: #0f172a; text-align: right; overflow-wrap: anywhere; }
 
     .failures {
       border: 1px solid rgba(248, 113, 113, 0.4);
-      background: rgba(127, 29, 29, 0.28);
+      background: rgba(190, 18, 60, 0.07);
       border-radius: 5px;
       padding: 5px 6px;
     }
-    .failures-title { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #fca5a5; }
+    .failures-title { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #be123c; }
     .failures ul { margin: 3px 0 0; padding-left: 12px; }
-    .failures li { font-size: 10px; color: #fecaca; overflow-wrap: anywhere; }
+    .failures li { font-size: 10px; color: #9f1239; overflow-wrap: anywhere; }
     .failures code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
 
     .empty { font-size: 11px; font-style: italic; color: #64748b; }
@@ -269,14 +297,16 @@ export class C2paProvenanceGraph extends LitElement {
       gap: 4px;
       border: 1px solid rgba(148, 163, 184, 0.35);
       border-radius: 6px;
-      background: rgba(15, 23, 42, 0.85);
-      color: #cbd5e1;
+      background: rgba(250, 250, 247, 0.78);
+      backdrop-filter: blur(10px) saturate(115%);
+      -webkit-backdrop-filter: blur(10px) saturate(115%);
+      color: #334155;
       font-size: 10px;
       font-weight: 600;
       padding: 3px 6px;
       cursor: pointer;
     }
-    .controls button:hover { background: rgba(30, 41, 59, 0.95); color: #f1f5f9; }
+    .controls button:hover { background: rgba(255, 255, 255, 0.92); color: #0f172a; }
     .controls svg { width: 12px; height: 12px; }
 
     /* The legend sits BELOW the canvas, not floating inside it: an expanded
@@ -292,7 +322,7 @@ export class C2paProvenanceGraph extends LitElement {
     }
 
     .legend { display: flex; flex-wrap: wrap; gap: 8px; }
-    .legend span { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; color: #94a3b8; }
+    .legend span { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; color: #64748b; }
 
     .hint { font-size: 9px; color: #64748b; white-space: nowrap; }
 
@@ -437,7 +467,7 @@ export class C2paProvenanceGraph extends LitElement {
             <defs>
               <marker id="pg-arrow" viewBox="0 0 10 10" refX="9" refY="5"
                       markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"></path>
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"></path>
               </marker>
             </defs>
             ${view.edges.map((edge) => this.renderEdge(positions.get(edge.source), positions.get(edge.target), edge.label))}
@@ -493,10 +523,10 @@ export class C2paProvenanceGraph extends LitElement {
     const labelY = (y1 + y2) / 2 - 5
     return svg`
       <path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}"
-            stroke="#94a3b8" stroke-width="1.5" fill="none"
+            stroke="#cbd5e1" stroke-width="1.5" fill="none"
             stroke-linecap="round" marker-end="url(#pg-arrow)" opacity="0.85"></path>
       ${label !== ''
-        ? svg`<text x="${midX}" y="${labelY}" text-anchor="middle" font-size="10" fill="#94a3b8">${label}</text>`
+        ? svg`<text x="${midX}" y="${labelY}" text-anchor="middle" font-size="10" fill="#64748b">${label}</text>`
         : nothing}
     `
   }
