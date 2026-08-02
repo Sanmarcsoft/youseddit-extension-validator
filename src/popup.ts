@@ -8,6 +8,10 @@ import packageManifest from '../package.json'
 import { BUILD_INFO } from './build-info'
 import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, MSG_RESPONSE_C2PA_ENTRIES } from './constants.js'
 import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
+// Side-effect import: registers <c2pa-provenance-graph>. rollup's
+// moduleSideEffects predicate keeps src/ modules, so this survives the build
+// (see rollup.config.js — a bare import here was silently dropped before).
+import './provenanceDiagram.js'
 import { type ToggleSwitch } from './components/toggle.js'
 import { RELEASE_NOTES, DEMO_URL, type ReleaseEntry, type ReleaseFix } from './releaseNotes.js'
 
@@ -426,6 +430,8 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
           <dd>${r.manifestCount} · active: <b>${esc(r.activeManifest)}</b></dd>
           ${errorsSection}
         </dl>
+        <div class="ingredient-header">Provenance chain</div>
+        <div class="popup-provenance"></div>
         <div class="ingredient-header">Ingredients (${r.ingredients.length})</div>
         ${renderIngredientTree(r.ingredients)}
       </div>
@@ -443,6 +449,21 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
   const node = wrap.content.firstElementChild
   if (node == null) return
   validationEntries.appendChild(node)
+
+  // The graph is an object, so it cannot travel in the HTML string above; set
+  // it as a property once the element is in the document. No graph means the
+  // slot stays empty and the ingredient tree below carries the row, matching
+  // the overlay's fallback.
+  const provSlot = node.querySelector('.popup-provenance')
+  if (provSlot != null) {
+    if (r.provenanceGraph != null && r.provenanceGraph.nodes.length > 0) {
+      const diagram = document.createElement('c2pa-provenance-graph') as HTMLElement & { graph?: unknown }
+      diagram.graph = r.provenanceGraph
+      provSlot.appendChild(diagram)
+    } else {
+      provSlot.innerHTML = '<div class="ingredient-empty">No provenance graph available</div>'
+    }
+  }
   const btn = node.querySelector<HTMLButtonElement>('.v-summary')
   const panel = node.querySelector<HTMLElement>('.v-details')
   if (btn != null && panel != null) {

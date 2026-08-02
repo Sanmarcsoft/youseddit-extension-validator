@@ -334,11 +334,48 @@ export class C2paProvenanceGraph extends LitElement {
   connectedCallback (): void {
     super.connectedCallback()
     window.addEventListener('keydown', this.handleKey)
+    document.addEventListener('fullscreenchange', this.syncFullscreen)
   }
 
   disconnectedCallback (): void {
     window.removeEventListener('keydown', this.handleKey)
+    document.removeEventListener('fullscreenchange', this.syncFullscreen)
     super.disconnectedCallback()
+  }
+
+  /**
+   * Enter/leave real full screen.
+   *
+   * The CSS-only approach this replaces could not work from here. The overlay
+   * renders inside a 372px-wide extension iframe, and `position: fixed` /
+   * `100vh` resolve against the IFRAME's viewport, not the page's — so
+   * `.frame.fullscreen` faithfully filled a 372px box and the button looked
+   * dead. Only the Fullscreen API escapes the iframe, and only if the iframe
+   * carries `allow="fullscreen"` (set in overlay.ts).
+   *
+   * State is not flipped here. It is driven off `fullscreenchange` so the
+   * browser stays the source of truth: Esc, the window chrome, and OS-level
+   * exits all go through the same path as the button.
+   */
+  private readonly toggleFullscreen = (): void => {
+    const frame = this.shadowRoot?.querySelector('.frame') as HTMLElement | null
+    if (frame == null) return
+
+    if (document.fullscreenElement == null) {
+      frame.requestFullscreen?.().catch((error: unknown) => {
+        // Blocked (no allow attribute, or no user-activation). Fall back to the
+        // in-iframe expansion rather than leaving the button inert.
+        console.debug('provenance: fullscreen request rejected, expanding in place:', error)
+        this.fullscreen = true
+      })
+    } else {
+      void document.exitFullscreen?.()
+    }
+  }
+
+  /** Browser is the source of truth for full-screen state. */
+  private readonly syncFullscreen = (): void => {
+    this.fullscreen = document.fullscreenElement != null
   }
 
   /**
@@ -358,7 +395,9 @@ export class C2paProvenanceGraph extends LitElement {
 
   /** Esc leaves full screen — the same escape hatch the sites' canvas offers. */
   private readonly handleKey = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape' && this.fullscreen) {
+    // Real full screen exits on Esc natively and reports via fullscreenchange.
+    // This only covers the in-place fallback, where no browser state exists.
+    if (event.key === 'Escape' && this.fullscreen && document.fullscreenElement == null) {
       this.fullscreen = false
     }
   }
@@ -483,7 +522,7 @@ export class C2paProvenanceGraph extends LitElement {
             type="button"
             aria-pressed=${this.fullscreen ? 'true' : 'false'}
             title=${this.fullscreen ? 'Exit full screen (Esc)' : 'Full screen'}
-            @click=${() => { this.fullscreen = !this.fullscreen }}
+            @click=${this.toggleFullscreen}
           >${this.fullscreen ? 'Exit' : 'Full screen'}</button>
         </div>
 

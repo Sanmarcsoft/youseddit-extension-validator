@@ -4,6 +4,7 @@
  */
 
 import { type C2paError, type C2paResult } from './c2pa'
+import { type ProvenanceGraph } from './provenanceTypes.js'
 import { type MediaElement } from './content'
 import { CrIcon } from './icon'
 import { checkTrustListInclusion, loadTrustLists } from './trustlist'
@@ -305,6 +306,16 @@ export interface MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD {
   hasTSA: boolean
   validationErrors: string[]
   ingredients: IngredientSummary[]
+  /**
+   * The full provenance graph, so the popup can draw the same diagram the
+   * overlay draws. Previously the popup received only the flattened
+   * `ingredients` list, which is why the Validation tab could never show a
+   * diagram: the data simply never crossed the message boundary.
+   *
+   * Null when the graph could not be built — the popup falls back to the
+   * ingredient tree, exactly as the overlay falls back to its grid.
+   */
+  provenanceGraph: ProvenanceGraph | null
 }
 
 async function updateTrustLists (): Promise<void> {
@@ -406,7 +417,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           certSubject: signingCert?.subject?.CN ?? null,
           hasTSA: c2pa.tstTokens != null && c2pa.tstTokens.length > 0,
           validationErrors: c2pa.manifestStore.validationStatus ?? [],
-          ingredients
+          ingredients,
+          provenanceGraph: c2pa.provenanceGraph ?? null
         }
         void chrome.runtime.sendMessage({ action: MSG_RESPONSE_C2PA_ENTRIES, data: response })
       })

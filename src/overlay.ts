@@ -16,6 +16,15 @@ export class C2paOverlay /* extends HTMLElement */ {
     iframe.tabIndex = 0
     // #129: name the frame for assistive tech (was an anonymous "frame").
     iframe.title = 'Content Credentials verification'
+    // The provenance diagram's "Full screen" control needs to escape this
+    // iframe. Without the permission, `requestFullscreen()` inside the frame is
+    // rejected, and the CSS fallback (`position: fixed; height: 100vh`) resolves
+    // against THIS iframe's 372px viewport rather than the page's — the button
+    // appears to do nothing at all. Both spellings: `allow` is the current
+    // Permissions-Policy delegation, `allowFullscreen` the legacy attribute
+    // some engines still gate on.
+    iframe.allow = 'fullscreen'
+    iframe.allowFullscreen = true
     // rc11.2 / #70 — give the iframe real default dimensions + an opaque
     // background so it's actually a visible panel on first paint rather than
     // a 302×2 transparent slit hidden behind the page content. Width /
