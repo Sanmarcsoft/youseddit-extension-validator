@@ -134,7 +134,23 @@ export class C2paProvenanceGraph extends LitElement {
       cursor: default;
     }
 
+    /* An expanded node grows past its laid-out NODE_H, so it overlaps whatever
+     * the layout put below or beside it. z-index lifts it above the others, but
+     * the per-kind background set inline on .node is deliberately translucent,
+     * so the covered node used to show THROUGH the detail panel and the two
+     * layers of text were unreadable. ::before paints an opaque base inside the
+     * expanded node's own stacking context: behind the kind tint (so the tint
+     * still reads), in front of every other node (so nothing bleeds through). */
     .node.expanded { z-index: 5; }
+
+    .node.expanded::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      background: #0b1220;
+    }
     .node.active { box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.45), 0 6px 18px -8px rgba(2, 6, 23, 0.9); }
 
     .node-head { display: flex; align-items: flex-start; gap: 6px; }
