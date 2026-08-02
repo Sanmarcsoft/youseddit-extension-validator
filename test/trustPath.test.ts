@@ -35,14 +35,14 @@ describe('checkTrustListInclusion — verified path (#112)', () => {
       await certFromPem('intermediate_ca.crt'),
       await certFromPem('root_ca.crt')
     ]
-    const match = checkTrustListInclusion(chain, [await trustedditList()])
+    const match = await checkTrustListInclusion(chain, [await trustedditList()])
     expect(match).not.toBeNull()
     expect(match?.entity.name).toContain('Trusteddit')
   })
 
   it('trusts a genuine leaf even when the chain omits the root (external anchor)', async () => {
     const chain = [await certFromPem('signing.crt'), await certFromPem('intermediate_ca.crt')]
-    const match = checkTrustListInclusion(chain, [await trustedditList()])
+    const match = await checkTrustListInclusion(chain, [await trustedditList()])
     expect(match).not.toBeNull()
   })
 
@@ -60,7 +60,7 @@ describe('checkTrustListInclusion — verified path (#112)', () => {
 
     // The NEW code requires a verified path: the attacker leaf was not signed by
     // the pasted CA, so no trust is granted.
-    const match = checkTrustListInclusion(chain, [tl])
+    const match = await checkTrustListInclusion(chain, [tl])
     expect(match).toBeNull()
   })
 })

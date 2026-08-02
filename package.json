@@ -23,6 +23,7 @@
     "@fidm/asn1": "^1.0.4",
     "@fidm/x509": "^1.2.1",
     "@playwright/test": "^1.40.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@rollup/plugin-alias": "^5.1.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-json": "^6.1.0",
