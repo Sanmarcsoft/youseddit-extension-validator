@@ -313,6 +313,8 @@ export class C2paOverlay extends LitElement {
     const div: HTMLDivElement = additionalInfoEl as HTMLDivElement
     if (this.additionalInfoCollapsed) {
       C2paCollapsible.close()
+      // Clip again BEFORE animating shut, or the content spills during collapse.
+      div.style.overflow = 'hidden'
       div.style.maxHeight = div.scrollHeight + 'px'
       void div.offsetHeight
       div.style.maxHeight = '0'
@@ -324,6 +326,16 @@ export class C2paOverlay extends LitElement {
       div.style.maxHeight = height
       const onTransitionEnd = (): void => {
         div.style.maxHeight = 'none'
+        // `overflow: hidden` exists only to clip the slide-open animation. Left
+        // in place afterwards it silently clips anything the sections grow into
+        // AFTER this height was measured — and the height is measured while
+        // every collapsible is still shut. Opening "Provenance chain" then adds
+        // ~400px of diagram whose bottom edge, including the zoom/Fit/Full
+        // screen control row, lands outside the box: laid out, invisible, and
+        // not hit-testable, so clicking Full screen did nothing at all
+        // (elementFromPoint at the button returned the overlay host, #141).
+        // Once the animation is done there is nothing left to clip.
+        div.style.overflow = 'visible'
         div.removeEventListener('transitionend', onTransitionEnd)
       }
       div.addEventListener('transitionend', onTransitionEnd)
@@ -805,7 +817,11 @@ export class C2paCollapsible extends LitElement {
       transition: max-height 0.3s ease, padding 0.3s ease;
       padding: 0 0 0 14px;
     }
-    .collapsible-content.open { max-height: 400px; }
+    /* Was 400px, which cropped the diagram's control row (#141): the graph
+     * canvas alone is 360px and the section adds padding, so the zoom / Fit /
+     * Full screen row fell outside the cap. Overflow is only needed while the
+     * height animates. */
+    .collapsible-content.open { max-height: 900px; overflow: visible; }
     .icon {
       transition: transform 0.3s ease;
       width: 10px;

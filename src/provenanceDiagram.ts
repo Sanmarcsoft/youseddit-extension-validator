@@ -116,7 +116,25 @@ export class C2paProvenanceGraph extends LitElement {
       resize: vertical;
     }
 
-    .frame.fullscreen {
+    /* REAL full screen (Fullscreen API). The UA promotes the element to the top
+     * layer and sizes it to the screen itself, so we must NOT restate geometry
+     * here: `position: fixed; inset: 0; height: 100vh` resolves against the
+     * OVERLAY IFRAME's viewport (372px wide), which fought the UA sizing and
+     * left the toolbar positioned outside the visible area — the controls were
+     * present but unhittable once full screen (#141). Cosmetics only. */
+    .frame:fullscreen {
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      background: #fafaf7;
+      resize: none;
+    }
+
+    /* FALLBACK only — used when requestFullscreen is rejected (no permission
+     * delegation, no user activation). Here there is no UA sizing to defer to,
+     * so the geometry has to be stated, with the iframe-viewport caveat above
+     * accepted as the best available. */
+    .frame.fullscreen:not(:fullscreen) {
       position: fixed;
       inset: 0;
       z-index: 2147483647;
@@ -337,9 +355,36 @@ export class C2paProvenanceGraph extends LitElement {
     document.addEventListener('fullscreenchange', this.syncFullscreen)
   }
 
+  /**
+   * Refit whenever the canvas actually changes size.
+   *
+   * Entering real full screen settles asynchronously: `fullscreenchange` fires
+   * before the UA has resized the element, so the single rAF in `updated()`
+   * measured the OLD 300px box and left the graph at its small-canvas scale —
+   * "full screen doesn't fit". Observing the frame is the reliable trigger, and
+   * it covers the user dragging the frame's resize handle for free.
+   */
+  private frameObserver: ResizeObserver | null = null
+
+  protected firstUpdated (): void {
+    const frame = this.shadowRoot?.querySelector('.frame')
+    if (frame == null) return
+    let last = 0
+    this.frameObserver = new ResizeObserver((entries) => {
+      const w = Math.round(entries[0]?.contentRect.width ?? 0)
+      // Ignore sub-pixel churn; only refit on a real change of canvas size.
+      if (Math.abs(w - last) < 8) return
+      last = w
+      requestAnimationFrame(() => { this.fit() })
+    })
+    this.frameObserver.observe(frame)
+  }
+
   disconnectedCallback (): void {
     window.removeEventListener('keydown', this.handleKey)
     document.removeEventListener('fullscreenchange', this.syncFullscreen)
+    this.frameObserver?.disconnect()
+    this.frameObserver = null
     super.disconnectedCallback()
   }
 
@@ -442,9 +487,18 @@ export class C2paProvenanceGraph extends LitElement {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
-    // Only pan from the canvas background — never from a node card, or the
-    // expand buttons and the detail panel's own scrolling become unusable.
-    if ((event.target as HTMLElement)?.closest('.node') != null) return
+    // Only pan from the canvas BACKGROUND. Anything interactive must be left
+    // alone, because the line below calls setPointerCapture on the frame: that
+    // redirects the rest of the gesture to the frame, so pointerup lands on the
+    // frame rather than on whatever was pressed, and the browser then fires no
+    // `click` at all on that element.
+    //
+    // The guard used to name only `.node`, which silently killed every control
+    // in the toolbar — zoom out, Fit, zoom in and Full screen were all
+    // unclickable, and Full screen merely got reported first (#141). Dragging
+    // and wheel-zoom kept working, which is what made it read as "the button is
+    // broken" rather than "the toolbar never receives clicks".
+    if ((event.target as HTMLElement)?.closest('.node, .controls, button, a, input, select, textarea') != null) return
     this.dragOrigin = { x: event.clientX, y: event.clientY, panX: this.pan.x, panY: this.pan.y }
     ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
   }
