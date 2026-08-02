@@ -1,7 +1,23 @@
 # CHANGELOG
 
-## vNext (dev)
+## v1.1.0
 
+- Interactive C2PA provenance graph. Click a node to expand its detail, drag to
+  pan, scroll or +/- to zoom, Fit to frame, Full screen, Escape to exit. Shows
+  assertion and sensor-telemetry nodes, multi-generation ingredient chains, C2PA
+  relationship labels on edges, and per-node signer, claim-generator and
+  validation detail. Replaces the flat ingredient-only diagram. Built from the
+  raw c2pa-rs manifest store by a port of the hub's canonical `provenance-graph`
+  builder, so the extension, verifieddit.com and trusteddit.com agree on what a
+  file's metadata says. A malformed store degrades to the ingredient grid and can
+  never turn a valid asset into a failed validation.
+- C2PA engine upgraded to `@contentauth/c2pa-web` 0.11, `@contentauth/toolkit`
+  0.13.14 and `c2pa-wc` 0.14.17. The WASM worker now loads from a packaged file
+  via the native `workerSrc`, so no `blob:` CSP exception is needed in either
+  browser.
+- Right-click "Inspect Content Credentials" is recreated on every service-worker
+  startup, so it no longer disappears after the worker is torn down.
+- `bookmarks` permission removed entirely, along with the feature behind it.
 - Trust anchors resynced with the C2PA Conformance Program. The bundled default
   list had drifted to 18 of the 29 official anchors, so assets signed by Huawei,
   Huanyu, Verimago, Snowball, Encypher, TrustAsia and RealReel rendered as
@@ -12,13 +28,9 @@
 - Fixture-signing CA moved out of the production trust list into
   `dev-trust-list.json`, so `default-trust-list.json` is exactly the official list.
 
-- Interactive provenance diagram at parity with verifieddit.com and trusteddit.com:
-  assertion and sensor-telemetry nodes, multi-generation ingredient chains,
-  C2PA relationship labels on edges, per-node signer/claim-generator/validation
-  detail, pan, zoom, auto-fit and full screen. Replaces the flat ingredient-only
-  diagram. The graph is built from the raw c2pa-rs manifest store by a port of
-  the hub's canonical `provenance-graph` builder, so all three verifiers agree.
-- Added TSA trust list and timestamp validation
+- Trust-path regression tests now `await` `checkTrustListInclusion`. The function
+  became async and three call sites were never updated; the attacker-chain test
+  had been passing without ever running.
 
 ## v0.1.3
 

@@ -1,0 +1,1725 @@
+{
+  "version": "2.14",
+  "children": [
+    {
+      "type": "frame",
+      "id": "p5rwl",
+      "x": 0,
+      "y": 0,
+      "name": "component/Provenance Node",
+      "reusable": true,
+      "width": 214,
+      "fill": "#1D4ED829",
+      "cornerRadius": 9,
+      "stroke": "$state-active",
+      "strokeWidth": 1,
+      "strokeAlignment": "inner",
+      "layout": "vertical",
+      "gap": 4,
+      "padding": [
+        8,
+        9
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "rBq1u",
+          "name": "Head",
+          "width": "fill_container",
+          "gap": 6,
+          "children": [
+            {
+              "type": "frame",
+              "id": "TVZzU",
+              "name": "Main",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "abqSB",
+                  "name": "Title",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "final.jpg",
+                  "lineHeight": 1.25,
+                  "fontFamily": "$font-ui",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "nG09a",
+                  "name": "Chips",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "fLSFd",
+                      "name": "Format Chip",
+                      "fill": "#94A3B82E",
+                      "cornerRadius": 4,
+                      "padding": [
+                        1,
+                        5
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "s1gYm",
+                          "name": "Format Label",
+                          "fill": "$text-secondary",
+                          "content": "JPEG",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 9,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "t5tZdB",
+                      "name": "State Badge",
+                      "fill": "#3B82F647",
+                      "cornerRadius": 4,
+                      "gap": 4,
+                      "padding": [
+                        1,
+                        5
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "b0ezPC",
+                          "name": "State Dot",
+                          "fill": "$state-active",
+                          "width": 5,
+                          "height": 5
+                        },
+                        {
+                          "type": "text",
+                          "id": "CiaxG",
+                          "name": "State Label",
+                          "fill": "$state-active",
+                          "content": "Active",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "AjYGc",
+                  "name": "Relationship",
+                  "fill": "$text-muted",
+                  "content": "parentOf",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "fontStyle": "italic"
+                },
+                {
+                  "type": "text",
+                  "id": "TpILH",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Children Hint",
+                  "enabled": false,
+                  "fill": "$state-telemetry",
+                  "content": "2 sensors — click to reveal",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 10,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rDnS7",
+              "name": "Toggle",
+              "width": 20,
+              "height": 20,
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "ORQ9s",
+                  "name": "Chevron",
+                  "width": 14,
+                  "height": 14,
+                  "icon": "chevron-down",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "tH7fh",
+      "x": 0,
+      "y": 184,
+      "name": "Screen · Node states",
+      "clip": true,
+      "width": 1180,
+      "fill": "$surface-canvas",
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "URO8Q",
+          "name": "Header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "Be48d",
+              "name": "Eyebrow",
+              "fill": "$state-active",
+              "content": "VERIFIEDDIT EXTENSION · OVERLAY",
+              "fontFamily": "$font-mono",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "letterSpacing": 2
+            },
+            {
+              "type": "text",
+              "id": "V10S8k",
+              "name": "Title",
+              "fill": "$text-primary",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Provenance node — the six states",
+              "fontFamily": "$font-ui",
+              "fontSize": 26,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "C2FKb",
+              "name": "Sub",
+              "fill": "$text-secondary",
+              "textGrowth": "fixed-width",
+              "width": 820,
+              "content": "One card per graph node. Colour carries the C2PA verdict and is shared verbatim with verifieddit.com and trusteddit.com, so a chain reads the same in all three verifiers.",
+              "lineHeight": 1.5,
+              "fontFamily": "$font-ui",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "kBRg3",
+          "name": "State row",
+          "width": "fill_container",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "AFz3V",
+              "name": "Active column",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "v1sFF",
+                  "type": "ref",
+                  "ref": "p5rwl",
+                  "name": "Active node",
+                  "width": "fill_container",
+                  "fill": "#1D4ED829",
+                  "stroke": "$state-active",
+                  "descendants": {
+                    "abqSB": {
+                      "content": "final.jpg"
+                    },
+                    "s1gYm": {
+                      "content": "JPEG"
+                    },
+                    "t5tZdB": {
+                      "fill": "#3B82F647"
+                    },
+                    "b0ezPC": {
+                      "fill": "$state-active"
+                    },
+                    "CiaxG": {
+                      "content": "Active",
+                      "fill": "$state-active"
+                    },
+                    "AjYGc": {
+                      "content": "",
+                      "enabled": false
+                    },
+                    "TpILH": {
+                      "content": "",
+                      "enabled": false
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "H6yTB",
+                  "name": "Active caption",
+                  "fill": "$text-muted",
+                  "content": "Active",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "a9w3x",
+              "name": "Valid column",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "dCWfc",
+                  "type": "ref",
+                  "ref": "p5rwl",
+                  "name": "Valid node",
+                  "width": "fill_container",
+                  "fill": "#05966929",
+                  "stroke": "$state-valid",
+                  "descendants": {
+                    "abqSB": {
+                      "content": "edited.jpg"
+                    },
+                    "s1gYm": {
+                      "content": "JPEG"
+                    },
+                    "t5tZdB": {
+                      "fill": "#10B98142"
+                    },
+                    "b0ezPC": {
+                      "fill": "$state-valid"
+                    },
+                    "CiaxG": {
+                      "content": "Valid",
+                      "fill": "$state-valid"
+                    },
+                    "AjYGc": {
+                      "content": "parentOf",
+                      "enabled": true
+                    },
+                    "TpILH": {
+                      "content": "",
+                      "enabled": false
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "HsuXI",
+                  "name": "Valid caption",
+                  "fill": "$text-muted",
+                  "content": "Valid",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Emwvj",
+              "name": "Invalid column",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "sjWIf",
+                  "type": "ref",
+                  "ref": "p5rwl",
+                  "name": "Invalid node",
+                  "width": "fill_container",
+                  "fill": "#DC26262E",
+                  "stroke": "$state-invalid",
+                  "descendants": {
+                    "abqSB": {
+                      "content": "overlay.png"
+                    },
+                    "s1gYm": {
+                      "content": "PNG"
+                    },
+                    "t5tZdB": {
+                      "fill": "#EF44444D"
+                    },
+                    "b0ezPC": {
+                      "fill": "$state-invalid"
+                    },
+                    "CiaxG": {
+                      "content": "Invalid",
+                      "fill": "$state-invalid"
+                    },
+                    "AjYGc": {
+                      "content": "componentOf",
+                      "enabled": true
+                    },
+                    "TpILH": {
+                      "content": "",
+                      "enabled": false
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "enLxG",
+                  "name": "Invalid caption",
+                  "fill": "$text-muted",
+                  "content": "Invalid",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "D4wSmd",
+              "name": "Unsigned column",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "fHM9l",
+                  "type": "ref",
+                  "ref": "p5rwl",
+                  "name": "Unsigned node",
+                  "width": "fill_container",
+                  "fill": "#64748B29",
+                  "stroke": "$state-unsigned",
+                  "descendants": {
+                    "abqSB": {
+                      "content": "IMG_0001.dng"
+                    },
+                    "s1gYm": {
+                      "content": "X-ADOBE-DNG"
+                    },
+                    "t5tZdB": {
+                      "fill": "#94A3B83D"
+                    },
+                    "b0ezPC": {
+                      "fill": "$state-unsigned"
+                    },
+                    "CiaxG": {
+                      "content": "Unsigned",
+                      "fill": "$state-unsigned"
+                    },
+                    "AjYGc": {
+                      "content": "parentOf",
+                      "enabled": true
+                    },
+                    "TpILH": {
+                      "content": "",
+                      "enabled": false
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "xbSW8",
+                  "name": "Unsigned caption",
+                  "fill": "$text-muted",
+                  "content": "Unsigned",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "sZT86",
+              "name": "Assertion column",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "OCoqj",
+                  "type": "ref",
+                  "ref": "p5rwl",
+                  "name": "Assertion node",
+                  "width": "fill_container",
+                  "fill": "#4755692E",
+                  "stroke": "$state-assertion",
+                  "descendants": {
+                    "abqSB": {
+                      "content": "c2pa.actions.v2"
+                    },
+                    "s1gYm": {
+                      "content": "ASSERTION"
+                    },
+                    "t5tZdB": {
+                      "fill": "#94A3B838"
+                    },
+                    "b0ezPC": {
+                      "fill": "$state-assertion"
+                    },
+                    "CiaxG": {
+                      "content": "Assertion",
+                      "fill": "$state-assertion"
+                    },
+                    "AjYGc": {
+                      "content": "",
+                      "enabled": false
+                    },
+                    "TpILH": {
+                      "content": "",
+                      "enabled": false
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "F9Xi8O",
+                  "name": "Assertion caption",
+                  "fill": "$text-muted",
+                  "content": "Assertion",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "q8nfQ",
+              "name": "Telemetry column",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "EpOoj",
+                  "type": "ref",
+                  "ref": "p5rwl",
+                  "name": "Telemetry node",
+                  "width": "fill_container",
+                  "fill": "#6D28D92E",
+                  "stroke": "$state-telemetry",
+                  "descendants": {
+                    "abqSB": {
+                      "content": "com.phenom.sensor.telemetry"
+                    },
+                    "s1gYm": {
+                      "content": "TELEMETRY"
+                    },
+                    "t5tZdB": {
+                      "fill": "#8B5CF647"
+                    },
+                    "b0ezPC": {
+                      "fill": "$state-telemetry"
+                    },
+                    "CiaxG": {
+                      "content": "Telemetry",
+                      "fill": "$state-telemetry"
+                    },
+                    "AjYGc": {
+                      "content": "",
+                      "enabled": false
+                    },
+                    "TpILH": {
+                      "content": "2 sensors — click to reveal",
+                      "enabled": true
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "YACh4",
+                  "name": "Telemetry caption",
+                  "fill": "$text-muted",
+                  "content": "Telemetry",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "PPKdw",
+      "x": 0,
+      "y": 608,
+      "name": "Screen · Overlay panel",
+      "clip": true,
+      "width": 1180,
+      "fill": "$surface-canvas",
+      "gap": 48,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "XqMhG",
+          "name": "Notes",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 14,
+          "children": [
+            {
+              "type": "text",
+              "id": "l51IW",
+              "name": "Eyebrow",
+              "fill": "$state-active",
+              "content": "VERIFIEDDIT EXTENSION · OVERLAY",
+              "fontFamily": "$font-mono",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "letterSpacing": 2
+            },
+            {
+              "type": "text",
+              "id": "ql3DI",
+              "name": "Title",
+              "fill": "$text-primary",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Provenance chain in the overlay",
+              "fontFamily": "$font-ui",
+              "fontSize": 26,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "OyyQk",
+              "name": "Body",
+              "fill": "$text-secondary",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The overlay's Ingredients grid is replaced by an interactive chain. Nodes carry the manifest lineage; assertions branch off the manifest that carries them so the lineage stays readable; a telemetry assertion splits again into one node per sensor, hidden until opened.",
+              "lineHeight": 1.55,
+              "fontFamily": "$font-ui",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "Op6cO",
+              "name": "AUTO-FIT",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ewCnb",
+                  "name": "k",
+                  "fill": "$state-telemetry",
+                  "content": "AUTO-FIT",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                },
+                {
+                  "type": "text",
+                  "id": "xF7bP",
+                  "name": "v",
+                  "fill": "$text-secondary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "On mount the chain is scaled and centred so every node is on screen. Expanding a node deliberately does not refit — the reader is mid-sentence.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-ui",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dFZHt",
+              "name": "EDGE LABELS",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "uN9wh",
+                  "name": "k",
+                  "fill": "$state-telemetry",
+                  "content": "EDGE LABELS",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                },
+                {
+                  "type": "text",
+                  "id": "wN3yP",
+                  "name": "v",
+                  "fill": "$text-secondary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "parent / added / input carry the C2PA relationship. asserts and telemetry mark assertion branches.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-ui",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wAml5",
+              "name": "PROGRESSIVE DISCLOSURE",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "rJ3Ah",
+                  "name": "k",
+                  "fill": "$state-telemetry",
+                  "content": "PROGRESSIVE DISCLOSURE",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1
+                },
+                {
+                  "type": "text",
+                  "id": "wfH8I",
+                  "name": "v",
+                  "fill": "$text-secondary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Signer, algorithm, claim generator, assertion payload and validation failures live behind the chevron.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-ui",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Yznqw",
+          "name": "Overlay card",
+          "clip": true,
+          "width": 560,
+          "fill": "$surface-card",
+          "cornerRadius": 14,
+          "stroke": "$hairline",
+          "strokeWidth": 1,
+          "strokeAlignment": "inner",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Eor1k",
+              "name": "Card head",
+              "width": "fill_container",
+              "fill": "#0F172A99",
+              "gap": 10,
+              "padding": [
+                14,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "cYa59",
+                  "name": "Seal",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "badge-check",
+                  "library": "lucide",
+                  "fill": "$state-valid"
+                },
+                {
+                  "type": "frame",
+                  "id": "w9reBS",
+                  "name": "Head text",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Aoowc",
+                      "name": "Verdict",
+                      "fill": "$text-primary",
+                      "content": "Trusted provenance",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "D9nG0m",
+                      "name": "Signer",
+                      "fill": "$text-muted",
+                      "content": "Trusteddit-Journalist-Issuer-CA",
+                      "fontFamily": "$font-mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "bGT4z",
+                  "name": "Close",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W7Y4O0",
+              "name": "Section head",
+              "width": "fill_container",
+              "fill": "#0F172A66",
+              "gap": 8,
+              "padding": [
+                10,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "cV7Mh",
+                  "name": "Caret",
+                  "width": 14,
+                  "height": 14,
+                  "icon": "chevron-down",
+                  "library": "lucide",
+                  "fill": "$text-secondary"
+                },
+                {
+                  "type": "text",
+                  "id": "DYvd9",
+                  "name": "Label",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Provenance chain",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "D1COyN",
+                  "name": "Count",
+                  "fill": "$text-muted",
+                  "content": "8 nodes",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rV44c",
+              "name": "Section body",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 5,
+              "padding": [
+                12,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "tjImd",
+                  "name": "Graph canvas",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 300,
+                  "fill": "$surface-inset",
+                  "cornerRadius": 10,
+                  "stroke": "$hairline",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "path",
+                      "id": "osSMW",
+                      "x": 0,
+                      "y": 0,
+                      "name": "Edges",
+                      "geometry": "M122 92c9 0 9 50 18 50m112 0c9 0 9-30 18-30m-148 82c74 0 74-82 148-82m-18 36c9 0 9 54 18 54m112-90c9 0 9-60 18-60m-18 60c9 0 9 20 18 20m-18-14c9 0 9 94 18 94",
+                      "viewBox": [
+                        0,
+                        0,
+                        528,
+                        300
+                      ],
+                      "fill": "#00000000",
+                      "width": 528,
+                      "height": 300,
+                      "stroke": "#94A3B8",
+                      "strokeWidth": 1.2,
+                      "strokeLinecap": "round"
+                    },
+                    {
+                      "id": "J5sGS",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n IMG_0001.dng",
+                      "x": 10,
+                      "y": 70,
+                      "fill": "#64748B29",
+                      "stroke": "$state-unsigned",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "IMG_0001.dng"
+                        },
+                        "X5gVh": {
+                          "content": "DNG"
+                        },
+                        "b0dFdN": {
+                          "fill": "#94A3B83D"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-unsigned"
+                        },
+                        "D573NL": {
+                          "content": "Unsigned",
+                          "fill": "$state-unsigned"
+                        },
+                        "YXc2h": {
+                          "content": "parentOf",
+                          "enabled": true
+                        },
+                        "NrEk8": {
+                          "content": "",
+                          "enabled": false
+                        }
+                      }
+                    },
+                    {
+                      "id": "fPrKC",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n overlay.png",
+                      "x": 10,
+                      "y": 170,
+                      "fill": "#DC26262E",
+                      "stroke": "$state-invalid",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "overlay.png"
+                        },
+                        "X5gVh": {
+                          "content": "PNG"
+                        },
+                        "b0dFdN": {
+                          "fill": "#EF44444D"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-invalid"
+                        },
+                        "D573NL": {
+                          "content": "Invalid",
+                          "fill": "$state-invalid"
+                        },
+                        "YXc2h": {
+                          "content": "componentOf",
+                          "enabled": true
+                        },
+                        "NrEk8": {
+                          "content": "",
+                          "enabled": false
+                        }
+                      }
+                    },
+                    {
+                      "id": "uGZzg",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n edited.jpg",
+                      "x": 140,
+                      "y": 120,
+                      "fill": "#05966929",
+                      "stroke": "$state-valid",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "edited.jpg"
+                        },
+                        "X5gVh": {
+                          "content": "JPEG"
+                        },
+                        "b0dFdN": {
+                          "fill": "#10B98142"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-valid"
+                        },
+                        "D573NL": {
+                          "content": "Valid",
+                          "fill": "$state-valid"
+                        },
+                        "YXc2h": {
+                          "content": "parentOf",
+                          "enabled": true
+                        },
+                        "NrEk8": {
+                          "content": "",
+                          "enabled": false
+                        }
+                      }
+                    },
+                    {
+                      "id": "sp2QM",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n final.jpg",
+                      "x": 270,
+                      "y": 90,
+                      "fill": "#1D4ED829",
+                      "stroke": "$state-active",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "final.jpg"
+                        },
+                        "X5gVh": {
+                          "content": "JPEG"
+                        },
+                        "b0dFdN": {
+                          "fill": "#3B82F647"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-active"
+                        },
+                        "D573NL": {
+                          "content": "Active",
+                          "fill": "$state-active"
+                        },
+                        "YXc2h": {
+                          "content": "",
+                          "enabled": false
+                        },
+                        "NrEk8": {
+                          "content": "",
+                          "enabled": false
+                        }
+                      }
+                    },
+                    {
+                      "id": "a7DrhU",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n c2pa.actions",
+                      "x": 270,
+                      "y": 180,
+                      "fill": "#4755692E",
+                      "stroke": "$state-assertion",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "c2pa.actions"
+                        },
+                        "X5gVh": {
+                          "content": "ASSERTION"
+                        },
+                        "b0dFdN": {
+                          "fill": "#94A3B838"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-assertion"
+                        },
+                        "D573NL": {
+                          "content": "Assertion",
+                          "fill": "$state-assertion"
+                        },
+                        "YXc2h": {
+                          "content": "",
+                          "enabled": false
+                        },
+                        "NrEk8": {
+                          "content": "",
+                          "enabled": false
+                        }
+                      }
+                    },
+                    {
+                      "id": "Hp7fg",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n c2pa.actions.v2",
+                      "x": 400,
+                      "y": 30,
+                      "fill": "#4755692E",
+                      "stroke": "$state-assertion",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "c2pa.actions.v2"
+                        },
+                        "X5gVh": {
+                          "content": "ASSERTION"
+                        },
+                        "b0dFdN": {
+                          "fill": "#94A3B838"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-assertion"
+                        },
+                        "D573NL": {
+                          "content": "Assertion",
+                          "fill": "$state-assertion"
+                        },
+                        "YXc2h": {
+                          "content": "",
+                          "enabled": false
+                        },
+                        "NrEk8": {
+                          "content": "",
+                          "enabled": false
+                        }
+                      }
+                    },
+                    {
+                      "id": "o0x7oK",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n CreativeWork",
+                      "x": 400,
+                      "y": 110,
+                      "fill": "#4755692E",
+                      "stroke": "$state-assertion",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "stds.schema-org.CreativeWork"
+                        },
+                        "X5gVh": {
+                          "content": "ASSERTION"
+                        },
+                        "b0dFdN": {
+                          "fill": "#94A3B838"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-assertion"
+                        },
+                        "D573NL": {
+                          "content": "Assertion",
+                          "fill": "$state-assertion"
+                        },
+                        "YXc2h": {
+                          "content": "",
+                          "enabled": false
+                        },
+                        "NrEk8": {
+                          "content": "",
+                          "enabled": false
+                        }
+                      }
+                    },
+                    {
+                      "id": "KY4HU",
+                      "type": "ref",
+                      "ref": "J9IFZe",
+                      "name": "n telemetry",
+                      "x": 400,
+                      "y": 190,
+                      "fill": "#6D28D92E",
+                      "stroke": "$state-telemetry",
+                      "descendants": {
+                        "Q2lPud": {
+                          "content": "com.phenom.sensor.telemetry"
+                        },
+                        "X5gVh": {
+                          "content": "TELEMETRY"
+                        },
+                        "b0dFdN": {
+                          "fill": "#8B5CF647"
+                        },
+                        "LfGKK": {
+                          "fill": "$state-telemetry"
+                        },
+                        "D573NL": {
+                          "content": "Telemetry",
+                          "fill": "$state-telemetry"
+                        },
+                        "YXc2h": {
+                          "content": "",
+                          "enabled": false
+                        },
+                        "NrEk8": {
+                          "content": "2 sensors",
+                          "enabled": true
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "txgp6",
+                      "x": 352,
+                      "y": 10,
+                      "name": "Controls",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "B5r1IJ",
+                          "name": "Zoom out",
+                          "fill": "#0F172AD9",
+                          "cornerRadius": 6,
+                          "stroke": "$hairline",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            3,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "c8q76",
+                              "name": "Label",
+                              "fill": "$text-secondary",
+                              "content": "−",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "K04seh",
+                          "name": "Fit",
+                          "fill": "#0F172AD9",
+                          "cornerRadius": 6,
+                          "stroke": "$hairline",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            3,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "JJBFk",
+                              "name": "Label",
+                              "fill": "$text-secondary",
+                              "content": "Fit",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "LV0Mi",
+                          "name": "Zoom in",
+                          "fill": "#0F172AD9",
+                          "cornerRadius": 6,
+                          "stroke": "$hairline",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            3,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "qH8jV",
+                              "name": "Label",
+                              "fill": "$text-secondary",
+                              "content": "+",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "nWnRu",
+                          "name": "Full screen",
+                          "fill": "#0F172AD9",
+                          "cornerRadius": 6,
+                          "stroke": "$hairline",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            3,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hDajp",
+                              "name": "Label",
+                              "fill": "$text-secondary",
+                              "content": "Full screen",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "s05mh6",
+                  "name": "Footer",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Xvw9B",
+                      "name": "Legend",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "CGDn3",
+                          "name": "Active",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "Irb5V",
+                              "name": "Dot",
+                              "fill": "$state-active",
+                              "width": 5,
+                              "height": 5
+                            },
+                            {
+                              "type": "text",
+                              "id": "WazNJ",
+                              "name": "Label",
+                              "fill": "$text-muted",
+                              "content": "Active",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zt6DK",
+                          "name": "Valid",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "Vp7dS",
+                              "name": "Dot",
+                              "fill": "$state-valid",
+                              "width": 5,
+                              "height": 5
+                            },
+                            {
+                              "type": "text",
+                              "id": "hgwet",
+                              "name": "Label",
+                              "fill": "$text-muted",
+                              "content": "Valid",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "sNQh7",
+                          "name": "Invalid",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "LeXxm",
+                              "name": "Dot",
+                              "fill": "$state-invalid",
+                              "width": 5,
+                              "height": 5
+                            },
+                            {
+                              "type": "text",
+                              "id": "vxtnx",
+                              "name": "Label",
+                              "fill": "$text-muted",
+                              "content": "Invalid",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ueVPn",
+                          "name": "Unsigned",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "g88JPC",
+                              "name": "Dot",
+                              "fill": "$state-unsigned",
+                              "width": 5,
+                              "height": 5
+                            },
+                            {
+                              "type": "text",
+                              "id": "qvjEj",
+                              "name": "Label",
+                              "fill": "$text-muted",
+                              "content": "Unsigned",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "CjhrA",
+                          "name": "Assertion",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "hJTe1",
+                              "name": "Dot",
+                              "fill": "$state-assertion",
+                              "width": 5,
+                              "height": 5
+                            },
+                            {
+                              "type": "text",
+                              "id": "fSxWc",
+                              "name": "Label",
+                              "fill": "$text-muted",
+                              "content": "Assertion",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fySQP",
+                          "name": "Telemetry",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "nTkAA",
+                              "name": "Dot",
+                              "fill": "$state-telemetry",
+                              "width": 5,
+                              "height": 5
+                            },
+                            {
+                              "type": "text",
+                              "id": "BwnrE",
+                              "name": "Label",
+                              "fill": "$text-muted",
+                              "content": "Telemetry",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 9,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "yqgrW",
+                      "name": "Hint",
+                      "fill": "$text-muted",
+                      "content": "drag to pan · scroll to zoom",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "J9IFZe",
+      "x": 340,
+      "y": 0,
+      "name": "component/Provenance Node · fitted",
+      "reusable": true,
+      "width": 112,
+      "fill": "#1D4ED829",
+      "cornerRadius": 6,
+      "stroke": "$state-active",
+      "strokeWidth": 1,
+      "strokeAlignment": "inner",
+      "layout": "vertical",
+      "gap": 3,
+      "padding": 6,
+      "children": [
+        {
+          "type": "frame",
+          "id": "D8sIk",
+          "name": "Head",
+          "width": "fill_container",
+          "gap": 4,
+          "children": [
+            {
+              "type": "frame",
+              "id": "FwFmr",
+              "name": "Main",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Q2lPud",
+                  "name": "Title",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "final.jpg",
+                  "lineHeight": 1.25,
+                  "fontFamily": "$font-ui",
+                  "fontSize": 8,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "mHrvT",
+                  "name": "Chips",
+                  "gap": 3,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "xmZ5c",
+                      "name": "Format Chip",
+                      "fill": "#94A3B82E",
+                      "cornerRadius": 3,
+                      "padding": [
+                        1,
+                        3
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "X5gVh",
+                          "name": "Format Label",
+                          "fill": "$text-secondary",
+                          "content": "JPEG",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 6,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "b0dFdN",
+                      "name": "State Badge",
+                      "fill": "#3B82F647",
+                      "cornerRadius": 3,
+                      "gap": 3,
+                      "padding": [
+                        1,
+                        3
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "LfGKK",
+                          "name": "State Dot",
+                          "fill": "$state-active",
+                          "width": 3,
+                          "height": 3
+                        },
+                        {
+                          "type": "text",
+                          "id": "D573NL",
+                          "name": "State Label",
+                          "fill": "$state-active",
+                          "content": "Active",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 6,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "YXc2h",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Relationship",
+                  "enabled": false,
+                  "fill": "$text-muted",
+                  "content": "parentOf",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 7,
+                  "fontWeight": "normal",
+                  "fontStyle": "italic"
+                },
+                {
+                  "type": "text",
+                  "id": "NrEk8",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Children Hint",
+                  "enabled": false,
+                  "fill": "$state-telemetry",
+                  "content": "2 sensors",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 7,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "icon",
+              "id": "L2JU0e",
+              "name": "Chevron",
+              "width": 9,
+              "height": 9,
+              "icon": "chevron-down",
+              "library": "lucide",
+              "fill": "$text-muted"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "surface-canvas": {
+      "type": "color",
+      "value": "#020617"
+    },
+    "surface-card": {
+      "type": "color",
+      "value": "#0B1220"
+    },
+    "surface-inset": {
+      "type": "color",
+      "value": "#0F172A"
+    },
+    "hairline": {
+      "type": "color",
+      "value": "#334155"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#F1F5F9"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#CBD5E1"
+    },
+    "text-muted": {
+      "type": "color",
+      "value": "#64748B"
+    },
+    "state-active": {
+      "type": "color",
+      "value": "#60A5FA"
+    },
+    "state-valid": {
+      "type": "color",
+      "value": "#34D399"
+    },
+    "state-invalid": {
+      "type": "color",
+      "value": "#F87171"
+    },
+    "state-unsigned": {
+      "type": "color",
+      "value": "#94A3B8"
+    },
+    "state-assertion": {
+      "type": "color",
+      "value": "#CBD5E1"
+    },
+    "state-telemetry": {
+      "type": "color",
+      "value": "#A78BFA"
+    },
+    "font-ui": {
+      "type": "string",
+      "value": "Inter"
+    },
+    "font-mono": {
+      "type": "string",
+      "value": "JetBrains Mono"
+    }
+  },
+  "fileToken": "81e1b002-70ba-45c9-a730-798ef21b6cc1"
+}
