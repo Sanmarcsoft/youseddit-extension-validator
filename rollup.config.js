@@ -142,11 +142,30 @@ const onwarn = (warning, warn) => {
 }
 
 /*
+  Tree-shaking policy.
+
+  `moduleSideEffects: []` declares that NO module has side effects, so rollup
+  drops every bare `import './x'`. Our Lit components register themselves with
+  `customElements.define` at module scope, and that registration IS the side
+  effect. Drop the module and the custom tag is never defined: it still parses,
+  still accepts JS properties, and renders nothing at all — no shadow root, no
+  error, no fallback. That is exactly how <c2pa-provenance-graph> shipped inert
+  (#140): webComponents.js kept the template `<c2pa-provenance-graph .graph=…>`
+  while every byte of provenanceDiagram.ts was shaken out of the bundle.
+
+  Components declared inside an entry module were never affected, which is why
+  this only bit the one component extracted to its own file.
+
+  Keep side effects for our own sources; node_modules stay aggressively shaken.
+*/
+const treeshake = { moduleSideEffects: (id) => /[\\/]src[\\/]/.test(id) }
+
+/*
   background.js (Chrome v3)
 */
 const backgroundC = {
   input: ['src/background.ts', 'src/popup.ts', 'src/options.ts', 'src/c2pa.ts', 'src/overlayFrame.ts', 'src/webComponents.ts', 'src/components/toggle.ts'],
-  treeshake: { moduleSideEffects: [] },
+  treeshake,
   output: {
     dir: 'dist/chrome',
     format: 'esm',
@@ -175,7 +194,7 @@ const backgroundC = {
 */
 const backgroundFF = {
   input: ['src/background.ts'],
-  treeshake: { moduleSideEffects: [] },
+  treeshake,
   output: {
     dir: 'dist/firefox',
     format: 'esm',
@@ -198,7 +217,7 @@ const backgroundFF = {
 */
 const content = {
   input: 'src/content.ts',
-  treeshake: { moduleSideEffects: [] },
+  treeshake,
   output: {
     file: 'dist/chrome/content.js',
     format: 'iife', // always iife as this code is injected into the tab and not imported
@@ -214,7 +233,7 @@ const content = {
 */
 const inject = {
   input: 'src/inject.ts',
-  treeshake: { moduleSideEffects: [] },
+  treeshake,
   output: {
     file: 'dist/chrome/inject.js',
     name: 'inject',
