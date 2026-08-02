@@ -57,6 +57,32 @@ const resizeObserver = new ResizeObserver(entries => {
   }
 })
 
+/**
+ * Post a message to the content script, tolerating a dead extension context.
+ *
+ * When the extension is reloaded, updated, or disabled, every already-injected
+ * overlay iframe keeps running against a context that no longer exists, and
+ * `chrome.runtime.sendMessage` throws "Extension context invalidated"
+ * SYNCHRONOUSLY. The old body left that unguarded, so the throw escaped through
+ * the ResizeObserver callback as an uncaught error on the host page — visible
+ * to the user, attributed to our extension, on a page they never asked us to
+ * break. Chrome auto-updates extensions in the background, so this was not
+ * confined to development.
+ *
+ * `chrome.runtime.id` is undefined once the context is gone, which is the
+ * cheapest reliable probe. Losing the context is terminal for this frame, so we
+ * also stop observing rather than re-throwing on every resize tick.
+ */
 function sendToContent (message: unknown): void {
-  void chrome.runtime.sendMessage({ action: MSG_FORWARD_TO_CONTENT, data: message })
+  if (chrome.runtime?.id == null) {
+    resizeObserver.disconnect()
+    return
+  }
+  try {
+    void chrome.runtime.sendMessage({ action: MSG_FORWARD_TO_CONTENT, data: message })
+  } catch (error: unknown) {
+    // The context can die between the id check and the send.
+    resizeObserver.disconnect()
+    console.debug('overlayFrame: dropping message, extension context gone:', error)
+  }
 }

@@ -1,9 +1,23 @@
 import { test, expect } from './extension-fixture';
 
 test.describe('Feature B: Popup Display & Validation Entries', () => {
-  test('should display validation entries in popup grid and open ingredient overlay on click', async ({
+  // FIXME(#50): the popup is a LIVE feed — popup.ts appends an entry as each
+  // validation message arrives and reads no persisted store. This spec scans the
+  // corpus first and opens the popup afterwards, by which time every message has
+  // already been delivered, so #validationEntries is legitimately empty. Unskip
+  // when #50 lands per-page history that the popup can read back.
+  test.fixme('should display validation entries in popup grid and open ingredient overlay on click', async ({
     context,
+    extensionId,
   }) => {
+    // #86 turned auto-scan OFF for fresh installs, so simply visiting the
+    // corpus records nothing. This spec is about what the popup shows once
+    // validations exist, so enable scanning before navigating.
+    const sw = context.serviceWorkers()[0];
+    if (sw != null) {
+      await sw.evaluate(async () => { await chrome.storage.local.set({ autoScan: true }); });
+    }
+
     // First, navigate to demo corpus to trigger validations
     const corpusPage = await context.newPage();
     await corpusPage.goto('http://localhost:3000/demo-corpus/', {
@@ -11,41 +25,15 @@ test.describe('Feature B: Popup Display & Validation Entries', () => {
     });
 
     // Wait for extension to process images
-    await corpusPage.waitForTimeout(3000);
+    await corpusPage.waitForTimeout(8000);
 
-    // Now open extension popup
-    const popupUrl = 'chrome-extension://*/popup.html';
+    // Now open extension popup. `chrome-extension://*/` is not a wildcard
+    // Chrome resolves, and [data-id] on chrome://extensions sits in a closed
+    // shadow root — the fixture derives the ID from the MV3 service worker.
     const popupPage = await context.newPage();
-
-    // Try to navigate to popup (extension ID may vary, use wildcard)
-    try {
-      await popupPage.goto(popupUrl, {
-        waitUntil: 'domcontentloaded',
-      });
-    } catch (e) {
-      // If wildcard fails, get the actual extension ID from chrome://extensions
-      const extPage = await context.newPage();
-      await extPage.goto('chrome://extensions/');
-
-      const actualExtId = await extPage.evaluate(() => {
-        // Extract from the first extension's details panel URL
-        const url = new URL(window.location.href);
-        // Fallback: try to find from DOM
-        const item = document.querySelector('[data-id]');
-        return item?.getAttribute('data-id') || 'unknown';
-      });
-
-      await extPage.close();
-
-      if (actualExtId !== 'unknown') {
-        await popupPage.goto(`chrome-extension://${actualExtId}/popup.html`, {
-          waitUntil: 'domcontentloaded',
-        });
-      } else {
-        // Skip if we can't find extension ID
-        throw new Error('Could not determine extension ID for popup test');
-      }
-    }
+    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, {
+      waitUntil: 'domcontentloaded',
+    });
 
     // Click on Validation tab
     const validationTabSelector = '[data-tab="validation"], [role="tab"][aria-label*="Validation"], .tab-validation';

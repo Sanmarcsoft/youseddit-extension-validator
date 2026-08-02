@@ -136,14 +136,24 @@ async function handleValidationResult (mediaElement: MediaElement, c2paResult: C
   }
 
   if (c2paResult instanceof Error || c2paResult.manifestStore == null) {
-    const name = (c2paResult as C2paError).name
+    const failure = c2paResult as C2paError
+    const name = failure.name
+    const url = failure?.url ?? mediaRecord.src
+
+    // "We looked and found nothing" and "we could not look" are different
+    // claims, and only the first one is a statement about the file. Reporting
+    // a fetch failure or an uninitialised engine as "this file has no C2PA
+    // manifest" tells the user a signed asset is unsigned — the worst verdict
+    // a verifier can get wrong. Both branches previously fell through to the
+    // same 'no-credentials' badge.
     if (name === 'No Manifest') {
+      // Create (or update) an icon in the 'no-credentials' state so the
+      // user gets clear feedback. Click handler opens a minimal panel —
+      // no API call, just explanatory text (respects #83 security baseline).
+      ensureNoCredentialsIcon(mediaRecord, url)
     } else {
+      ensureVerificationFailedIcon(mediaRecord, url, failure.message ?? 'unknown error')
     }
-    // Create (or update) an icon in the 'no-credentials' state so the
-    // user gets clear feedback. Click handler opens a minimal panel —
-    // no API call, just explanatory text (respects #83 security baseline).
-    ensureNoCredentialsIcon(mediaRecord, (c2paResult as C2paError)?.url ?? mediaRecord.src)
     return
   }
 
@@ -165,6 +175,26 @@ function ensureNoCredentialsIcon (mediaRecord: MediaRecord, url: string): void {
     mr.icon.onClick = async () => {
       const note = `No embedded content credentials were found for this image. ` +
         `The file has no C2PA manifest, so nothing cryptographic can be verified locally.`
+      showNoCredentialsToast(note, url)
+    }
+  }
+}
+
+function ensureVerificationFailedIcon (mediaRecord: MediaRecord, url: string, detail: string): void {
+  const note = `Verification could not be completed for this image, so its ` +
+    `Content Credentials are unknown. This is NOT a finding that the file is ` +
+    `unsigned — the check itself failed. Details: ${detail}`
+
+  if (mediaRecord.icon != null) {
+    mediaRecord.icon.status = 'error'
+    mediaRecord.icon.setMetadataLink(url)
+    mediaRecord.icon.show()
+    return
+  }
+  mediaRecord.onReady = (mr: MediaRecord): void => {
+    mr.icon = new CrIcon(mr.element, 'error')
+    mr.icon.setMetadataLink(url)
+    mr.icon.onClick = async () => {
       showNoCredentialsToast(note, url)
     }
   }

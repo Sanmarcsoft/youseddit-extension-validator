@@ -22,55 +22,28 @@ export const test = base.extend<ExtensionTestContext>({
       ignoreHTTPSErrors: true,
     });
 
-    // Get extension ID by naviging to extension URL
-    const page = await context.newPage();
-    await page.goto('chrome://extensions/');
-
-    // Extract extension ID from DOM or use a known pattern
-    // The extension ID will be visible in the title or URL after load
-    let extensionId = '';
-
-    try {
-      // Wait for the extension to load and try common patterns
-      await page.waitForTimeout(2000);
-
-      // Try to get extension details via chrome.management API
-      const extensions = await page.evaluate(() => {
-        return new Promise<string>((resolve) => {
-          if (typeof (chrome as any) !== 'undefined' && (chrome as any).runtime) {
-            (chrome as any).runtime.sendMessage(
-              { type: 'GET_EXTENSION_ID' },
-              (response: any) => {
-                if (response?.extensionId) {
-                  resolve(response.extensionId);
-                } else {
-                  resolve('');
-                }
-              }
-            );
-          } else {
-            resolve('');
-          }
-        });
-      });
-
-      if (extensions) {
-        extensionId = extensions;
-      }
-    } catch (e) {
-      // Extension ID discovery failed, but we can still use empty for relative URLs
-      console.warn('Could not auto-detect extension ID, will use chrome-extension:// URLs with wildcards');
-    }
-
-    await page.close();
-
     await use(context);
     await context.close();
   },
 
+  // Under MV3 the extension's identity is the host of its service-worker URL
+  // (chrome-extension://<id>/background.js). Read it off the worker.
+  //
+  // The previous implementation opened chrome://extensions/ and called
+  // `chrome.runtime.sendMessage` from the page world, where `chrome.runtime` is
+  // not exposed to page scripts — so it always threw, the catch swallowed it,
+  // and the fixture then handed every spec the literal string 'unknown'. That
+  // is why b-popup-display and d-auth failed with "Could not determine
+  // extension ID": a harness defect, not a product defect.
   extensionId: async ({ context }, use) => {
-    // Default to a discoverable ID or pattern
-    const extensionId = 'unknown';
+    let [worker] = context.serviceWorkers();
+    if (!worker) {
+      worker = await context.waitForEvent('serviceworker', { timeout: 30_000 });
+    }
+    const extensionId = new URL(worker.url()).host;
+    if (!extensionId) {
+      throw new Error(`Could not derive extension ID from worker URL: ${worker.url()}`);
+    }
     await use(extensionId);
   },
 });
