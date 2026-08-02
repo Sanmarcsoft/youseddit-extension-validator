@@ -11,10 +11,10 @@
     "build": "cross-env NODE_ENV=production rollup -c",
     "build:debug": "cross-env NODE_ENV=development rollup -c",
     "build:dev": "cross-env NODE_ENV=development rollup -c --watch",
-    "serve:fixtures": "npx http-server test/e2e/fixtures -p 3000 -c-1",
+    "serve:fixtures": "bunx http-server test/fixtures -p 3000 -c-1",
     "e2e:verify": "node scripts/e2e-verify.mjs",
-    "test": "npm run build && npx playwright test",
-    "test:debug": "npx playwright test --debug"
+    "test": "bun run build && bunx playwright test",
+    "test:debug": "bunx playwright test --debug"
   },
   "author": "",
   "license": "MIT",

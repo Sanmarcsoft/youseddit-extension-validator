@@ -14,9 +14,11 @@ export default defineConfig({
     ['html', { outputFolder: 'test/e2e/results/html-report', open: 'never' }],
   ],
   webServer: {
-    command: 'npm run serve:fixtures',
+    command: 'bun run serve:fixtures',
     url: 'http://localhost:3000',
-    reuseExistingServer: false,
+    // Reuse a fixture server already listening on 3000 instead of failing the
+    // whole run on a port clash. CI still gets a clean server of its own.
+    reuseExistingServer: !(process.env.CI === 'true'),
     timeout: 120 * 1000,
   },
   use: {
