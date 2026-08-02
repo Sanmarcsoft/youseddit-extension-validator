@@ -12,6 +12,8 @@ import { AWAIT_ASYNC_RESPONSE, MSG_C2PA_VALIDATE_URL, type MSG_PAYLOAD } from '.
 import { type TrustListMatch } from './trustlistProxy.js'
 import { type DurablePillars, hasSoftBinding } from './durableCredentials.js'
 import { probeManifestStore } from './manifestStore.js'
+import { buildProvenanceGraph } from './provenanceGraph.js'
+import { type ProvenanceGraph } from './provenanceTypes.js'
 import { blobToDataURL } from './utils.js'
 
 // TranslatedDictionaryCategory came from the old `c2pa` SDK's
@@ -45,6 +47,12 @@ export interface C2paResult extends ExtensionC2paResult {
   // credential is REGISTERED and recoverable (Pillar 3 'verified'). Probed in
   // the offscreen/background validate path where the image bytes are available.
   manifestStoreVerified: boolean
+  // Portable provenance graph (manifests, ingredients, assertions, sensors)
+  // built from the RAW c2pa-rs store before it is flattened into
+  // ExtensionC2paResult. Same node/edge contract that verifieddit.com and
+  // trusteddit.com render — see provenanceGraph.ts. Null when the store has no
+  // diagrammable content.
+  provenanceGraph: ProvenanceGraph | null
 }
 
 export interface C2paError extends Error {
@@ -88,6 +96,23 @@ export async function init (): Promise<void> {
       }
     }
   )
+}
+
+/**
+ * Build the provenance graph without letting it affect the verdict.
+ *
+ * buildProvenanceGraph walks a manifest store that came out of a stranger's
+ * media file. It is written defensively, but the diagram is cosmetic and the
+ * verdict is not: a malformed store must degrade to "no diagram", never to a
+ * failed validation.
+ */
+function safeProvenanceGraph (store: C2paRsStore, filename: string): ProvenanceGraph | null {
+  try {
+    return buildProvenanceGraph(store, filename)
+  } catch (error: unknown) {
+    console.debug('provenance graph skipped:', error)
+    return null
+  }
 }
 
 export async function validateUrl (url: string): Promise<C2paResult | C2paError> {
@@ -162,6 +187,12 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
     editsAndActivity,
     assertionLabels,
     manifestStoreVerified,
+    // Built from the raw store — the flattened ExtensionC2paResult has already
+    // dropped relationships, per-ingredient validation, and assertion payloads.
+    // The diagram is a display affordance walking attacker-supplied structure;
+    // it must never be able to turn a valid asset into a failed validation, so
+    // a throw degrades to "no diagram", not to an error verdict.
+    provenanceGraph: safeProvenanceGraph(store, serializedResult.source.filename),
     // Computed downstream in the background SW (detectDurablePillars) once the
     // timestamp/trust signals are resolved.
     durablePillars: null

@@ -9,7 +9,7 @@ import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
 import { type DurablePillars } from './durableCredentials'
 import { MSG_L3_INSPECT_URL } from './constants'
-import { modelFromC2paResult, renderIngredientDiagram } from './ingredientDiagram'
+import './provenanceDiagram'
 
 /*
   The C2pa library does not export all its types, we extract them from
@@ -494,13 +494,16 @@ export class C2paOverlay extends LitElement {
           <div slot="content"><c2pa-grid-display .items="${activityItems(this.c2paResult?.editsAndActivity ?? undefined)}"></c2pa-grid-display></div>
         </c2pa-collapsible>
         <c2pa-collapsible>
-          <span slot="header">Ingredients</span>
+          <span slot="header">Provenance chain</span>
           <div slot="content">
             ${(() => {
-              // #131: show the diagram when a model exists, else the grid — never both.
-              const model = modelFromC2paResult(c2paResult)
-              return model != null
-                ? renderIngredientDiagram(model)
+              // #131: show the diagram when a graph exists, else the grid — never both.
+              // The graph is built upstream in c2pa.ts from the RAW c2pa-rs store,
+              // so it carries the assertions, sensor telemetry, relationships and
+              // per-ingredient validation that the flattened result drops.
+              const graph = c2paResult.provenanceGraph
+              return graph != null && graph.nodes.length > 0
+                ? html`<c2pa-provenance-graph .graph=${graph}></c2pa-provenance-graph>`
                 : html`<c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>`
             })()}
           </div>
