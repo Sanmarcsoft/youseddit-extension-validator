@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## v1.1.1
+
+- The manifest-store probe is opt-in. During validation the extension used to
+  send a perceptual fingerprint of images to manifests.sanmarcsoft.com without
+  anyone choosing it, and it was disclosed nowhere; WEBSTORE_LISTING.md claimed
+  the opposite outright. Now gated inside probeManifestStore itself, off by
+  default, failing closed when storage is unreadable. Consent is granted in
+  context from the Cloud-recoverable pillar, applies forward only, and is
+  reversible from Options. Pillar 3 reads 'declared' rather than 'verified'
+  while off. Disclosed in both listing docs and in section 2.9 of the published
+  privacy policy.
+- All three Durable Content Credentials pillars are clickable and explain
+  themselves in plain language.
+- AI labelling says only what it knows. The popup row "AI detection" is now
+  "AI (declared by signer)"; its negative value is "not declared" rather than
+  "no", because an absent declaration is not evidence of human authorship. The
+  manifest description no longer promises to "Detect AI-generated" media, which
+  implied pixel analysis the extension does not perform.
+
+
 ## v1.1.0
 
 - Interactive C2PA provenance graph. Click a node to expand its detail, drag to

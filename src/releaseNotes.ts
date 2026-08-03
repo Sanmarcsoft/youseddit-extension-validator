@@ -30,6 +30,28 @@ export const DEMO_URL = 'https://www.verifieddit.com/demo'
 
 export const RELEASE_NOTES: readonly ReleaseEntry[] = [
   {
+    tag: 'v1.1.1',
+    date: '2026-08-03',
+    summary: 'The one thing that phoned home now asks first, and the AI label says only what it can prove.',
+    fixes: [
+      {
+        title: 'Nothing is sent unless you ask for it',
+        howToVerify:
+          'Open the panel on any signed file and click "Cloud-recoverable" under Durable Content Credentials. It explains that confirming it means sending a fingerprint of the image to our manifest store, and lets you turn that on. Until you do, the extension makes no request you did not start with a click. You can change your mind in the Options tab.'
+      },
+      {
+        title: 'Every durability check explains itself',
+        howToVerify:
+          'Click any of the three pillars in the panel. Each says in plain language what it means and whether confirming it involves sending anything.'
+      },
+      {
+        title: 'The AI row says "declared", because that is what it knows',
+        howToVerify:
+          'Open the popup and look at the row now labelled "AI (declared by signer)". It reports what a signer wrote in their own signed manifest. A file with no such declaration reads "not declared" rather than "no", because nothing here inspects pixels and an absent declaration is not proof of human authorship.'
+      }
+    ]
+  },
+  {
     tag: 'v1.1.0',
     date: '2026-08-03',
     summary: 'Interactive provenance graph, a rebuilt popup, and a trust list resynced with the C2PA Conformance Program.',
