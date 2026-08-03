@@ -114,8 +114,19 @@ async function main () {
     await sleep(9000)
 
     // ---- 1. detection on a live page -------------------------------------
+    // Framed on the trusted/untrusted pair rather than the top of the page.
+    // The top three fixtures are signed by the development CA the store build
+    // does not trust, so a top-of-page shot is a wall of warning badges under
+    // headings that read "Green Trust" — accurate, but it reads as broken
+    // software. This pairing shows the product telling two assets apart, which
+    // is the actual capability.
     console.log('01 detection')
-    await page.evaluate(() => window.scrollTo({ top: 0 }))
+    await page.evaluate((f) => {
+      const img = [...document.querySelectorAll('img')].find(i => (i.currentSrc ?? i.src).includes(f))
+      const card = img?.closest('.corpus-item') ?? img
+      const top = (card?.getBoundingClientRect().top ?? 0) + window.scrollY
+      window.scrollTo({ top: Math.max(0, top - 90), behavior: 'instant' })
+    }, FIXTURE)
     await sleep(1500)
     await page.screenshot({ path: path.join(OUT_DIR, '01-detection.png'),
       clip: { x: 0, y: 0, width: SHOT_W, height: SHOT_H } })
