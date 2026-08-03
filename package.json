@@ -8,7 +8,7 @@
     "clean": "rimraf dist && rimraf node_modules/.cache/rollup-plugin-typescript2",
     "prebuild": "node scripts/patch-c2pa-worker-scheme.mjs && node scripts/extract-c2pa-worker.mjs && node update-version.js && node scripts/generate-build-info.js",
     "build": "cross-env NODE_ENV=production rollup -c",
-    "build:e2e": "cross-env NODE_ENV=production TRUST_DEV_FIXTURES=true rollup -c",
+    "build:e2e": "cross-env TRUST_DEV_FIXTURES=true npm run build",
     "build:debug": "cross-env NODE_ENV=development rollup -c",
     "build:dev": "cross-env NODE_ENV=development rollup -c --watch",
     "serve:fixtures": "bun x http-server test/fixtures -p 3000 -c-1",
