@@ -138,3 +138,122 @@ Published by SanMarcSoft LLC as an independent fork of Microsoft's open source C
 **Format names are search terms too.** JPEG, PNG, WebP, AVIF, HEIC, DNG, ARW, MP4, PDF each catch "verify [format] C2PA" queries.
 
 **What is deliberately absent:** "detects AI", "deepfake detector", "proves authenticity". They rank, and they are false on unsigned media, which is most media. The AI section turns that into the differentiator instead. A listing that overclaims gets pulled, and this product's entire premise is not overclaiming.
+
+---
+
+# Privacy tab (Chrome Web Store Developer Dashboard)
+
+Paste-ready. Each field is under the 1,000 character limit. Every statement was
+checked against the v1.1.1 source, not from memory, because a justification that
+does not match the code is a rejection.
+
+## Single purpose
+
+```
+Verifieddit verifies the authenticity and provenance of images, videos, audio files and PDFs on any webpage, by reading and cryptographically validating the C2PA Content Credentials embedded in those files.
+
+Every feature and permission serves that one purpose. The badges, the provenance panel and the right-click item are the same verification presented in different places. The AI row reports a digitalSourceType value read out of the manifest being verified; it is one field of the credential, not a separate detection product. Trust list management configures which signing certificates the verification trusts. The link to Trusteddit is an ordinary outbound hyperlink to the publisher's signing service and performs no function inside the extension.
+
+No feature exists for any unrelated purpose, and no permission is exercised for any unrelated purpose.
+```
+
+## storage justification
+
+```
+Stores the user's own settings and the trust lists that verification is checked against, using chrome.storage.local and chrome.storage.session only.
+
+Three things are kept: the auto-scan preference, the opt-in for the durable-credential check, and the cached trust lists (both the lists bundled with the extension and any the user imports). Certificate validation cannot happen without the trust anchors being available locally, and the user's preferences must survive a browser restart to be useful.
+
+Nothing here is synced to a server, transmitted, or shared. No browsing history, no verification results, and no record of which media the user inspected is stored. Ephemeral engine-initialisation errors are held in chrome.storage.session so the popup can show a banner if the C2PA engine fails to load, and the browser clears that automatically on close.
+```
+
+## activeTab justification
+
+```
+Scopes verification work to the single tab the user is acting on.
+
+When the user clicks the toolbar icon, the popup reports on media in the currently active tab. When the user selects "Verify with Verifieddit" from the right-click menu, the extension inspects the media element in that tab. activeTab limits both to the one tab involved in that interaction, rather than granting standing access to every open tab.
+
+Without it, the popup could not tell the user what is on the page in front of them, and the context-menu item could not resolve which media element was clicked. It is used for no other purpose, and it grants nothing when the user is not interacting with the extension.
+```
+
+## contextMenus justification
+
+```
+Adds a single item, "Verify with Verifieddit.", to the right-click menu on image, video and audio elements.
+
+Automatic scanning is a preference the user can turn off, and many users prefer to keep it off and check individual files deliberately. The context-menu item is how they do that: right-click any media element, and the extension verifies that file's C2PA Content Credentials and opens the result.
+
+It is registered only for image, video and audio contexts, so it does not appear on ordinary page text or links. It adds no other menu entries, no submenus, and no items unrelated to verification.
+```
+
+## alarms justification
+
+```
+Schedules a periodic refresh of trust lists the user has imported, so certificate validation is checked against current anchors rather than a stale copy.
+
+One alarm is registered, "trustListRefreshAlarm", at a 24 hour interval (TRUSTLIST_UPDATE_INTERVAL = 1440 minutes). It only re-fetches lists that carry a download_url, which means only lists the user has explicitly imported from a URL. The trust lists bundled with the extension set no download_url and are never re-fetched.
+
+Refreshes are additionally restricted to an allowlist of hosts. Revoked or newly added signing anchors are the difference between a correct and an incorrect trust verdict, so a periodic refresh is part of verifying accurately. The permission is used for nothing else.
+```
+
+## offscreen justification
+
+```
+Hosts the C2PA WebAssembly verification engine in an offscreen document, because a Manifest V3 service worker cannot run it.
+
+Verification is performed by the C2PA WASM toolkit, which needs a DOM context for image decoding (createImageBitmap, OffscreenCanvas) and a persistent execution context while a file is parsed. An MV3 service worker provides neither and is terminated aggressively. The offscreen document is created with reason DOM_PARSER solely to run this engine.
+
+It renders nothing the user sees, hosts no UI, and makes no network requests of its own. It exists only while verification runs. Without it, the extension could not verify a single file in Chrome; this permission is the mechanism by which the extension's one purpose is carried out.
+```
+
+## Host permission justification
+
+```
+Content Credentials can be embedded in media on any website, so the extension must be able to read media on whatever page the user is viewing.
+
+The content script looks at image, video and audio elements already loaded on the current page and reads their bytes to parse the C2PA manifest embedded inside them. Verification then runs locally in WebAssembly. Narrowing this to a list of sites would mean the extension could only verify media on sites we chose in advance, which defeats its single purpose: the whole point is that authenticity can be checked wherever the user encounters a file.
+
+The access is used for nothing else. No page content is collected, no browsing history is recorded, no data is transmitted, and no analytics exist anywhere in the codebase. Media bytes are read, parsed locally, and discarded.
+```
+
+Expect the host permission to trigger an in-depth review. That is normal for
+`<all_urls>` and is not a sign anything is wrong; the justification above states
+the necessity and the limits plainly.
+
+## Are you using remote code?
+
+**Select: No, I am not using remote code.**
+
+Verified against the built package: zero occurrences of `eval`, `new Function`
+or `importScripts`; one `WebAssembly.compileStreaming` compiling the packaged
+`c2pa.wasm`; three `new Worker` calls loading the packaged
+`c2pa-web.worker.js`; and no remote script or wasm origin. If the field accepts
+a justification anyway:
+
+```
+No remote code is used. Every executable byte ships inside the package.
+
+The C2PA verification engine is the packaged file c2pa.wasm, compiled from the local extension URL with WebAssembly.compileStreaming. Its worker is the packaged file c2pa-web.worker.js, loaded from the extension's own origin. There are no <script> tags referencing external files, no modules pointing at external files, and no eval() or new Function() anywhere in the shipped bundle.
+
+The manifest CSP is "script-src 'self' 'wasm-unsafe-eval'". 'wasm-unsafe-eval' is required to compile the packaged WebAssembly module; it does not permit remote code, and no remote origin is fetched for script or wasm.
+
+The extension does contact the network to read the bytes of media already displayed on the page, and, only if the user opts in, to check a credential registration. Neither returns executable code.
+```
+
+## Data usage declaration
+
+Declare **Website content**, used for **App functionality**.
+
+Do not tick a blanket "collects no data". Three things can leave the device, all
+disclosed in the published privacy policy:
+
+| What | When | Policy |
+|---|---|---|
+| URL of one media file | User clicks "Inspect on Verifieddit" | 2.1 |
+| A fixed surface name (`?src=`) | User clicks the Trusteddit link | 2.8 |
+| Perceptual hash of one image | Only if the user opts in to the durable-credential check | 2.9 |
+
+None is sold, used for advertising, or transferred to third parties. A
+declaration that contradicts your own published policy is a straightforward
+rejection, and the policy is public at verifieddit.com/privacy.
