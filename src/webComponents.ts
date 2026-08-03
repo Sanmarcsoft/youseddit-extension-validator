@@ -262,6 +262,24 @@ export class C2paOverlay extends LitElement {
       }
       .more:hover { background: var(--glass-bg-soft); }
 
+      /* The graph is the headline capability, so it gets room in the panel
+         proper rather than the cramped treatment a collapsible section gets. */
+      .provenance-feature {
+          display: block;
+          margin-top: 10px;
+      }
+      .provenance-feature-label {
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-dim, #94a3b8);
+          margin-bottom: 6px;
+      }
+      .provenance-feature c2pa-provenance-graph {
+          display: block;
+          width: 100%;
+      }
+
       .additional-info {
           overflow: hidden;
           max-height: 0;
@@ -505,6 +523,25 @@ export class C2paOverlay extends LitElement {
 
       ${this.renderErrors(c2paResult.manifestStore.validationStatus)}
 
+      <!--
+        The provenance graph is the thing this extension does that a padlock
+        icon cannot. It used to sit two clicks down: inside .additional-info,
+        behind "View more", then inside a collapsed "Provenance chain" section.
+        Almost nobody dug that far, so the headline capability was invisible in
+        normal use. It now opens with the panel. The grid fallback stays under
+        "View more" for assets whose store yields no graph.
+      -->
+      ${(() => {
+        const graph = c2paResult.provenanceGraph
+        if (graph == null || graph.nodes.length === 0) return nothing
+        return html`
+          <div class="provenance-feature reveal" style="animation-delay:${pillarsDelay + 120}ms">
+            <div class="provenance-feature-label">Provenance chain</div>
+            <c2pa-provenance-graph .graph=${graph}></c2pa-provenance-graph>
+          </div>
+        `
+      })()}
+
       <div class="footer reveal" style="animation-delay:${pillarsDelay + 160}ms">
         <span>Inspect on <span class="link" @click="${this.handleClick}">Verifieddit</span></span>
         <!--
@@ -527,21 +564,24 @@ export class C2paOverlay extends LitElement {
           <span slot="header">Edits and Activity</span>
           <div slot="content"><c2pa-grid-display .items="${activityItems(this.c2paResult?.editsAndActivity ?? undefined)}"></c2pa-grid-display></div>
         </c2pa-collapsible>
-        <c2pa-collapsible>
-          <span slot="header">Provenance chain</span>
-          <div slot="content">
-            ${(() => {
-              // #131: show the diagram when a graph exists, else the grid — never both.
-              // The graph is built upstream in c2pa.ts from the RAW c2pa-rs store,
-              // so it carries the assertions, sensor telemetry, relationships and
-              // per-ingredient validation that the flattened result drops.
-              const graph = c2paResult.provenanceGraph
-              return graph != null && graph.nodes.length > 0
-                ? html`<c2pa-provenance-graph .graph=${graph}></c2pa-provenance-graph>`
-                : html`<c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>`
-            })()}
-          </div>
-        </c2pa-collapsible>
+        ${(() => {
+          // #131: the graph and the grid are alternatives, never both. The graph
+          // is built upstream in c2pa.ts from the RAW c2pa-rs store, so it
+          // carries assertions, sensor telemetry, relationships and
+          // per-ingredient validation that the flattened result drops. When we
+          // have one it is rendered above, in the panel proper; this collapsible
+          // only carries the ingredient grid for stores that yield no graph.
+          const graph = c2paResult.provenanceGraph
+          if (graph != null && graph.nodes.length > 0) return nothing
+          return html`
+            <c2pa-collapsible>
+              <span slot="header">Provenance chain</span>
+              <div slot="content">
+                <c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>
+              </div>
+            </c2pa-collapsible>
+          `
+        })()}
         <c2pa-collapsible>
           <span slot="header">Signature</span>
           <div slot="content"><c2pa-grid-display .items="${signatureItems(activeManifest.signatureInfo ?? null)}"></c2pa-grid-display></div>

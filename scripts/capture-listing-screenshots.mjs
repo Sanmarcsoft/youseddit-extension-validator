@@ -146,6 +146,10 @@ async function main () {
     const frame = page.frames().find(f => f.url().includes('iframe.html'))
     if (frame == null) throw new Error('overlay iframe never appeared')
 
+    // The graph now renders with the panel rather than behind "View more", so
+    // there is nothing to expand first — only settle time for its layout pass.
+    await sleep(2500)
+
     // The graph sits below the signer summary, so it opens below the fold. Bring
     // it into view and expand a node, or the listing shows a header and no graph.
     await frame.evaluate(() => {
@@ -191,8 +195,15 @@ async function main () {
     }
 
     // ---- 4/5/6. popup tabs ------------------------------------------------
-    await popup.bringToFront()
-    await sleep(2000)
+    // The popup resolves its data with chrome.tabs.query({active: true,
+    // currentWindow: true}). Opened as a page it IS the active tab, so it asks
+    // itself what media is present, finds none, and sits on "Scanning...".
+    // Make the corpus the active tab and reload the popup in the background so
+    // the query lands on the page we actually want it to report.
+    await page.bringToFront()
+    await sleep(1000)
+    await popup.reload({ waitUntil: 'domcontentloaded' })
+    await sleep(6000)
 
     console.log('04 popup validation')
     await popup.evaluate(() => {
