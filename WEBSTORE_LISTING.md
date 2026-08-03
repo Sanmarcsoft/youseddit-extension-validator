@@ -1,9 +1,9 @@
 # Verifieddit — Chrome Web Store listing copy
 
-> Drafted from a code-evidence audit of v1.0.0 (tag `v1.0.0` at commit `fadf48b`).
-> See `CHROME_WEB_STORE_LISTING.md` in the same repo for the operational submission
-> doc with permission justifications, screenshots checklist, and developer-console
-> field-by-field mapping. This file is the user-facing copy + privacy draft only.
+> Drafted from a code-evidence audit of v1.1.0. See `CHROME_WEB_STORE_LISTING.md`
+> in the same repo for the operational submission doc with permission
+> justifications, the screenshot manifest, and developer-console field-by-field
+> mapping. This file is the user-facing copy + privacy draft only.
 
 ---
 
@@ -47,9 +47,9 @@ The internet is now a mix of authentic media and synthetic media at industrial s
 - **Automatic detection** of C2PA-credentialed media on any web page (toggle on or off from the popup).
 - **Visual badges** distinguish *verified trusted*, *unknown signer*, and *integrity failure* states at a glance.
 - **AI content identification** based on C2PA metadata and digital-source-type assertions, surfaced when the manifest declares AI involvement.
-- **Detailed provenance panel** with the full claim hierarchy, ingredient tree, signer certificate, timestamp authority, and trust-list match.
+- **Interactive provenance graph** — the chain of custody as a graph you can explore: expand any node for its detail, pan, zoom, fit to frame, or open it full screen. Covers multi-generation ingredient history, assertions, sensor telemetry, signer certificate, timestamp authority, and trust-list match.
 - **Right-click manual inspection** for images, videos, and audio files, even outside the auto-scan flow.
-- **Trust list management** — bring your own trust anchors, or use the bundled C2PA Official Trust List + AI trust list.
+- **Trust list management** — bring your own trust anchors, or use the bundled lists: all 29 anchors from the C2PA Conformance Program, the 21 official C2PA timestamp authorities, and an AI trust list.
 - **100% local processing** — see Privacy below.
 
 ### Supported formats
@@ -58,7 +58,7 @@ JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, and PDF.
 
 ### Open source
 
-MIT-licensed, built on the upstream `c2pa-extension-validator` reference (originally by Microsoft). Source code: <https://github.com/Sanmarcsoft/verifieddit-extension>.
+MIT-licensed. Source code: <https://github.com/Sanmarcsoft/verifieddit-extension>.
 
 ### Single Purpose Description
 
@@ -70,15 +70,13 @@ Verifieddit verifies the authenticity and provenance of images, videos, and audi
 
 ## Privacy Policy (draft)
 
-> This draft is generated from a direct audit of the v1.0.0 source code and the
-> bundled artifact `releases/verifieddit-chrome-1.0.0.zip` (SHA-256
-> `6503e2ec7fc72c4c6583982ab76f2ac662545a3de95c447428d4ed5915d4d624`). It is
-> intended to be reviewed and published at <https://www.verifieddit.com/privacy>
-> (the URL referenced by the Chrome Web Store listing). The published version
-> may already cover this ground.
+> This draft is generated from a direct audit of the v1.1.0 source code. It is
+> intended to be reviewed against the published policy at
+> <https://www.verifieddit.com/privacy> (the URL referenced by the Chrome Web
+> Store listing), which is authoritative where the two differ.
 
-**Last updated:** 2026-05-17  
-**Applies to:** Verifieddit v1.0.0 Chrome extension  
+**Last updated:** 2026-08-03  
+**Applies to:** Verifieddit v1.1.0 Chrome extension  
 **Publisher:** SanMarcSoft LLC
 
 ### Single purpose
@@ -87,12 +85,13 @@ Verifieddit has one purpose: to verify the authenticity and provenance of images
 
 ### What data the extension handles
 
-Verifieddit is built to a **local-first** principle: all C2PA verification runs inside your browser and no media ever leaves your machine. There is **one** case where data is sent to a server, and only when you ask for it: if you click **"Inspect on Verifieddit"**, the URL of that specific media file is sent to SanMarcSoft's website (`www.verifieddit.com`) so the site can pre-fill its verifier. That is a deliberate user action, never automatic. Specifically:
+Verifieddit is built to a **local-first** principle: all C2PA verification runs inside your browser and no media ever leaves your machine. Data reaches a SanMarcSoft server only when you click a link, never automatically. There are exactly two such links: **"Inspect on Verifieddit"** sends the URL of that one media file to `www.verifieddit.com` so the site can pre-fill its verifier, and **"Sign your own content with Trusteddit"** opens `www.trusteddit.com` with a parameter naming which part of the extension you clicked from. Specifically:
 
 | Data category | Handling |
 |---|---|
 | **Media files (images, videos, audio)** on pages you visit | Verifieddit reads media bytes that your browser has already loaded for the page, and processes them inside your browser using locally-bundled WebAssembly (WASM). **Nothing is uploaded.** No copy of the media leaves your machine. |
 | **URLs of verified media** | Sent to `www.verifieddit.com` (as a `?url=` query parameter) **only** when you explicitly click "Inspect on Verifieddit", so the site can pre-fill its verifier. Never transmitted automatically; auto-scan does not trigger this. |
+| **Which extension surface a link was clicked from** | When you click "Sign your own content with Trusteddit", the opened URL carries `?src=` followed by a fixed word naming the surface — one of `extension-panel`, `extension-popup`, `extension-options`, `extension-context-menu`, `extension-release-notes`. It identifies a place in the interface, never you, your device, your session, or the media you were looking at. Disclosed by trusteddit.com's privacy policy §2.5. |
 | **Verification results** | Computed and displayed in your browser only. Not transmitted. Not retained beyond the current page session. |
 | **User preferences** (auto-scan toggle, imported trust lists) | Stored locally in `chrome.storage.local`. Never synced to any server. Never transmitted. |
 | **Diagnostic state** (ephemeral init errors so the popup can show a banner if the C2PA engine fails to load) | Stored in `chrome.storage.session`, which is wiped automatically when the browser is closed. Never transmitted. |
@@ -107,9 +106,10 @@ The extension performs network requests only in the following narrow, user-initi
 
 1. **Fetching the bytes of a media element** that your browser is already displaying on the page you are visiting, to read its embedded credentials. This is a separate HTTP request from the extension's background context to the same URL the page loaded the media from. It does not carry your page-session cookies (cross-origin requests from the background do not include credentials), but the media's origin server does see your IP address. The retrieved bytes are processed locally in WebAssembly and discarded; nothing is uploaded.
 2. **Opening the Verifieddit inspector** when you explicitly click "Inspect on Verifieddit". Your browser navigates to `https://www.verifieddit.com/?url=<media-url>`; the URL of the media you inspected is included as a query parameter and processed by SanMarcSoft's website under its own privacy policy.
-3. **Refreshing a trust list** only if you have explicitly imported a trust list with a `download_url` field. The bundled default trust lists set no `download_url` and are never re-fetched. Imported lists are fetched only from the exact URL you provided, with credentials omitted.
+3. **Opening Trusteddit** when you explicitly click "Sign your own content with Trusteddit". Your browser navigates to `https://www.trusteddit.com/?src=<surface>`, where `<surface>` is a fixed word naming the part of the extension you clicked from. No identifier of you, your device, your session, or the media you were viewing is included, and the link is never followed automatically.
+4. **Refreshing a trust list** only if you have explicitly imported a trust list with a `download_url` field. The bundled default trust lists set no `download_url` and are never re-fetched. Imported lists are fetched only from the exact URL you provided, with credentials omitted.
 
-Apart from the user-initiated navigation to `www.verifieddit.com` above, the extension makes no other call to any first-party server.
+Apart from the user-initiated navigations to `www.verifieddit.com` and `www.trusteddit.com` above, the extension makes no other call to any first-party server.
 
 ### Data sharing
 
@@ -122,7 +122,8 @@ Because we do not receive any data, there is no retention. Local browser state (
 ### Compliance with Google Chrome Web Store policies
 
 - **Single Purpose policy**: every feature and permission in Verifieddit serves the single purpose of verifying media provenance. See "Single purpose" above.
-- **User Data policy**: Verifieddit's use of permissions is limited to providing the single user-facing feature. The only data sent off-device is "website content" — the URL of a media file you choose to inspect — and only on your explicit action (the "Inspect on Verifieddit" link). That data is used solely to provide the verification feature on `www.verifieddit.com`; it is not sold, not used for advertising, and not transferred to other third parties. In the CWS Data Safety form this is declared as **Website content → App functionality**.
+- **User Data policy**: Verifieddit's use of permissions is limited to providing the single user-facing feature. Data leaves the device only on your explicit click, and only in two forms: the URL of a media file you choose to inspect (the "Inspect on Verifieddit" link), and a fixed word naming which extension surface you clicked from (the Trusteddit link). Both are used solely to provide the feature on the receiving SanMarcSoft site; neither is sold, used for advertising, or transferred to other third parties. In the CWS Data Safety form this is declared as **Website content → App functionality**.
+- **Trust anchors**: the demo fixtures in the source repository are signed by a development key that is public in that repository. That key is not loaded as a trust anchor in any published build, so nothing signed with it can read as trusted to a user who installs from the Chrome Web Store.
 
 ### Permissions and what they actually do
 
@@ -130,8 +131,9 @@ Because we do not receive any data, there is no retention. Local browser state (
 |---|---|
 | `storage` | Save your auto-scan preference and a local cache of the loaded trust lists, both inside your own browser. |
 | `activeTab` | Scope verification work to the tab you are actively viewing when you click the extension icon or use the right-click context menu. |
-| `contextMenus` | Add "Inspect Content Credentials" to your right-click menu on images, videos, and audio elements. |
-| `alarms` | Schedule a periodic refresh of any custom trust list you have imported (bundled lists are never re-fetched). |
+| `contextMenus` | Add "Verify with Verifieddit." to your right-click menu on images, videos, and audio elements. |
+| `alarms` | Schedule a periodic refresh (every 24 hours) of any custom trust list you have imported (bundled lists are never re-fetched). |
+| `offscreen` | Run the C2PA WebAssembly verification engine in an offscreen document. A Manifest V3 service worker cannot host the WASM toolkit itself, so the verification work happens there. It shows nothing, makes no network calls of its own, and lives only while verification runs. |
 | Host permission: `<all_urls>` | Allow the extension to detect C2PA Content Credentials on media from any website. Content Credentials are an open standard that may appear on any site; narrowing this scope would defeat the extension's purpose. The extension only reads media that is already visible on the page in your browser. |
 
 ### Contact
