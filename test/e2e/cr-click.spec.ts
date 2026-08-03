@@ -250,9 +250,11 @@ test.describe('CR overlay click (issue #65)', () => {
       })
       // Budget raised 400 -> 640 for #110: the collapsed panel now carries the
       // Durable Content Credentials block (three pillars plus a self-assertion
-      // warning) above the collapsibles. That block is the feature, not bloat.
-      // The ceiling is kept so the panel cannot creep further unnoticed.
-      expect(closedHeight, `overlay height with all collapsibles closed must be < 640 px; got ${closedHeight}`).toBeLessThan(640)
+      // warning) above the collapsibles. Raised again 640 -> 1100 for #141: the
+      // provenance graph moved out of the collapsibles into the panel body, so
+      // its frame is part of the closed height by design. Both are the feature,
+      // not bloat. The ceiling is kept so the panel cannot creep unnoticed.
+      expect(closedHeight, `overlay height with all collapsibles closed must be < 1100 px; got ${closedHeight}`).toBeLessThan(1100)
       expect(closedHeight, `overlay height must be ≥ 120 px (still usable); got ${closedHeight}`).toBeGreaterThanOrEqual(120)
     } finally {
       await ctx.close()

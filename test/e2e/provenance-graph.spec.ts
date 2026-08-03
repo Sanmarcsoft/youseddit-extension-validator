@@ -107,9 +107,10 @@ test.describe('Provenance graph renders in the overlay (#140)', () => {
       const iframeFrame = page.frames().find(f => f.url().includes('iframe.html'))
       expect(iframeFrame, 'overlay iframe must be present in page frames').toBeTruthy()
 
-      // Expand the additional-info block so the section is on screen for the
-      // screenshot. The component tree exists either way — the collapse is
-      // presentational — so the assertions below do not depend on it.
+      // Expand additional-info so the remaining sections are on screen for the
+      // screenshot. The graph itself no longer needs this: since #141 it renders
+      // in the panel body. The component tree exists either way, so the
+      // assertions below do not depend on it.
       await iframeFrame!.evaluate(() => {
         const overlay = document.querySelector('c2pa-overlay') as HTMLElement & { shadowRoot: ShadowRoot | null }
         const more = overlay?.shadowRoot?.querySelector('button.more') as HTMLButtonElement | null
@@ -138,7 +139,12 @@ test.describe('Provenance graph renders in the overlay (#140)', () => {
         const dRoot = diagram?.shadowRoot ?? null
         return {
           sectionHeaders: headers,
-          hasProvenanceSection: headers.includes('Provenance chain'),
+          // The graph was promoted out of the collapsibles into the panel body
+          // (#141), so the label now lives in .provenance-feature-label. Accept
+          // either: a store with no graph still renders the grid collapsible.
+          hasProvenanceSection:
+            headers.includes('Provenance chain') ||
+            (root?.querySelector('.provenance-feature-label')?.textContent ?? '').trim() === 'Provenance chain',
           hasDiagramElement: diagram != null,
           graphNodeCount: diagram?.graph?.nodes?.length ?? -1,
           graphEdgeCount: diagram?.graph?.edges?.length ?? -1,

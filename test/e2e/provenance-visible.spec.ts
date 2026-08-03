@@ -76,28 +76,18 @@ test.describe('Provenance graph is actually VISIBLE (#140)', () => {
       const frame = page.frames().find(f => f.url().includes('iframe.html'))
       expect(frame, 'overlay iframe must be present').toBeTruthy()
 
-      // Drive the UI the way a person does: View more, then click the
-      // "Provenance chain" header. The collapsible is max-height:0 until then.
-      await frame!.evaluate(() => {
-        const overlay = document.querySelector('c2pa-overlay') as HTMLElement & { shadowRoot: ShadowRoot | null }
-        const more = overlay?.shadowRoot?.querySelector('button.more') as HTMLButtonElement | null
-        more?.click()
+      // The graph opens with the panel now — no "View more", no collapsible to
+      // expand. That is the whole point of promoting it, so this asserts the
+      // stronger property: it is visible with zero further interaction. If it
+      // ever regresses behind a disclosure control again, this fails.
+      const prematurelyHidden = await frame!.evaluate(() => {
+        const root = document.querySelector('c2pa-overlay')?.shadowRoot
+        const feature = root?.querySelector('.provenance-feature')
+        const diagram = root?.querySelector('c2pa-provenance-graph')
+        return { hasFeature: feature != null, hasDiagram: diagram != null }
       })
-      await page.waitForTimeout(800)
-
-      const opened = await frame!.evaluate(() => {
-        const overlay = document.querySelector('c2pa-overlay') as HTMLElement & { shadowRoot: ShadowRoot | null }
-        const root = overlay?.shadowRoot
-        const section = [...(root?.querySelectorAll('c2pa-collapsible') ?? [])].find((c) => {
-          const h = c.querySelector('[slot="header"]')
-          return (h?.textContent ?? '').trim() === 'Provenance chain'
-        }) as (HTMLElement & { shadowRoot: ShadowRoot | null }) | undefined
-        if (section == null) return false
-        const header = section.shadowRoot?.querySelector('.collapsible-header') as HTMLElement | null
-        header?.click()
-        return true
-      })
-      expect(opened, 'a "Provenance chain" collapsible must exist to click').toBe(true)
+      expect(prematurelyHidden.hasFeature, 'graph must sit in the panel body, not behind View more').toBe(true)
+      expect(prematurelyHidden.hasDiagram, 'a provenance graph must be rendered').toBe(true)
 
       // Let the max-height transition (300ms) and any fit() settle.
       await page.waitForTimeout(1_500)
