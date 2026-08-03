@@ -44,9 +44,10 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
-      - name: Serve demo corpus
-        run: bun run serve:fixtures &
-
+      # No explicit server step: playwright.config.ts owns the fixture server
+      # via webServer, and sets reuseExistingServer false under CI so the run
+      # gets a clean one. Starting a second here just claims port 3000 first
+      # and makes Playwright abort on the clash.
       - name: Run E2E tests
         run: bunx playwright test
 
