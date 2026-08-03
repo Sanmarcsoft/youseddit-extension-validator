@@ -14,7 +14,7 @@ Verifieddit - C2PA Content Credential Verifier
 Verifieddit
 
 ## Summary (132 chars max)
-Verify content authenticity using C2PA Content Credentials. Detect AI-generated and edited media directly in your browser.
+Verify content authenticity with C2PA Content Credentials. See who signed a file, whether it was altered, and declared AI origin.
 
 ## Category
 Developer Tools
@@ -46,7 +46,7 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 
 - Automatic Detection: Scans media elements on any webpage for C2PA content credentials
 - Visual Indicators: Shows overlay icons on media with verified content credentials (green = valid, yellow = warning, red = invalid)
-- AI Content Detection: Identifies AI-generated content based on C2PA metadata and digital source types
+- AI Origin, As Declared: Reports the IPTC `digitalSourceType` the signer recorded in their own signed manifest. It reads a declaration; it does not analyse pixels or guess. Media carrying no such declaration is shown as "not declared", never as "not AI"
 - Interactive Provenance Graph: Explore the full chain of custody as a graph — click a node to expand its detail, drag to pan, zoom, fit to frame, or open it full screen. Shows multi-generation ingredient history, assertions, and sensor telemetry
 - Certificate Verification: Validates signer certificates against the C2PA Trust List, including RFC 3161 trusted timestamps
 - Right-Click Inspection: Right-click any image, video, or audio to inspect its Content Credentials

@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Verifieddit - C2PA Content Credential Verifier",
     "short_name": "Verifieddit",
-    "description": "Verify content authenticity using C2PA Content Credentials. Detect AI-generated and edited media directly in your browser.",
+    "description": "Verify content authenticity with C2PA Content Credentials. See who signed a file, whether it was altered, and declared AI origin.",
     "version": "1.1.0",
     "browser_specific_settings": {
         "gecko": {

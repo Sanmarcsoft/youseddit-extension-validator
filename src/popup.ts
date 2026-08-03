@@ -419,9 +419,12 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
     ? '<span class="tsa-ok">✓ present</span>'
     : '<span class="detail-dim">absent</span>'
 
+  // "no" claimed the file is not AI-generated. What we actually know is
+  // narrower: the signer declared nothing. An unsigned file, or one whose
+  // manifest omits digitalSourceType, is not evidence of human authorship.
   const aiLine = r.isAIDetected
-    ? '<span class="ai-flag">⚠ AI-generated</span>'
-    : '<span class="detail-dim">no</span>'
+    ? '<span class="ai-flag">⚠ declared AI-generated</span>'
+    : '<span class="detail-dim">not declared</span>'
 
   // Unique id so each row's details panel can be toggled independently.
   const rowId = `v-${Math.random().toString(36).slice(2, 9)}`
@@ -445,7 +448,7 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
           <dd>${r.certIssuer != null ? `issued by <b>${esc(r.certIssuer)}</b>${r.certSubject != null ? ` to <b>${esc(r.certSubject)}</b>` : ''}` : '<span class="detail-dim">no chain</span>'}</dd>
           <dt>Trusted timestamp</dt>
           <dd>${tsaLine}</dd>
-          <dt>AI detection</dt>
+          <dt>AI (declared by signer)</dt>
           <dd>${aiLine}</dd>
           <dt>Manifests</dt>
           <dd>${r.manifestCount} · active: <b>${esc(r.activeManifest)}</b></dd>
