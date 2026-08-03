@@ -12,17 +12,11 @@ import { type MediaRecord } from './mediaRecord'
 import * as VisibilityMonitor from './visible'
 import { MediaMonitor } from './mediaMonitor' // requires treeshake: { moduleSideEffects: [path.resolve('src/mediaMonitor.ts')] }, in rollup.config.js
 import {
-
   MSG_CHILD_REQUEST, MSG_FRAME_CLICK, MSG_GET_CONTAINER_OFFSET, MSG_PARENT_RESPONSE,
   MSG_REQUEST_C2PA_ENTRIES, MSG_RESPONSE_C2PA_ENTRIES, MSG_TRUSTLIST_UPDATE, MSG_OPEN_OVERLAY,
   type VALIDATION_STATUS, MSG_FORWARD_TO_CONTENT, MSG_C2PA_RESULT_FROM_CONTEXT, MSG_GET_ID,
   MSG_VALIDATE_URL
 } from './constants'
-
-// Marks this frame as already carrying the scanner. injection.ts probes for it
-// before an activeTab injection, because injecting twice would double every
-// badge and every message listener in the page.
-;(globalThis as unknown as Record<string, unknown>).__verifiedditInjected = true
 
 export interface Rect {
   x: number

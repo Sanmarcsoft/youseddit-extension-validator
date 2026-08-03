@@ -15,7 +15,6 @@ import {
   TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
-import { ensureInjected, syncAutoScanScripts } from './injection.js'
 // rc11.6 / #83 — Intentionally NOT importing verifiedditApi. rc12 shipped
 // an anonymous cross-origin fallback that fired on every unsigned image;
 // that is a security / privacy surface and must not run in production
@@ -63,19 +62,6 @@ function createContextMenu (): void {
   })
 }
 
-// Registration must survive a browser restart and must not outlive the
-// permission. Reconciling on both events means a grant revoked from
-// chrome://extensions takes effect without the user touching the toggle.
-function reconcileAutoScanScripts (): void {
-  void chrome.storage.local.get('autoScan').then(async (r) => {
-    await syncAutoScanScripts(r?.autoScan === true)
-  })
-}
-chrome.runtime.onStartup.addListener(reconcileAutoScanScripts)
-chrome.runtime.onInstalled.addListener(reconcileAutoScanScripts)
-chrome.permissions.onRemoved.addListener(reconcileAutoScanScripts)
-chrome.permissions.onAdded.addListener(reconcileAutoScanScripts)
-
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const url = info.srcUrl
   if (url == null) {
@@ -88,13 +74,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }
     const message = { action: MSG_C2PA_RESULT_FROM_CONTEXT, data: { url, c2paResult, frame: info.frameId } }
     if (tab?.id != null) {
-      const tabId = tab.id
-      // With no static content scripts, the listener only exists if auto-scan
-      // registered it or a previous gesture injected it. The click itself is
-      // the activeTab gesture, so put it there now.
-      void ensureInjected(tabId).then(() => {
-        chrome.tabs.sendMessage(tabId, message).catch(() => { /* restricted page */ })
-      })
+      chrome.tabs.sendMessage(tab.id, message).catch(() => { /* tab may not have a content-script listener */ })
     }
   })
 })
@@ -127,10 +107,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (action === MSG_AUTO_SCAN_UPDATED) {
     void chrome.storage.local.set({ autoScan: data })
-    // Registration follows the preference. The permission prompt happens in the
-    // popup, where there is a user gesture; by the time we get here the answer
-    // is known, and syncAutoScanScripts registers nothing without the grant.
-    void syncAutoScanScripts(data === true)
     void sendMessageToAllTabs({ action: MSG_AUTO_SCAN_UPDATED, data })
   }
 

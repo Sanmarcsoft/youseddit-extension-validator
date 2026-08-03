@@ -14,7 +14,6 @@ import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
 import './provenanceDiagram.js'
 import { type ToggleSwitch } from './components/toggle.js'
 import { RELEASE_NOTES, DEMO_URL, type ReleaseEntry, type ReleaseFix } from './releaseNotes.js'
-import { ensureInjected } from './injection.js'
 
 function setText (id: string, value: string): void {
   const el = document.getElementById(id)
@@ -217,27 +216,8 @@ document.addEventListener('DOMContentLoaded', function (): void {
 
   autoScanToggle.addEventListener('change', (event) => {
     const checked = (event as CustomEvent).detail.checked
-    void (async () => {
-      // Scanning every page needs access to every page. That permission is not
-      // requested at install time any more: it is asked for here, at the moment
-      // the user turns the feature on, because this click is the user gesture
-      // chrome.permissions.request requires. Declining leaves the extension
-      // working through the toolbar icon and the right-click item.
-      if (checked) {
-        let granted = false
-        try {
-          granted = await chrome.permissions.request({ origins: ['<all_urls>'] })
-        } catch {
-          granted = false
-        }
-        if (!granted) {
-          autoScanToggle.checked = false
-          return
-        }
-      }
-      await chrome.storage.local.set({ autoScan: checked })
-      void chrome.runtime.sendMessage({ action: MSG_AUTO_SCAN_UPDATED, data: checked })
-    })()
+    void chrome.storage.local.set({ autoScan: checked })
+    void chrome.runtime.sendMessage({ action: MSG_AUTO_SCAN_UPDATED, data: checked })
   })
 
   // The extension's only automatic outbound request, so it is the user's to
@@ -370,9 +350,6 @@ async function showResults (): Promise<void> {
   if (id == null) {
     return
   }
-  // Opening the popup is the activeTab gesture. With auto-scan off there is no
-  // content script in the page, so put one there before asking it anything.
-  await ensureInjected(id)
   void chrome.tabs.sendMessage(id, { action: MSG_REQUEST_C2PA_ENTRIES, data: null })
 }
 

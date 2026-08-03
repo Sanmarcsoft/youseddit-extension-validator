@@ -14,10 +14,9 @@
         "storage",
         "activeTab",
         "contextMenus",
-        "alarms",
-        "scripting"
+        "alarms"
     ],
-    "optional_host_permissions": [
+    "host_permissions": [
         "<all_urls>"
     ],
     "background": {
@@ -44,6 +43,27 @@
         "48": "icons/vd48.png",
         "128": "icons/vd128.png"
     },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "inject.js"
+            ],
+            "run_at": "document_start",
+            "all_frames": true
+        },
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_start"
+        }
+    ],
     "web_accessible_resources": [
         {
             "resources": [
