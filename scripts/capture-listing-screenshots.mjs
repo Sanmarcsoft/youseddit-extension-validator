@@ -160,6 +160,17 @@ async function main () {
       node?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     await sleep(2500)
+
+    // The panel is taller than 800px now that the graph is in it, so it cannot
+    // fit whole. Align its TOP with the frame: the verdict, signer and trust
+    // state are the part a listing has to show, not the footer.
+    await page.evaluate(() => {
+      const d = [...document.querySelectorAll('iframe')].find(f => f.className === 'c2paDialog')
+      if (d == null) return
+      const top = d.getBoundingClientRect().top + window.scrollY
+      window.scrollTo({ top: Math.max(0, top - 24), behavior: 'instant' })
+    })
+    await sleep(1500)
     await page.screenshot({ path: path.join(OUT_DIR, '02-provenance-graph.png'),
       clip: { x: 0, y: 0, width: SHOT_W, height: SHOT_H } })
     console.log('  wrote 02-provenance-graph.png')
