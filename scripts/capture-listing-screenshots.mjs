@@ -34,7 +34,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const EXT_PATH = path.join(ROOT, 'dist', 'chrome')
 const OUT_DIR = path.join(ROOT, 'releases', 'screenshots')
 const DEMO_URL = process.env.DEMO_URL ?? 'http://localhost:3000/demo-corpus/'
-const FIXTURE = process.env.FIXTURE ?? '07-edge-realworld-cbc-signed'
+const FIXTURE = process.env.FIXTURE ?? '08-trusted-trusteddit-signed'
 
 const SHOT_W = 1280
 const SHOT_H = 800

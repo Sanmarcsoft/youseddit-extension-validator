@@ -5,7 +5,10 @@
   "branch": "feature/39-rc2-fixtures",
   "generated_at": "2026-04-21",
   "signer_fingerprint_sha256": "a1d71e68d2a48f08045700119c14a81d62d043a06ccc15249abc59f90b262e59",
-  "signer_validity": { "not_before": "2026-04-21", "not_after": "2028-04-20" },
+  "signer_validity": {
+    "not_before": "2026-04-21",
+    "not_after": "2028-04-20"
+  },
   "timestamp_authority": "http://timestamp.digicert.com",
   "trust_list_file": "test/default-trust-list.json",
   "tsa_trust_list_file": "test/tsa-trust-list.json",
@@ -94,7 +97,7 @@
     {
       "id": "07-edge-realworld-cbc-signed",
       "path": "07-edge-realworld-cbc-signed.jpg",
-      "source": "test/media/origin-cbc.jpg (repo, MIT) — originally signed by CBC/Radio-Canada",
+      "source": "test/media/origin-cbc.jpg (repo, MIT) \u2014 originally signed by CBC/Radio-Canada",
       "format": "image/jpeg",
       "c2pa": true,
       "expected_status_today": "warning",
@@ -103,8 +106,18 @@
       "signer": "CBC/Radio-Canada libc2pa/3.8.19 (real production signer)",
       "has_trusted_timestamp": true,
       "signature_time": "2024-04-11T20:26:53+00:00",
-      "use_case": "edge case — real-world third-party C2PA interop. Large file (~4.7MB). Proves extension handles production signers from outside the local PKI.",
+      "use_case": "edge case \u2014 real-world third-party C2PA interop. Large file (~4.7MB). Proves extension handles production signers from outside the local PKI.",
       "level": 3
+    },
+    {
+      "id": "08-trusted-trusteddit-signed",
+      "path": "08-trusted-trusteddit-signed.jpg",
+      "source": "06-no-c2pa-plain-jpeg.jpg re-signed via sign.trusteddit.com",
+      "format": "image/jpeg",
+      "c2pa": true,
+      "expected_status": "success",
+      "expected_ui": "green trust badge \u2014 signer chains to Trusteddit-Journalist-Issuer-CA, which ships in the bundled trust list",
+      "note": "The only corpus asset that reads as trusted in a PRODUCTION build. 01-03 are signed by the dev fixture CA, which production deliberately does not load."
     }
   ]
 }
