@@ -163,6 +163,9 @@ async function openOrSwitchToTab (imageUrl: string): Promise<chrome.tabs.Tab> {
   // exactly no longer works once the URL carries per-image query params.
   const target = new URL(REMOTE_VALIDATION_LINK)
   target.searchParams.set('url', imageUrl)
+  // Name the surface that sent the user here. Disclosed in verifieddit.com
+  // privacy policy 2.8, published before this shipped.
+  target.searchParams.set('src', 'extension-panel')
   return await chrome.tabs.create({ url: target.toString() })
 }
 

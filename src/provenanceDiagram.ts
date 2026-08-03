@@ -118,7 +118,7 @@ export class C2paProvenanceGraph extends LitElement {
 
     /* REAL full screen (Fullscreen API). The UA promotes the element to the top
      * layer and sizes it to the screen itself, so we must NOT restate geometry
-     * here: `position: fixed; inset: 0; height: 100vh` resolves against the
+     * here: position:fixed / inset:0 / height:100vh resolve against the
      * OVERLAY IFRAME's viewport (372px wide), which fought the UA sizing and
      * left the toolbar positioned outside the visible area — the controls were
      * present but unhittable once full screen (#141). Cosmetics only. */

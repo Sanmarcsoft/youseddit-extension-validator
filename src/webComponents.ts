@@ -8,7 +8,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
 import { type DurablePillars } from './durableCredentials'
-import { MSG_L3_INSPECT_URL } from './constants'
+import { MSG_L3_INSPECT_URL, TRUSTEDDIT_LINK, taggedLink } from './constants'
 import './provenanceDiagram'
 
 /*
@@ -222,6 +222,15 @@ export class C2paOverlay extends LitElement {
       .errors li { color: #fecdd3; font-size: 11px; margin-bottom: 2px; }
 
       /* ── Footer (inspect link) ──────────────────────────────────── */
+      /* Secondary action: present and findable, never competing with the
+       * verdict above it. */
+      .sign-cta {
+          margin-left: auto;
+          text-decoration: none;
+          opacity: 0.85;
+      }
+      .sign-cta:hover { opacity: 1; text-decoration: underline; }
+
       .footer {
           margin-top: 14px;
           padding-top: 12px;
@@ -498,6 +507,19 @@ export class C2paOverlay extends LitElement {
 
       <div class="footer reveal" style="animation-delay:${pillarsDelay + 160}ms">
         <span>Inspect on <span class="link" @click="${this.handleClick}">Verifieddit</span></span>
+        <!--
+          The one route from "I can verify other people's content" to "I could
+          sign my own". A plain outbound link the user chooses to click: no new
+          permission, no request made on its own, and the extension records
+          nothing about whether it is used. The ?src= is disclosed in the
+          trusteddit.com privacy policy, section 2.5.
+        -->
+        <a
+          class="link sign-cta"
+          href="${taggedLink(TRUSTEDDIT_LINK, 'extension-panel')}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Sign your own content with Trusteddit</a>
       </div>
 
       <div class="additional-info">

@@ -6,7 +6,7 @@
 import { type TrustListInfo, getTrustListInfos, removeTrustList, addTSATrustFile, addTrustFile } from './trustlistProxy.js'
 import packageManifest from '../package.json'
 import { BUILD_INFO } from './build-info'
-import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, MSG_RESPONSE_C2PA_ENTRIES } from './constants.js'
+import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, TRUSTEDDIT_LINK, taggedLink, MSG_RESPONSE_C2PA_ENTRIES } from './constants.js'
 import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
 // Side-effect import: registers <c2pa-provenance-graph>. rollup's
 // moduleSideEffects predicate keeps src/ modules, so this survives the build
@@ -108,8 +108,8 @@ function renderReleaseEntry (entry: ReleaseEntry, openByDefault: boolean): strin
 
 function renderFix (fix: ReleaseFix): string {
   const verifyHref = fix.verifyFragment != null && fix.verifyFragment !== ''
-    ? `${DEMO_URL}#${esc(encodeURIComponent(fix.verifyFragment))}`
-    : DEMO_URL
+    ? `${taggedLink(DEMO_URL, 'extension-release-notes')}#${esc(encodeURIComponent(fix.verifyFragment))}`
+    : taggedLink(DEMO_URL, 'extension-release-notes')
   return `
     <li class="release-fix">
       <div class="release-fix-title">${esc(fix.title)}</div>
@@ -190,6 +190,13 @@ document.addEventListener('DOMContentLoaded', function (): void {
   populateBuildInfo()
   renderWhatsNew()
   void renderInitErrorBanner()
+  // The Options-tab call to action ships as href="#" in the static markup and
+  // is resolved here, so the surface tag lives in one place (constants.ts)
+  // rather than being hand-written into HTML where it would drift.
+  const trustedditLink = document.getElementById('trusteddit-link')
+  if (trustedditLink instanceof HTMLAnchorElement) {
+    trustedditLink.href = taggedLink(TRUSTEDDIT_LINK, 'extension-options')
+  }
   // The popup can open in the millisecond window before c2pa.init or
   // initTrustlist resolves. Re-render the banner whenever the writers
   // touch the session storage keys we care about, so a delayed init

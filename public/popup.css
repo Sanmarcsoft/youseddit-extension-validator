@@ -511,3 +511,39 @@
     display: block;
     width: 100%;
 }
+
+
+/* Sign-your-own call to action (Options tab). Reads as an offer, not an advert:
+ * site tokens, hairline border, no colour fill competing with the verdict UI. */
+.sign-cta-card {
+    margin: 10px 0 14px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #0284c7;
+    border-radius: 6px;
+    background: #f8fafc;
+}
+
+.sign-cta-title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sign-cta-body {
+    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #475569;
+}
+
+.sign-cta-action {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0284c7;
+    text-decoration: none;
+}
+
+.sign-cta-action:hover { text-decoration: underline; }

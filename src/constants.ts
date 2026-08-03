@@ -49,6 +49,55 @@ export const DEFAULT_MSG_TIMEOUT = 5000 /* 5 sec */
 // URL with `?url=<encoded image src>` appended; the receiving page is
 // expected to auto-fill its URL input from the query param.
 export const REMOTE_VALIDATION_LINK = 'https://www.verifieddit.com/'
+
+/**
+ * Trusteddit — where a user goes to SIGN content, rather than verify it.
+ *
+ * The extension had six source references to trusteddit.com and not one
+ * user-facing way to reach it, so the only route from "I verify other people's
+ * content" to "I could sign my own" was for the user to already know the
+ * product existed.
+ *
+ * This is a plain outbound link the user chooses to click. It adds no
+ * permission, sends no request on its own, and the extension observes nothing
+ * about whether it is used. `trustlist.ts` already allowlists this host.
+ */
+export const TRUSTEDDIT_LINK = 'https://www.trusteddit.com/'
+
+/**
+ * Which of our own surfaces sent the user to a site, appended as `?src=`.
+ *
+ * Deliberately coarse: it names a surface, never a user, a device, an asset or
+ * a session, and it is visible in the address bar of the page it opens. The
+ * receiving sites disclose it — verifieddit.com privacy policy section 2.8 and
+ * trusteddit.com section 2.5 — and those were published BEFORE this shipped so
+ * the disclosure is not retrofitted.
+ *
+ * Nothing here is stored, counted or transmitted by the extension itself.
+ */
+export type ClickSource =
+  | 'extension-panel'
+  | 'extension-popup'
+  | 'extension-options'
+  | 'extension-context-menu'
+  | 'extension-release-notes'
+
+/**
+ * Append `?src=<source>` without disturbing existing query parameters.
+ *
+ * Returns the input unchanged if it will not parse, because a broken outbound
+ * link is a worse failure than an untagged one.
+ */
+export function taggedLink (url: string, source: ClickSource): string {
+  try {
+    const target = new URL(url)
+    target.searchParams.set('src', source)
+    return target.toString()
+  } catch {
+    return url
+  }
+}
+
 export const AWAIT_ASYNC_RESPONSE = true
 export const AUTO_SCAN_DEFAULT = process.env.AUTO_SCAN?.toLowerCase() === 'true' || false
 export const TRUSTLIST_UPDATE_INTERVAL = 1440 /* 24 hours */
