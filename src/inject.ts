@@ -340,8 +340,12 @@ function hasFatalValidation (codes: string[] | undefined | null): boolean {
 
 function getC2PAStatus(c2pa: C2paResult): VALIDATION_STATUS {
 
-  // Check for AI content first
-  if (c2pa.trustList?.tlInfo.name === 'AI trust list') {
+  // AI status comes from what the asset DECLARES about its own content (the
+  // IPTC digitalSourceType in its c2pa.actions assertion), not from which
+  // trust list its signer matched. Matching on the "AI trust list" labelled
+  // any file signed under Microsoft's CA as AI-generated, photographs
+  // included, and missed genuine AI output from every other vendor.
+  if (c2pa.aiGeneration !== 'none') {
     if (hasFatalValidation(c2pa.manifestStore.validationStatus)) {
       return 'ai-error';
     }
@@ -410,7 +414,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           signer: (activeManifest as unknown as { signatureInfo?: { issuer?: string } })?.signatureInfo?.issuer ?? signingCert?.subject?.CN ?? '(unknown signer)',
           trustListName: c2pa.trustList?.tlInfo.name ?? null,
           trustListEntity: c2pa.trustList?.entity?.name ?? null,
-          isAIDetected: c2pa.trustList?.tlInfo.name === 'AI trust list',
+          isAIDetected: c2pa.aiGeneration !== 'none',
           manifestCount: manifestArr.length,
           activeManifest: (activeManifest as unknown as { title?: string })?.title ?? '(unnamed)',
           certIssuer: signingCert?.issuer?.CN ?? null,

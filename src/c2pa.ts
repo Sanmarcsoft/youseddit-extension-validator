@@ -14,6 +14,7 @@ import { type DurablePillars, hasSoftBinding } from './durableCredentials.js'
 import { probeManifestStore } from './manifestStore.js'
 import { buildProvenanceGraph } from './provenanceGraph.js'
 import { type ProvenanceGraph } from './provenanceTypes.js'
+import { detectAiGeneration, type AiGeneration } from './aiDetection.js'
 import { blobToDataURL } from './utils.js'
 
 // TranslatedDictionaryCategory came from the old `c2pa` SDK's
@@ -47,6 +48,12 @@ export interface C2paResult extends ExtensionC2paResult {
   // credential is REGISTERED and recoverable (Pillar 3 'verified'). Probed in
   // the offscreen/background validate path where the image bytes are available.
   manifestStoreVerified: boolean
+  // Whether the asset DECLARES AI generation, read from the IPTC
+  // digitalSourceType in its own c2pa.actions assertion. Never inferred from
+  // who signed it — see aiDetection.ts.
+  aiGeneration: AiGeneration
+  // The declared digitalSourceType URI, verbatim, or null when none is present.
+  digitalSourceType: string | null
   // Portable provenance graph (manifests, ingredients, assertions, sensors)
   // built from the RAW c2pa-rs store before it is flattened into
   // ExtensionC2paResult. Same node/edge contract that verifieddit.com and
@@ -177,6 +184,10 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
     manifestStoreVerified = await probeManifestStore(blob)
   }
 
+  // AI generation is a claim the producer signed about the CONTENT, so it is
+  // read from the active manifest's own actions assertion, not from the signer.
+  const aiDetection = detectAiGeneration(activeManifest)
+
   const result: C2paResult = {
     ...serializedResult,
     url,
@@ -192,6 +203,8 @@ export async function validateUrl (url: string): Promise<C2paResult | C2paError>
     // The diagram is a display affordance walking attacker-supplied structure;
     // it must never be able to turn a valid asset into a failed validation, so
     // a throw degrades to "no diagram", not to an error verdict.
+    aiGeneration: aiDetection.generation,
+    digitalSourceType: aiDetection.digitalSourceType,
     provenanceGraph: safeProvenanceGraph(store, serializedResult.source.filename),
     // Computed downstream in the background SW (detectDurablePillars) once the
     // timestamp/trust signals are resolved.

@@ -27,6 +27,17 @@
   `bun scripts/sync-c2pa-trust-lists.ts [--check]`.
 - Fixture-signing CA moved out of the production trust list into
   `dev-trust-list.json`, so `default-trust-list.json` is exactly the official list.
+- AI-generated media is now identified from what the asset declares, not from
+  who signed it. `isAIDetected` was `trustList.name === 'AI trust list'`, and
+  that list holds Microsoft as a CA plus OpenAI. A CA match covers every leaf
+  certificate beneath it, so an ordinary photograph signed anywhere under
+  Microsoft's PKI was badged AI-generated, while genuine AI output from any
+  other vendor was missed entirely. Detection now reads the IPTC
+  `digitalSourceType` from the active manifest's own `c2pa.actions` assertion:
+  `trainedAlgorithmicMedia` is full generation, `compositeWithTrainedAlgorithmicMedia`
+  is partial, and everything else — including `algorithmicMedia` for procedural
+  work — is not AI. Unit tests in `test/aiDetection.test.ts` pin the negative
+  cases, which are the ones that matter.
 - Fixture-signing CA is no longer loaded as a trust anchor in published builds.
   Splitting it into its own file left it still being pushed into
   `globalTrustLists` by `loadDefaultTrustLists()`, so every installed copy

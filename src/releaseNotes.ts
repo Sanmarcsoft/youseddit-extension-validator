@@ -51,6 +51,11 @@ export const RELEASE_NOTES: readonly ReleaseEntry[] = [
           'Open the Trust Lists tab. The bundled list now carries all 29 anchors from the C2PA Conformance Program, plus the 21 official timestamp authorities. Media signed by Huawei, Huanyu, Verimago, Snowball, Encypher, TrustAsia or RealReel previously showed as valid-but-unknown; it now resolves to a named, trusted signer.'
       },
       {
+        title: 'Only genuinely AI-generated media is labelled as AI',
+        howToVerify:
+          'The AI marker now comes from what a file declares about itself in its Content Credentials, not from which company signed it. Previously anything signed under certain corporate certificate authorities was marked AI-generated, including ordinary photographs, and AI images from other tools were missed.'
+      },
+      {
         title: 'Test-signing keys are no longer trusted in the published build',
         howToVerify:
           'The demo fixtures shipped with the source are signed by a development key that lives in the public repository. That key is no longer loaded as a trust anchor in the version you install, so nothing signed with it can appear trusted to you.'
