@@ -111,6 +111,26 @@ export const AUTO_SCAN_DEFAULT = process.env.AUTO_SCAN?.toLowerCase() === 'true'
  * corpus can still exercise the trusted-signer path.
  */
 export const TRUST_DEV_FIXTURES = process.env.TRUST_DEV_FIXTURES?.toLowerCase() === 'true'
+/**
+ * Ask manifests.sanmarcsoft.com whether a credential is registered for an
+ * image's perceptual fingerprint (Durable Content Credentials Pillar 3).
+ *
+ * OFF unless the user turns it on. It is the extension's only automatic
+ * outbound request, and although it sends hashes rather than pixels, a
+ * perceptual hash of what someone is looking at is still information about
+ * what they are looking at. A tool people install to check whether they are
+ * being deceived should not quietly transmit anything on their behalf.
+ *
+ * With it off, Pillar 3 reports 'declared' rather than 'verified' — the asset
+ * says it has a durable binding and we did not confirm the registration. That
+ * is the honest reading, and it degrades openly instead of silently.
+ */
+export const MANIFEST_STORE_PROBE_DEFAULT = false
+/** Set the manifest-store probe preference from a UI surface (overlay/popup). */
+export const MSG_SET_MANIFEST_STORE_PROBE = 'setManifestStoreProbe'
+/** chrome.storage.local key backing MANIFEST_STORE_PROBE_DEFAULT. */
+export const MANIFEST_STORE_PROBE_KEY = 'manifestStoreProbe'
+
 export const TRUSTLIST_UPDATE_INTERVAL = 1440 /* 24 hours */
 export const LOCAL_TRUST_ANCHOR_LIST_NAME = 'Local Trust Anchors'
 export const LOCAL_TRUST_TSA_LIST_NAME = 'Local TSA Anchors'

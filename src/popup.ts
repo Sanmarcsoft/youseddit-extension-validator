@@ -6,7 +6,7 @@
 import { type TrustListInfo, getTrustListInfos, removeTrustList, addTSATrustFile, addTrustFile } from './trustlistProxy.js'
 import packageManifest from '../package.json'
 import { BUILD_INFO } from './build-info'
-import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, TRUSTEDDIT_LINK, taggedLink, MSG_RESPONSE_C2PA_ENTRIES } from './constants.js'
+import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, TRUSTEDDIT_LINK, taggedLink, MSG_RESPONSE_C2PA_ENTRIES, MANIFEST_STORE_PROBE_DEFAULT, MANIFEST_STORE_PROBE_KEY } from './constants.js'
 import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
 // Side-effect import: registers <c2pa-provenance-graph>. rollup's
 // moduleSideEffects predicate keeps src/ modules, so this survives the build
@@ -218,6 +218,20 @@ document.addEventListener('DOMContentLoaded', function (): void {
     const checked = (event as CustomEvent).detail.checked
     void chrome.storage.local.set({ autoScan: checked })
     void chrome.runtime.sendMessage({ action: MSG_AUTO_SCAN_UPDATED, data: checked })
+  })
+
+  // The extension's only automatic outbound request, so it is the user's to
+  // switch on. No message to the background is needed: manifestStore.ts reads
+  // the setting at the moment it would otherwise reach the network.
+  const probeToggle = document.getElementById('toggleManifestStoreProbe') as ToggleSwitch
+
+  chrome.storage.local.get(MANIFEST_STORE_PROBE_KEY, (result) => {
+    probeToggle.checked = result[MANIFEST_STORE_PROBE_KEY] ?? MANIFEST_STORE_PROBE_DEFAULT
+  })
+
+  probeToggle.addEventListener('change', (event) => {
+    const checked = (event as CustomEvent).detail.checked
+    void chrome.storage.local.set({ [MANIFEST_STORE_PROBE_KEY]: checked })
   })
 
   // Add event listeners to switch tabs

@@ -142,6 +142,17 @@
             <br>
             <toggle-switch label="Automatically scan all media elements" id="toggleAutoScan"></toggle-switch>
             <br>
+            <toggle-switch label="Check durable credentials online" id="toggleManifestStoreProbe"></toggle-switch>
+            <p class="option-note">
+                Off by default. When on, Verifieddit sends a perceptual fingerprint
+                of images that declare a durable credential to
+                <code>manifests.sanmarcsoft.com</code> to confirm the credential is
+                registered and recoverable. Fingerprints only, never the image, and
+                nothing identifying you or your device. With this off, such assets
+                still verify — their durable binding reads as declared rather than
+                confirmed.
+            </p>
+            <br>
             <br>
         </div>
     </div>

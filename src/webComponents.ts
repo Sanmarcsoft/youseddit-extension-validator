@@ -8,7 +8,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
 import { type DurablePillars } from './durableCredentials'
-import { MSG_L3_INSPECT_URL, TRUSTEDDIT_LINK, taggedLink } from './constants'
+import { MSG_L3_INSPECT_URL, TRUSTEDDIT_LINK, taggedLink, MSG_SET_MANIFEST_STORE_PROBE, MANIFEST_STORE_PROBE_KEY, MANIFEST_STORE_PROBE_DEFAULT } from './constants'
 import './provenanceDiagram'
 
 /*
@@ -692,23 +692,36 @@ export class C2paTypewriter extends LitElement {
  * Three cells: Signed & timestamped, Durable watermark, Cloud-recoverable.
  * Active pillars glow emerald; inactive ones dim. Mirrors trusteddit.com.
  */
-const PILLAR_DEFS: Array<{ key: keyof DurablePillars, label: string, sub: string, icon: TemplateResult }> = [
+const PILLAR_DEFS: Array<{
+  key: keyof DurablePillars
+  label: string
+  sub: string
+  icon: TemplateResult
+  /** Plain-language explanation, shown when the pillar is clicked. */
+  detail: string
+  /** True when confirming this pillar requires sending anything off-device. */
+  needsConsent?: boolean
+}> = [
   {
     key: 'signedAndTimestamped',
     label: 'Signed & timestamped',
     sub: 'C2PA + RFC 3161',
+    detail: 'The file carries a cryptographic signature and a trusted timestamp proving when it was signed. Checked entirely on your device; nothing is sent anywhere.',
     icon: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>`
   },
   {
     key: 'trustmark',
     label: 'Durable watermark',
     sub: 'TrustMark soft binding',
+    detail: 'The file declares an invisible watermark, so its credential can be recovered even if the metadata is stripped by a re-encode or a screenshot. Read from the signed manifest on your device; nothing is sent anywhere.',
     icon: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11a1.8 1.8 0 0 1 1.8 1.8c0 1.9-.2 3.6-.9 5.2"/><path d="M9.2 11.6a3 3 0 0 1 5.6 1.2c0 2.6-.3 4.6-1.1 6.6"/><path d="M6.6 12a5.4 5.4 0 0 1 10.8 0c0 1.4-.1 2.8-.5 4.1"/><path d="M4.6 13.2a7.4 7.4 0 0 1 14.8-.6"/></svg>`
   },
   {
     key: 'manifestStore',
     label: 'Cloud-recoverable',
     sub: 'manifest store · probe',
+    needsConsent: true,
+    detail: 'Confirming this means asking manifests.sanmarcsoft.com whether a credential is actually registered for this image. That request sends a perceptual fingerprint of the image — a short hash, never the image itself, and nothing identifying you or your device. It is off until you turn it on.',
     icon: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>`
   }
 ]
@@ -721,6 +734,33 @@ export class C2paPillars extends LitElement {
   // Durability is only a TRUST positive when the signer is itself trusted.
   // When false, the pillars are shown but flagged as self-asserted (issue #113).
   @property({ type: Boolean }) signerTrusted = false
+  /** Which pillar's explanation is open, if any. */
+  @state() private openPillar: keyof DurablePillars | null = null
+  /** Mirrors the stored opt-in so the panel can show the right action. */
+  @state() private probeEnabled = false
+
+  connectedCallback (): void {
+    super.connectedCallback()
+    void chrome.storage?.local?.get(MANIFEST_STORE_PROBE_KEY).then((r) => {
+      this.probeEnabled = r?.[MANIFEST_STORE_PROBE_KEY] ?? MANIFEST_STORE_PROBE_DEFAULT
+    }).catch(() => { this.probeEnabled = MANIFEST_STORE_PROBE_DEFAULT })
+  }
+
+  private togglePillar (key: keyof DurablePillars): void {
+    this.openPillar = this.openPillar === key ? null : key
+  }
+
+  /**
+   * Record consent and turn the probe on. Deliberately does NOT re-check the
+   * asset in front of the user: consent applies from here forward, so granting
+   * it never retroactively sends a fingerprint for something already on screen.
+   */
+  private enableProbe (): void {
+    this.probeEnabled = true
+    try {
+      void chrome.runtime.sendMessage({ action: MSG_SET_MANIFEST_STORE_PROBE, data: true })
+    } catch { /* context gone; the switch in Options remains available */ }
+  }
 
   static styles = [
     sharedStyles,
@@ -795,6 +835,42 @@ export class C2paPillars extends LitElement {
       }
       .glyph { font-weight: 700; }
 
+      /* Cells are buttons now; make that legible without shouting. */
+      .cell { cursor: pointer; }
+      .cell:hover { border-color: rgba(148, 163, 184, 0.55); }
+      .cell:focus-visible { outline: 2px solid var(--ok); outline-offset: 2px; }
+      .cell.open { border-color: rgba(148, 163, 184, 0.7); }
+      .more-dot { font-size: 8px; color: #94a3b8; line-height: 1; }
+
+      .detail {
+        margin-top: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: rgba(15, 23, 42, 0.5);
+        padding: 8px 10px;
+      }
+      .detail p { margin: 0; font-size: 10px; line-height: 1.5; color: #cbd5e1; }
+      /* A request to send something off-device is marked as such, not slipped in. */
+      .detail.consent {
+        border-color: rgba(245, 158, 11, 0.4);
+        background: rgba(245, 158, 11, 0.08);
+      }
+      .detail.consent p { color: var(--warn); }
+      .opt-in {
+        margin-top: 8px;
+        font: inherit;
+        font-size: 10px;
+        font-weight: var(--font-bold);
+        color: var(--text-bright);
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      .opt-in:hover { background: var(--glass-bg-soft); }
+      .opt-in-note { display: block; margin-top: 6px; font-size: 9px; color: #94a3b8; line-height: 1.45; }
+
       .note { margin-top: 8px; font-size: 10px; line-height: 1.45; color: #94a3b8; }
       .note.warn {
         margin-top: 8px;
@@ -827,21 +903,56 @@ export class C2paPillars extends LitElement {
         <div class="grid">
           ${PILLAR_DEFS.map((def) => {
             const st = this.stateFor(p, def.key)
+            const open = this.openPillar === def.key
+            // Every pillar explains itself on click. A durability claim the
+            // reader cannot interrogate is just a badge, and this product is
+            // in no position to ask for trust it will not itself account for.
             return html`
-              <div class="cell ${st}">
+              <div
+                class="cell ${st} ${open ? 'open' : ''}"
+                role="button"
+                tabindex="0"
+                aria-expanded="${open ? 'true' : 'false'}"
+                title="What does this mean?"
+                @click="${() => { this.togglePillar(def.key) }}"
+                @keydown="${(e: KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.togglePillar(def.key) }
+                }}"
+              >
                 ${def.icon}
                 <span class="l"><span class="glyph">${glyph(st)}</span> ${def.label}</span>
                 <span class="s">${def.sub}</span>
                 ${st === 'declared' ? html`<span class="badge">declared · unverified</span>` : nothing}
+                <span class="more-dot" aria-hidden="true">${open ? '▴' : '▾'}</span>
               </div>
             `
           })}
         </div>
+        ${(() => {
+          if (this.openPillar == null) return nothing
+          const def = PILLAR_DEFS.find((d) => d.key === this.openPillar)
+          if (def == null) return nothing
+          const needsOptIn = def.needsConsent === true && !this.probeEnabled
+          return html`
+            <div class="detail ${needsOptIn ? 'consent' : ''}">
+              <p>${def.detail}</p>
+              ${def.needsConsent === true
+                ? (needsOptIn
+                    ? html`
+                      <button class="opt-in" @click="${(e: Event) => { e.stopPropagation(); this.enableProbe() }}">
+                        Turn on the online check
+                      </button>
+                      <span class="opt-in-note">Applies from now on. This image is not re-checked, so nothing is sent for it.</span>`
+                    : html`<span class="opt-in-note">On. Turn it off again in the extension's Options tab.</span>`)
+                : nothing}
+            </div>
+          `
+        })()}
         ${!this.signerTrusted
           ? html`<p class="note warn">⚠ Signer is not in a trust list — these durability features are self-asserted by the signer, not independently verified.</p>`
           : nothing}
-        ${p.manifestStore === 'declared'
-          ? html`<p class="note">Cloud recovery is declared in the manifest but not probed offline; open the Verifieddit page to confirm registration.</p>`
+        ${p.manifestStore === 'declared' && this.probeEnabled
+          ? html`<p class="note">Cloud recovery is declared in the manifest but the registration was not confirmed — the store had no match, or it could not be reached.</p>`
           : nothing}
         ${!p.durable
           ? html`<p class="note">${p.embedOnly

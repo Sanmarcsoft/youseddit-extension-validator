@@ -547,3 +547,18 @@
 }
 
 .sign-cta-action:hover { text-decoration: underline; }
+
+/* Explanatory copy under an Options toggle. Small and quiet, but present:
+   a privacy switch the user cannot understand is not a real choice. */
+.option-note {
+    margin: 6px 0 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #71717a;
+}
+.option-note code {
+    font-size: 10.5px;
+    background: #f4f4f5;
+    padding: 1px 4px;
+    border-radius: 3px;
+}

@@ -84,6 +84,9 @@ Adds "Verify with Verifieddit." to the right-click context menu on images, video
 ### alarms
 Schedules periodic trust list refreshes (every 24 hours, `TRUSTLIST_UPDATE_INTERVAL = 1440`) for trust lists the user has imported. The bundled lists carry no `download_url` and are never re-fetched.
 
+### storage (durable-credential check)
+The opt-in for the manifest-store lookup is kept in `chrome.storage.local` under `manifestStoreProbe`, default `false`. No separate permission is required; it is noted here because it governs the only automatic outbound request.
+
 ### offscreen
 Hosts the C2PA WebAssembly verification engine in an offscreen document. A Manifest V3 service worker cannot run the WASM toolkit directly, so verification work is delegated to this document. It renders nothing to the user, performs no network calls of its own, and exists only for the duration of verification.
 
@@ -99,13 +102,21 @@ user-initiated navigations, both plain link clicks, neither automatic:
 |---|---|---|
 | `www.verifieddit.com/?url=<media-url>` | User clicks "Inspect on Verifieddit" | The URL of the one media file they chose to inspect |
 | `www.trusteddit.com/?src=<surface>` | User clicks "Sign your own content with Trusteddit" | A constant naming which extension surface the link was clicked from. No user, device, asset or session identifier |
+| `manifests.sanmarcsoft.com/v1/matches/byBinding` | **Only after the user opts in** to "Check durable credentials online" (off by default), for images whose credential declares a durable binding | A perceptual hash of the image (pHash + dHash). Never the image, never a user, device or session identifier. `credentials: 'omit'` |
 
 The `src` value is drawn from a fixed set (`extension-panel`, `extension-popup`,
 `extension-options`, `extension-context-menu`, `extension-release-notes`) and is
 disclosed by the receiving sites: verifieddit.com privacy policy §2.8 and
 trusteddit.com privacy policy §2.5, both published before the parameter shipped.
 
-The extension itself collects nothing, sends no analytics, and sets no cookies.
+The manifest-store lookup is the extension's only request not begun by a click,
+which is why it ships off and is granted in context: the "Cloud-recoverable"
+pillar in the panel states what would be sent before anything is. Consent
+applies forward only — enabling it never re-checks media already on screen.
+
+Beyond these, the extension collects nothing, sends no analytics, and sets no
+cookies. Verified against the source: zero analytics SDKs, and no
+`document.cookie`, `localStorage` or `sessionStorage` anywhere in `src/`.
 
 ## Screenshots
 

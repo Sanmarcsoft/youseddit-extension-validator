@@ -11,6 +11,7 @@ import { detectDurablePillars } from './durableCredentials'
 import {
   MSG_GET_ID, MSG_L3_INSPECT_URL, MSG_REMOTE_INSPECT_URL, MSG_FORWARD_TO_CONTENT, REMOTE_VALIDATION_LINK,
   MSG_VALIDATE_URL, AWAIT_ASYNC_RESPONSE, MSG_C2PA_RESULT_FROM_CONTEXT, AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED,
+  MSG_SET_MANIFEST_STORE_PROBE, MANIFEST_STORE_PROBE_KEY,
   TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
@@ -107,6 +108,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (action === MSG_AUTO_SCAN_UPDATED) {
     void chrome.storage.local.set({ autoScan: data })
     void sendMessageToAllTabs({ action: MSG_AUTO_SCAN_UPDATED, data })
+  }
+
+  // Consent for the manifest-store probe, given from the overlay or the popup.
+  // Stored only; nothing is probed retroactively, so turning it on never
+  // reaches the network for media the user already looked at.
+  if (action === MSG_SET_MANIFEST_STORE_PROBE) {
+    void chrome.storage.local.set({ [MANIFEST_STORE_PROBE_KEY]: data === true })
   }
 })
 
