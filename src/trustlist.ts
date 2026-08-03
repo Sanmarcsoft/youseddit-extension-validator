@@ -4,7 +4,7 @@
  */
 
 import { type CertificateInfoExtended, calculateSha256CertThumbprintFromX5c, PEMtoDER, certificateFromDer, distinguishedNameToString, verifyParentSignedChild } from './certs/certs';
-import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE } from './constants';
+import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE , TRUST_DEV_FIXTURES } from './constants';
 import { bytesToBase64, sendMessageToAllTabs } from './utils';
 
 // Directly import the JSON files (bundled into the JS by Rollup; not shipped
@@ -12,6 +12,15 @@ import { bytesToBase64, sendMessageToAllTabs } from './utils';
 // #125: production trust anchors live under src/trust-anchors/ (NOT test/), so
 // fixtures and real roots-of-trust can never be confused or swapped.
 import defaultTestTrustList from './trust-anchors/default-trust-list.json';
+// Official C2PA TSA anchors (21). Generated alongside default-trust-list.json by
+// scripts/sync-c2pa-trust-lists.ts; named 'Local TSA Anchors' so
+// checkTSATrustListInclusion picks it up. Before this the extension carried the
+// Trusteddit TSA chain only, so RFC 3161 timestamps from every official C2PA
+// timestamp authority failed the trust check.
+import defaultTsaTrustList from './trust-anchors/default-tsa-trust-list.json';
+// Fixture-signing CA for the bundled demo corpus. NOT a C2PA anchor — kept out
+// of default-trust-list.json so that file is exactly the official list.
+import devTrustList from './trust-anchors/dev-trust-list.json';
 import defaultAiTrustList from './trust-anchors/ai-trust-list.json';
 // Trusteddit.com anchors: the CA chain (signing) + the TSA chain (timestamps).
 // Trusting the Trusteddit-Journalist-Issuer-CA trusts every leaf it issues.
@@ -497,6 +506,31 @@ async function loadDefaultTrustLists (): Promise<void> {
     defaultLoaded += 1
   } catch (error) {
     lastError = error
+  }
+
+  try {
+    const officialTsaTrustList = defaultTsaTrustList as TrustList;
+    await processDownloadedTrustList(officialTsaTrustList);
+    globalTrustLists.push(officialTsaTrustList);
+    defaultLoaded += 1
+  } catch (error) {
+    lastError = error
+  }
+
+  // The demo-corpus fixture CA is NOT a C2PA anchor — it is a key we generated.
+  // Loading it in a shipped build means anyone holding that key can mint media
+  // that every user sees as trusted, which is precisely the claim this product
+  // exists to make honestly. Dev and E2E builds keep it so the bundled corpus
+  // still exercises the trusted path; the store artifact must not.
+  if (TRUST_DEV_FIXTURES) {
+    try {
+      const fixtureTrustList = devTrustList as TrustList;
+      await processDownloadedTrustList(fixtureTrustList);
+      globalTrustLists.push(fixtureTrustList);
+      defaultLoaded += 1
+    } catch (error) {
+      lastError = error
+    }
   }
 
   try {

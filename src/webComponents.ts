@@ -8,8 +8,8 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
 import { type DurablePillars } from './durableCredentials'
-import { MSG_L3_INSPECT_URL, MSG_SAVE_BOOKMARK } from './constants'
-import { modelFromC2paResult, renderIngredientDiagram } from './ingredientDiagram'
+import { MSG_L3_INSPECT_URL, TRUSTEDDIT_LINK, taggedLink } from './constants'
+import './provenanceDiagram'
 
 /*
   The C2pa library does not export all its types, we extract them from
@@ -221,7 +221,16 @@ export class C2paOverlay extends LitElement {
       .errors ul { margin: 6px 0 0; padding-left: 18px; }
       .errors li { color: #fecdd3; font-size: 11px; margin-bottom: 2px; }
 
-      /* ── Footer (inspect link + save) ───────────────────────────── */
+      /* ── Footer (inspect link) ──────────────────────────────────── */
+      /* Secondary action: present and findable, never competing with the
+       * verdict above it. */
+      .sign-cta {
+          margin-left: auto;
+          text-decoration: none;
+          opacity: 0.85;
+      }
+      .sign-cta:hover { opacity: 1; text-decoration: underline; }
+
       .footer {
           margin-top: 14px;
           padding-top: 12px;
@@ -240,19 +249,6 @@ export class C2paOverlay extends LitElement {
           border-bottom: 1px dotted rgba(125, 211, 252, 0.5);
       }
       .link:hover { color: var(--accent-bright); }
-
-      .saveBtn {
-          margin-left: auto;
-          padding: 4px 10px;
-          font-size: 11px;
-          color: var(--text-bright);
-          background: rgba(56, 189, 248, 0.12);
-          border: 1px solid rgba(56, 189, 248, 0.3);
-          border-radius: 6px;
-          cursor: pointer;
-      }
-      .saveBtn:hover { background: rgba(56, 189, 248, 0.2); }
-      .saveBtn:disabled { opacity: 0.6; cursor: default; }
 
       .more {
           display: inline-block;
@@ -326,6 +322,8 @@ export class C2paOverlay extends LitElement {
     const div: HTMLDivElement = additionalInfoEl as HTMLDivElement
     if (this.additionalInfoCollapsed) {
       C2paCollapsible.close()
+      // Clip again BEFORE animating shut, or the content spills during collapse.
+      div.style.overflow = 'hidden'
       div.style.maxHeight = div.scrollHeight + 'px'
       void div.offsetHeight
       div.style.maxHeight = '0'
@@ -337,6 +335,16 @@ export class C2paOverlay extends LitElement {
       div.style.maxHeight = height
       const onTransitionEnd = (): void => {
         div.style.maxHeight = 'none'
+        // `overflow: hidden` exists only to clip the slide-open animation. Left
+        // in place afterwards it silently clips anything the sections grow into
+        // AFTER this height was measured — and the height is measured while
+        // every collapsible is still shut. Opening "Provenance chain" then adds
+        // ~400px of diagram whose bottom edge, including the zoom/Fit/Full
+        // screen control row, lands outside the box: laid out, invisible, and
+        // not hit-testable, so clicking Full screen did nothing at all
+        // (elementFromPoint at the button returned the overlay host, #141).
+        // Once the animation is done there is nothing left to clip.
+        div.style.overflow = 'visible'
         div.removeEventListener('transitionend', onTransitionEnd)
       }
       div.addEventListener('transitionend', onTransitionEnd)
@@ -391,44 +399,6 @@ export class C2paOverlay extends LitElement {
       action: MSG_L3_INSPECT_URL,
       data: this.c2paResult?.url
     })
-  }
-
-  @property({ attribute: false }) saveState: 'idle' | 'saving' | 'saved' | 'exists' | 'error' = 'idle'
-  private readonly handleSaveBookmark = (): void => {
-    const result = this.c2paResult
-    if (result == null) return
-    this.saveState = 'saving'
-    const name = result.source?.filename ?? 'verification'
-    const statusLabel = (this.status?.errors === true)
-      ? 'Invalid'
-      : (this.status?.trusted === true ? 'Trusted' : 'Signer unknown')
-    const signer = (this._c2paResult?.manifestStore?.manifests[this._c2paResult.manifestStore.activeManifest]?.signatureInfo?.issuer as string | undefined) ?? ''
-    const signerSuffix = signer !== '' ? ` (${signer})` : ''
-    const title = `Verifieddit · ${decodeURIComponent(name)} · ${statusLabel}${signerSuffix}`
-    chrome.runtime.sendMessage(
-      { action: MSG_SAVE_BOOKMARK, data: { imageUrl: result.url, title } },
-      (resp: { status?: 'created' | 'already-exists' | 'error', error?: string }) => {
-        if (chrome.runtime.lastError != null) {
-          this.saveState = 'error'
-          return
-        }
-        this.saveState = resp?.status === 'created' ? 'saved'
-          : resp?.status === 'already-exists' ? 'exists'
-            : 'error'
-      }
-    )
-  }
-
-  private renderSaveButton (): TemplateResult {
-    const label = this.saveState === 'saving' ? 'Saving…'
-      : this.saveState === 'saved' ? '✓ Saved'
-        : this.saveState === 'exists' ? '✓ Already saved'
-          : this.saveState === 'error' ? 'Save failed'
-            : 'Save verification'
-    const disabled = this.saveState === 'saving'
-    return html`
-      <button class="saveBtn" @click="${this.handleSaveBookmark}" ?disabled="${disabled}">${label}</button>
-    `
   }
 
   /* Build the staged + typewritten monospace verification log. */
@@ -537,7 +507,19 @@ export class C2paOverlay extends LitElement {
 
       <div class="footer reveal" style="animation-delay:${pillarsDelay + 160}ms">
         <span>Inspect on <span class="link" @click="${this.handleClick}">Verifieddit</span></span>
-        ${this.renderSaveButton()}
+        <!--
+          The one route from "I can verify other people's content" to "I could
+          sign my own". A plain outbound link the user chooses to click: no new
+          permission, no request made on its own, and the extension records
+          nothing about whether it is used. The ?src= is disclosed in the
+          trusteddit.com privacy policy, section 2.5.
+        -->
+        <a
+          class="link sign-cta"
+          href="${taggedLink(TRUSTEDDIT_LINK, 'extension-panel')}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Sign your own content with Trusteddit</a>
       </div>
 
       <div class="additional-info">
@@ -546,13 +528,16 @@ export class C2paOverlay extends LitElement {
           <div slot="content"><c2pa-grid-display .items="${activityItems(this.c2paResult?.editsAndActivity ?? undefined)}"></c2pa-grid-display></div>
         </c2pa-collapsible>
         <c2pa-collapsible>
-          <span slot="header">Ingredients</span>
+          <span slot="header">Provenance chain</span>
           <div slot="content">
             ${(() => {
-              // #131: show the diagram when a model exists, else the grid — never both.
-              const model = modelFromC2paResult(c2paResult)
-              return model != null
-                ? renderIngredientDiagram(model)
+              // #131: show the diagram when a graph exists, else the grid — never both.
+              // The graph is built upstream in c2pa.ts from the RAW c2pa-rs store,
+              // so it carries the assertions, sensor telemetry, relationships and
+              // per-ingredient validation that the flattened result drops.
+              const graph = c2paResult.provenanceGraph
+              return graph != null && graph.nodes.length > 0
+                ? html`<c2pa-provenance-graph .graph=${graph}></c2pa-provenance-graph>`
                 : html`<c2pa-grid-display .items="${ingredientItems(activeManifest.ingredients)}"></c2pa-grid-display>`
             })()}
           </div>
@@ -854,7 +839,11 @@ export class C2paCollapsible extends LitElement {
       transition: max-height 0.3s ease, padding 0.3s ease;
       padding: 0 0 0 14px;
     }
-    .collapsible-content.open { max-height: 400px; }
+    /* Was 400px, which cropped the diagram's control row (#141): the graph
+     * canvas alone is 360px and the section adds padding, so the zoom / Fit /
+     * Full screen row fell outside the cap. Overflow is only needed while the
+     * height animates. */
+    .collapsible-content.open { max-height: 900px; overflow: visible; }
     .icon {
       transition: transform 0.3s ease;
       width: 10px;

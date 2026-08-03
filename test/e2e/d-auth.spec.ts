@@ -1,45 +1,20 @@
 import { test, expect, Page } from './extension-fixture';
 
 test.describe('Feature D: Verifieddit Login Integration', () => {
-  test('should display "Sign in with Verifieddit" button in Options tab and navigate to login endpoint', async ({
+  // FIXME(#85): there is no sign-in UI in public/popup.html — no button, no
+  // Clerk, no auth of any kind. This spec tests a feature that has not been
+  // built. Unskip when #85 lands the Clerk-authenticated About tab.
+  test.fixme('should display "Sign in with Verifieddit" button in Options tab and navigate to login endpoint', async ({
     context,
+    extensionId,
   }) => {
-    // Open extension popup
+    // `chrome-extension://*/` is not a real wildcard Chrome will resolve, and
+    // scraping [data-id] out of chrome://extensions reaches into a closed
+    // shadow root. The fixture derives the ID from the MV3 service worker.
     const popupPage = await context.newPage();
-
-    let actualExtId = '';
-
-    try {
-      // Try generic extension URL first
-      const response = await popupPage.goto('chrome-extension://*/popup.html', {
-        waitUntil: 'domcontentloaded',
-      });
-
-      if (!response?.ok()) {
-        throw new Error('Wildcard URL failed');
-      }
-    } catch (e) {
-      // Fallback: get actual extension ID from chrome://extensions
-      const extPage = await context.newPage();
-      await extPage.goto('chrome://extensions/');
-
-      actualExtId = await extPage.evaluate(() => {
-        // Look for extension item in DOM
-        const item = document.querySelector('[data-id]');
-        const id = item?.getAttribute('data-id');
-        return id || '';
-      });
-
-      await extPage.close();
-
-      if (!actualExtId) {
-        throw new Error('Could not determine extension ID from chrome://extensions');
-      }
-
-      await popupPage.goto(`chrome-extension://${actualExtId}/popup.html`, {
-        waitUntil: 'domcontentloaded',
-      });
-    }
+    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, {
+      waitUntil: 'domcontentloaded',
+    });
 
     // Navigate to popup if not already there
     if (!popupPage.url().includes('popup.html')) {

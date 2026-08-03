@@ -2,7 +2,13 @@ import { test, expect } from './extension-fixture';
 import path from 'path';
 
 test.describe('Feature A: C2PA Icon Verification', () => {
-  test('should render cr + G icons on three green-trust fixtures within 5s', async ({
+  // FIXME(#24): this spec queries `[data-c2pa-icon="true"][data-trust="green"]`,
+  // but neither attribute is emitted anywhere in src/ — the badge observability
+  // contract was never implemented, so the assertion cannot pass regardless of
+  // scanning. It also waits passively for auto-scan, which #86 turned OFF by
+  // default; auto-scan-default-off.spec.ts asserts the exact opposite on the
+  // same page. Unskip when #24 lands the data-c2pa-status attribute.
+  test.fixme('should render cr + G icons on three green-trust fixtures within 5s', async ({
     context,
   }) => {
     const page = await context.newPage();

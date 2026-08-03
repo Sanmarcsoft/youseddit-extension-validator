@@ -22,5 +22,7 @@ chromeManifest.version = packageJson.version;
 firefoxManifest.version = packageJson.version;
 
 // write-back the updated manifest files
-fs.writeFileSync(chromeManifestPath, JSON.stringify(chromeManifest, null, 4));
-fs.writeFileSync(firefoxManifestPath, JSON.stringify(firefoxManifest, null, 4));
+// Trailing newline: without it every build leaves both manifests dirty in git,
+// which buries real manifest changes in review noise.
+fs.writeFileSync(chromeManifestPath, JSON.stringify(chromeManifest, null, 4) + '\n');
+fs.writeFileSync(firefoxManifestPath, JSON.stringify(firefoxManifest, null, 4) + '\n');

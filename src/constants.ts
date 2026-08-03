@@ -42,10 +42,6 @@ export const MSG_FORWARD_TO_CONTENT = 'MSG_FORWARD_TO_CONTENT'
 export const MSG_SHOW_CONTEXT_MENU = 'MSG_SHOW_CONTEXT_MENU'
 export const MSG_C2PA_RESULT_FROM_CONTEXT = 'MSG_C2PA_RESULT_FROM_CONTEXT'
 export const MSG_AUTO_SCAN_UPDATED = 'MSG_AUTO_SCAN_UPDATED'
-// rc14 / #93 — overlay "Save verification" button round-trips through
-// the background service worker since content scripts have no access
-// to chrome.bookmarks.*.
-export const MSG_SAVE_BOOKMARK = 'MSG_SAVE_BOOKMARK'
 
 export const DEFAULT_MSG_TIMEOUT = 5000 /* 5 sec */
 // Verifieddit's own in-browser validator page — replaces the upstream
@@ -53,8 +49,68 @@ export const DEFAULT_MSG_TIMEOUT = 5000 /* 5 sec */
 // URL with `?url=<encoded image src>` appended; the receiving page is
 // expected to auto-fill its URL input from the query param.
 export const REMOTE_VALIDATION_LINK = 'https://www.verifieddit.com/'
+
+/**
+ * Trusteddit — where a user goes to SIGN content, rather than verify it.
+ *
+ * The extension had six source references to trusteddit.com and not one
+ * user-facing way to reach it, so the only route from "I verify other people's
+ * content" to "I could sign my own" was for the user to already know the
+ * product existed.
+ *
+ * This is a plain outbound link the user chooses to click. It adds no
+ * permission, sends no request on its own, and the extension observes nothing
+ * about whether it is used. `trustlist.ts` already allowlists this host.
+ */
+export const TRUSTEDDIT_LINK = 'https://www.trusteddit.com/'
+
+/**
+ * Which of our own surfaces sent the user to a site, appended as `?src=`.
+ *
+ * Deliberately coarse: it names a surface, never a user, a device, an asset or
+ * a session, and it is visible in the address bar of the page it opens. The
+ * receiving sites disclose it — verifieddit.com privacy policy section 2.8 and
+ * trusteddit.com section 2.5 — and those were published BEFORE this shipped so
+ * the disclosure is not retrofitted.
+ *
+ * Nothing here is stored, counted or transmitted by the extension itself.
+ */
+export type ClickSource =
+  | 'extension-panel'
+  | 'extension-popup'
+  | 'extension-options'
+  | 'extension-context-menu'
+  | 'extension-release-notes'
+
+/**
+ * Append `?src=<source>` without disturbing existing query parameters.
+ *
+ * Returns the input unchanged if it will not parse, because a broken outbound
+ * link is a worse failure than an untagged one.
+ */
+export function taggedLink (url: string, source: ClickSource): string {
+  try {
+    const target = new URL(url)
+    target.searchParams.set('src', source)
+    return target.toString()
+  } catch {
+    return url
+  }
+}
+
 export const AWAIT_ASYNC_RESPONSE = true
 export const AUTO_SCAN_DEFAULT = process.env.AUTO_SCAN?.toLowerCase() === 'true' || false
+
+/**
+ * Load the demo-corpus fixture signing CA as a trust anchor.
+ *
+ * OFF by default, and it must stay off in anything users install. The fixture
+ * CA is a key in this repository, so trusting it means whoever holds that key
+ * can mint media the extension reports as trusted — the exact failure this
+ * product exists to prevent. `bun run build:e2e` turns it on so the bundled
+ * corpus can still exercise the trusted-signer path.
+ */
+export const TRUST_DEV_FIXTURES = process.env.TRUST_DEV_FIXTURES?.toLowerCase() === 'true'
 export const TRUSTLIST_UPDATE_INTERVAL = 1440 /* 24 hours */
 export const LOCAL_TRUST_ANCHOR_LIST_NAME = 'Local Trust Anchors'
 export const LOCAL_TRUST_TSA_LIST_NAME = 'Local TSA Anchors'

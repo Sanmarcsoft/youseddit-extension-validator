@@ -3,25 +3,62 @@
     font-family: 'Roboto', Arial, Helvetica, sans-serif;
 }
 
-.tab {
-    display: inline-block;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-bottom: none;
-    cursor: pointer;
-    background-color: #f1f1f1;
+/* Tab bar — verifieddit.com's design language rather than default browser
+ * chrome. The site builds structure from a neutral-slate ramp, hairline rules
+ * and whitespace, with sky-600 (#0284c7) as the single accent. The old
+ * #f1f1f1-on-#ccc boxed tabs read as an unstyled prototype next to it.
+ *
+ * Tokens lifted from verifieddit-www/tailwind.config.js:
+ *   primary  #0284c7   secondary #1e293b
+ *   neutral  50 #f8fafc · 200 #e2e8f0 · 500 #64748b · 800 #1e293b
+ */
+.tab-bar {
+    display: flex;
+    gap: 2px;
+    padding: 0 10px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-.active {
-    background-color: #fff;
-    border-bottom: 1px solid #ccc;
+.tab {
+    display: inline-block;
+    padding: 9px 12px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #64748b;
+    transition: color 120ms ease, border-color 120ms ease;
+}
+
+.tab:hover {
+    color: #1e293b;
+}
+
+.tab:focus-visible {
+    outline: 2px solid #0284c7;
+    outline-offset: -2px;
+    border-radius: 3px;
+}
+
+/* The active tab is marked by a sky underline and the darkest neutral, the
+ * way the site marks a current section — not by a raised box. */
+.tab.active {
+    color: #0f172a;
+    border-bottom-color: #0284c7;
+    background: transparent;
 }
 
 /* Tab content styles */
 .tab-content {
     display: none;
-    padding: 10px;
-    border: 1px solid #ccc;
+    padding: 12px;
+    border: none;
+    background: #ffffff;
 }
 
 .active-content {
@@ -461,3 +498,52 @@
 }
 .trustlist-source a { color: #1f4d7a; text-decoration: none; }
 .trustlist-source a:hover { text-decoration: underline; }
+
+
+/* Provenance diagram inside a Validation row. The popup is 400px wide, so the
+ * diagram gets the full content width and a taller canvas than the overlay's
+ * — this is the surface where the chain is meant to be read, not glanced at. */
+.popup-provenance {
+    margin: 6px 0 12px;
+}
+
+.popup-provenance c2pa-provenance-graph {
+    display: block;
+    width: 100%;
+}
+
+
+/* Sign-your-own call to action (Options tab). Reads as an offer, not an advert:
+ * site tokens, hairline border, no colour fill competing with the verdict UI. */
+.sign-cta-card {
+    margin: 10px 0 14px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #0284c7;
+    border-radius: 6px;
+    background: #f8fafc;
+}
+
+.sign-cta-title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sign-cta-body {
+    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #475569;
+}
+
+.sign-cta-action {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0284c7;
+    text-decoration: none;
+}
+
+.sign-cta-action:hover { text-decoration: underline; }

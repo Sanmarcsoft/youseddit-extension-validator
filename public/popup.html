@@ -14,7 +14,7 @@
 
 <body>
     <div id="initErrorBanner" class="init-error-banner" hidden></div>
-    <div>
+    <div class="tab-bar" role="tablist">
         <button class="tab active" data-tab="validation">Validation</button>
         <button class="tab" data-tab="trustlists">Trust Lists</button>
         <button class="tab" data-tab="about">About</button>
@@ -102,6 +102,26 @@
 
         <div id="options" class="tab-content">
             <h1>Options</h1>
+
+            <!--
+              Sign-your-own call to action. A plain outbound link the user
+              chooses to click: no new permission, no request issued by the
+              extension, and nothing recorded about whether it is used. The
+              ?src= parameter is disclosed in the trusteddit.com privacy
+              policy, section 2.5, published before this shipped.
+            -->
+            <div class="sign-cta-card">
+                <p class="sign-cta-title">Signing your own content?</p>
+                <p class="sign-cta-body">
+                    This extension verifies Content Credentials that other people created.
+                    Trusteddit issues the certificates and signs your own media, so it
+                    carries credentials this extension can verify.
+                </p>
+                <a id="trusteddit-link" class="sign-cta-action" href="#" target="_blank" rel="noopener noreferrer">
+                    Sign your own content with Trusteddit
+                </a>
+            </div>
+
             <hr>
             <div id="trust-list-option">
                 <p>Import a trust anchor or trust list <span class="info-tooltip">i<span class="tooltip-text">Either a

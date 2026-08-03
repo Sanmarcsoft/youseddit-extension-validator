@@ -1,7 +1,10 @@
 import { test, expect } from './extension-fixture';
 
 test.describe('Feature C: Validation History Persistence', () => {
-  test('should persist validation history across tabs and page navigations without re-scanning', async ({
+  // FIXME(#50): validation history is not persisted — there is no store for the
+  // popup to re-read across tabs or navigations. This spec describes the feature
+  // #50 is meant to build, not a regression. Unskip when that lands.
+  test.fixme('should persist validation history across tabs and page navigations without re-scanning', async ({
     context,
   }) => {
     // First pass: validate images on corpus page

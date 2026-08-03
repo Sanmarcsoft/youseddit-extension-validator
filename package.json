@@ -1,28 +1,29 @@
 {
   "name": "verifieddit-extension",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Chrome extension to verify C2PA Content Credentials on any webpage",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "clean": "rimraf dist && rimraf node_modules/.cache/rollup-plugin-typescript2",
-    "prebuild": "node scripts/extract-c2pa-worker.mjs && node update-version.js && node scripts/generate-build-info.js",
-    "postinstall": "patch-package --error-on-fail",
+    "prebuild": "node scripts/patch-c2pa-worker-scheme.mjs && node scripts/extract-c2pa-worker.mjs && node update-version.js && node scripts/generate-build-info.js",
     "build": "cross-env NODE_ENV=production rollup -c",
+    "build:e2e": "cross-env NODE_ENV=production TRUST_DEV_FIXTURES=true rollup -c",
     "build:debug": "cross-env NODE_ENV=development rollup -c",
     "build:dev": "cross-env NODE_ENV=development rollup -c --watch",
-    "serve:fixtures": "npx http-server test/e2e/fixtures -p 3000 -c-1",
+    "serve:fixtures": "bun x http-server test/fixtures -p 3000 -c-1",
     "e2e:verify": "node scripts/e2e-verify.mjs",
-    "test": "npm run build && npx playwright test",
-    "test:debug": "npx playwright test --debug"
+    "test": "bun run build:e2e && bun x playwright test",
+    "test:debug": "bun x playwright test --debug"
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@contentauth/toolkit": "^0.11.1",
+    "@contentauth/toolkit": "^0.13.14",
     "@fidm/asn1": "^1.0.4",
     "@fidm/x509": "^1.2.1",
     "@playwright/test": "^1.40.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@rollup/plugin-alias": "^5.1.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-json": "^6.1.0",
@@ -35,7 +36,7 @@
     "@types/webextension-polyfill": "^0.10.7",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "c2pa-wc": "^0.13.0",
+    "c2pa-wc": "^0.14.17",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
@@ -57,6 +58,6 @@
     "typescript": "^5.4.3"
   },
   "dependencies": {
-    "@contentauth/c2pa-web": "^0.9.0"
+    "@contentauth/c2pa-web": "^0.11.0"
   }
 }

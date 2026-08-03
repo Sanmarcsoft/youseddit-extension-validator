@@ -22,7 +22,7 @@ import os from 'node:os'
  * navigates to the deployed demo (or a local equivalent), clicks the CR icon
  * on the real-world CBC fixture, and asserts:
  *  - the icon's `onclick` property is a function (IDL handler attached)
- *  - clicking the icon emits the `CrIcon onclick fired` debug log
+ *  - the c2paDialog iframe lands topmost, in-viewport, at a real size
  *  - the c2paDialog iframe visibility transitions to `visible` within 2 s
  *  - the <c2pa-overlay> shadow DOM contains the expected signer text
  */
@@ -169,9 +169,13 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(stacking!.rect.h, `overlay height must be ≥ 120 px; got ${stacking!.rect.h} — probably <c2pa-overlay> host had display:inline or iframe had no min-height`).toBeGreaterThanOrEqual(120)
       expect(stacking!.topIsIframe, `overlay iframe must be topmost at its centre; got ${stacking!.topTag}.${stacking!.topCls} — probably a page element has a higher z-index or the overlay is transparent`).toBe(true)
 
-      // Diagnostic logs we expect to have emitted
-      expect(consoleLogs.some(l => l.includes('CrIcon onclick fired')), 'CrIcon click handler must fire').toBe(true)
-      expect(consoleLogs.some(l => l.includes('overlayFrame: MSG_OPEN_OVERLAY received')), 'overlayFrame must hear MSG_OPEN_OVERLAY').toBe(true)
+      // The click path is already proven above by observable state: the icon
+      // carried an IDL onclick, the dialog iframe went visible, and it landed
+      // topmost at a real size. Asserting on `CrIcon onclick fired` /
+      // `overlayFrame: MSG_OPEN_OVERLAY received` console strings instead made
+      // this spec fail whenever a cleanup pass stripped a console.log, which is
+      // exactly what happened — the markers no longer exist anywhere in src/.
+      // Test the behaviour, not the instrumentation.
 
       // Read the overlay iframe's shadow DOM content (same-world via Playwright's frame access)
       const iframeFrame = page.frames().find(f => f.url().includes('iframe.html'))
@@ -217,53 +221,13 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(linkAudit.text, 'overlay must offer a Verifieddit details page').toMatch(/verifieddit/i)
       expect(linkAudit.hasMicrosoftHost, 'no attribute or text may reference contentintegrity.microsoft.com').toBe(false)
 
-      // rc13 / #73 — ingredient diagram renders in the Ingredients
-      // collapsible. Even with zero ingredients we expect at least one
-      // node (the active manifest). Opening the collapsible first.
-      const diagramAudit = await iframeFrame!.evaluate(() => {
-        const overlay = document.querySelector('c2pa-overlay') as unknown as { shadowRoot: ShadowRoot | null }
-        const root = overlay?.shadowRoot
-        if (root == null) return { hasDiagram: false }
-        // The Ingredients section uses <c2pa-collapsible>; expand it
-        const collapsibles = [...root.querySelectorAll('c2pa-collapsible')] as unknown as Array<{ open?: boolean, shadowRoot?: ShadowRoot | null }>
-        const ingSection = collapsibles.find((c) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const header = ((c as any).shadowRoot?.querySelector('.section-title')?.textContent ?? '') as string
-          return /ingredients/i.test(header)
-        })
-        if (ingSection != null) {
-          (ingSection as { open?: boolean }).open = true
-        }
-        // The diagram lives in the light DOM of <c2pa-collapsible>'s content slot
-        const diagram = root.querySelector('.ingredient-diagram svg') as SVGElement | null
-        const rects = diagram != null ? Array.from(diagram.querySelectorAll('rect')) : []
-        const paths = diagram != null ? Array.from(diagram.querySelectorAll('path')) : []
-        return {
-          hasDiagram: diagram != null,
-          rectCount: rects.length,
-          pathCount: paths.length,
-          firstRectStroke: rects[0]?.getAttribute('stroke') ?? null
-        }
-      })
-      expect(diagramAudit.hasDiagram, 'ingredient diagram SVG must render in the Ingredients section').toBe(true)
-      expect(diagramAudit.rectCount, 'diagram must contain ≥ 1 rounded-rect node (active manifest)').toBeGreaterThanOrEqual(1)
-
-      // rc13.2 / #91 — every diagram node must carry a <title> child
-      // (the SVG-native hover tooltip) so the full untruncated label is
-      // always reachable even when in-box text is ellipsed.
-      const titleAudit = await iframeFrame!.evaluate(() => {
-        const svgEl = document.querySelector('c2pa-overlay')?.shadowRoot?.querySelector('.ingredient-diagram svg')
-        if (svgEl == null) return { nodeCount: 0, titleCount: 0 }
-        const nodes = svgEl.querySelectorAll('g.diagram-node')
-        const titles = svgEl.querySelectorAll('g.diagram-node > title')
-        return {
-          nodeCount: nodes.length,
-          titleCount: titles.length,
-          firstTitle: titles[0]?.textContent ?? ''
-        }
-      })
-      expect(titleAudit.titleCount, 'every diagram node must carry an SVG <title> for hover tooltip').toBe(titleAudit.nodeCount)
-      expect(titleAudit.firstTitle.length, 'first node <title> must carry untruncated text').toBeGreaterThan(0)
+      // The ingredient-diagram assertions that used to live here targeted
+      // `.ingredient-diagram svg` and a collapsible headed "Ingredients". Both
+      // are gone: src/ingredientDiagram.ts was deleted and the section is now
+      // "Provenance chain", rendering <c2pa-provenance-graph>. That surface is
+      // covered properly by test/e2e/provenance-graph.spec.ts, which asserts
+      // the component painted one .node card per graph node — the check that
+      // would have caught the tree-shaking bug (#140) this spec could not see.
 
       // rc11.7 / #86 — auto-scan must be OFF on a fresh install so users
       // don't see CR icons on every page without asking. The only reason
@@ -284,7 +248,11 @@ test.describe('CR overlay click (issue #65)', () => {
         const d = [...document.querySelectorAll('iframe')].find(f => f.className === 'c2paDialog')
         return d?.getBoundingClientRect().height ?? 0
       })
-      expect(closedHeight, `overlay height with all collapsibles closed must be < 400 px; got ${closedHeight}`).toBeLessThan(400)
+      // Budget raised 400 -> 640 for #110: the collapsed panel now carries the
+      // Durable Content Credentials block (three pillars plus a self-assertion
+      // warning) above the collapsibles. That block is the feature, not bloat.
+      // The ceiling is kept so the panel cannot creep further unnoticed.
+      expect(closedHeight, `overlay height with all collapsibles closed must be < 640 px; got ${closedHeight}`).toBeLessThan(640)
       expect(closedHeight, `overlay height must be ≥ 120 px (still usable); got ${closedHeight}`).toBeGreaterThanOrEqual(120)
     } finally {
       await ctx.close()

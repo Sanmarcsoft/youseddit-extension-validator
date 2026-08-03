@@ -1,5 +1,12 @@
 # Chrome Web Store Listing — Verifieddit
 
+> Operational submission doc. Verified against the v1.1.0 source tree — every
+> permission below is one the manifest actually requests, and every UI string is
+> the one the code actually renders. Re-verify before each submission; a
+> justification that describes a menu item by the wrong name is a review finding.
+>
+> **Applies to:** v1.1.0 · **Last verified:** 2026-08-03
+
 ## Extension Name
 Verifieddit - C2PA Content Credential Verifier
 
@@ -40,10 +47,10 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 - Automatic Detection: Scans media elements on any webpage for C2PA content credentials
 - Visual Indicators: Shows overlay icons on media with verified content credentials (green = valid, yellow = warning, red = invalid)
 - AI Content Detection: Identifies AI-generated content based on C2PA metadata and digital source types
-- Detailed Provenance: View the full chain of custody — who created the content, what tools were used, and how it was modified
-- Certificate Verification: Validates signer certificates against the C2PA Trust List
+- Interactive Provenance Graph: Explore the full chain of custody as a graph — click a node to expand its detail, drag to pan, zoom, fit to frame, or open it full screen. Shows multi-generation ingredient history, assertions, and sensor telemetry
+- Certificate Verification: Validates signer certificates against the C2PA Trust List, including RFC 3161 trusted timestamps
 - Right-Click Inspection: Right-click any image, video, or audio to inspect its Content Credentials
-- Trust List Management: Import custom trust anchors and TSA certificates
+- Trust List Management: Ships all 29 anchors from the C2PA Conformance Program and the 21 official timestamp authorities; import your own trust anchors and TSA certificates alongside them
 - Auto-Scan Toggle: Enable or disable automatic scanning per your preference
 
 **Privacy-First:**
@@ -56,7 +63,7 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, and PDF.
 
 **Open Source:**
-Built on the open-source C2PA Extension Validator (MIT-licensed, upstream by Microsoft). View the source code at https://github.com/Sanmarcsoft/verifieddit-extension
+MIT-licensed. View the source code at https://github.com/Sanmarcsoft/verifieddit-extension
 
 Learn more at https://www.verifieddit.com
 
@@ -66,28 +73,58 @@ https://www.verifieddit.com/privacy
 ## Permission Justifications
 
 ### storage
-Saves user preferences (auto-scan toggle, theme) and custom trust lists locally in the browser.
+Saves the user's auto-scan preference and a local cache of the loaded trust lists in the browser. Nothing is synced to a server.
 
 ### activeTab
 Accesses the currently active tab when the user clicks the toolbar action or selects an item from the right-click context menu, scoped to that single interaction.
 
 ### contextMenus
-Adds "Inspect Content Credentials" to the right-click context menu on images, videos, and audio elements.
+Adds "Verify with Verifieddit." to the right-click context menu on images, videos, and audio elements.
 
 ### alarms
-Schedules periodic trust list refreshes (every 24 hours) to keep certificate validation up to date.
+Schedules periodic trust list refreshes (every 24 hours, `TRUSTLIST_UPDATE_INTERVAL = 1440`) for trust lists the user has imported. The bundled lists carry no `download_url` and are never re-fetched.
 
-### bookmarks
-Saves verification results as bookmarks under a dedicated "verifieddit.com" folder. The permission is only exercised when the user explicitly clicks the "Save" button on the overlay panel for a successfully verified image, never automatically.
+### offscreen
+Hosts the C2PA WebAssembly verification engine in an offscreen document. A Manifest V3 service worker cannot run the WASM toolkit directly, so verification work is delegated to this document. It renders nothing to the user, performs no network calls of its own, and exists only for the duration of verification.
 
 ### Host Permissions: <all_urls>
 The extension needs access to all URLs because C2PA content credentials can appear on any website. The extension scans image, video, and audio elements on the current page to detect and verify cryptographic provenance data embedded in media files. Without broad host access, users would need to manually allowlist every website, defeating the purpose of automatic content credential detection.
 
-## Screenshots Needed
-1. Extension detecting C2PA credentials on a webpage (1280x800)
-2. Popup showing validation results
-3. Right-click context menu "Inspect Content Credentials"
-4. Overlay icon on a verified image
+## Data Sent Off-Device
+
+Declare in the CWS Privacy tab as **Website content → App functionality**. Two
+user-initiated navigations, both plain link clicks, neither automatic:
+
+| Destination | When | What travels |
+|---|---|---|
+| `www.verifieddit.com/?url=<media-url>` | User clicks "Inspect on Verifieddit" | The URL of the one media file they chose to inspect |
+| `www.trusteddit.com/?src=<surface>` | User clicks "Sign your own content with Trusteddit" | A constant naming which extension surface the link was clicked from. No user, device, asset or session identifier |
+
+The `src` value is drawn from a fixed set (`extension-panel`, `extension-popup`,
+`extension-options`, `extension-context-menu`, `extension-release-notes`) and is
+disclosed by the receiving sites: verifieddit.com privacy policy §2.8 and
+trusteddit.com privacy policy §2.5, both published before the parameter shipped.
+
+The extension itself collects nothing, sends no analytics, and sets no cookies.
+
+## Screenshots
+
+Captured from the built v1.1.0 extension in real Chrome, 1280x800. Regenerate
+with `bun scripts/capture-listing-screenshots.mjs` after any UI change — stale
+screenshots that show a superseded interface are a listing-accuracy defect.
+
+| # | File | Shows |
+|---|---|---|
+| 1 | `releases/screenshots/01-detection.png` | Badges overlaid on credentialed media across a live page |
+| 2 | `releases/screenshots/02-provenance-graph.png` | The interactive provenance graph in the panel, node expanded |
+| 3 | `releases/screenshots/03-graph-fullscreen.png` | The graph full screen, showing a multi-generation chain |
+| 4 | `releases/screenshots/04-popup-validation.png` | Popup Validation tab with the graph for the current page |
+| 5 | `releases/screenshots/05-popup-trustlists.png` | Popup Trust Lists tab, official C2PA + TSA anchors loaded |
+
+Held in the repo but not uploaded (CWS caps the listing at five):
+`06-popup-about.png` (About tab, version + what's new). The right-click item is
+not captured: Chrome renders that menu natively, outside the page, so no
+automated capture can include it honestly.
 
 ## Store Icon
 Use vd128.png (128x128), generated from the SanMarcSoft Verifieddit logo

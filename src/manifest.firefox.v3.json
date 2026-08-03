@@ -3,7 +3,7 @@
     "name": "Verifieddit - C2PA Content Credential Verifier",
     "short_name": "Verifieddit",
     "description": "Verify content authenticity using C2PA Content Credentials. Detect AI-generated and edited media directly in your browser.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "browser_specific_settings": {
         "gecko": {
             "id": "verifieddit@verifieddit.com",
@@ -14,8 +14,7 @@
         "storage",
         "activeTab",
         "contextMenus",
-        "alarms",
-        "bookmarks"
+        "alarms"
     ],
     "host_permissions": [
         "<all_urls>"
