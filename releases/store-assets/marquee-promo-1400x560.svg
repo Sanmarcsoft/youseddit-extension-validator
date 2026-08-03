@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#075985"/>
+      <stop offset="55%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#0c4a6e"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Opaque base. The store spec forbids alpha, so nothing here may rely on
+       transparency reaching the final file. -->
+  <rect width="1400" height="560" fill="#0369a1"/>
+  <rect width="1400" height="560" fill="url(#bg)"/>
+
+  <!-- Soft depth, kept subtle so the tile survives downscaling in the store grid -->
+  <circle cx="1180" cy="90" r="300" fill="#ffffff" opacity="0.05"/>
+  <circle cx="120" cy="520" r="220" fill="#000000" opacity="0.07"/>
+
+  <!-- ================= LEFT: mark, wordmark, promise ================= -->
+
+  <!-- Brand mark, the site favicon artwork scaled into a 96px tile -->
+  <g transform="translate(96,96)">
+    <rect width="96" height="96" rx="20" fill="#ffffff" opacity="0.14"/>
+    <g transform="scale(0.375)">
+      <path d="M32 115 L75 178 L132 25" stroke="white" stroke-width="22"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="168" y="155" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+            font-size="82" fill="white" letter-spacing="-3">it</text>
+    </g>
+  </g>
+
+  <text x="216" y="147" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+        font-size="60" fill="#ffffff" letter-spacing="-1.5">Verifieddit</text>
+  <text x="219" y="180" font-family="Helvetica, Arial, sans-serif" font-weight="500"
+        font-size="21" fill="#bae6fd" letter-spacing="2.6">C2PA CONTENT CREDENTIALS</text>
+
+  <text x="96" y="286" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+        font-size="46" fill="#ffffff" letter-spacing="-1">See who signed a photo,</text>
+  <text x="96" y="340" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+        font-size="46" fill="#ffffff" letter-spacing="-1">and whether it was altered.</text>
+
+  <text x="96" y="392" font-family="Helvetica, Arial, sans-serif" font-weight="400"
+        font-size="24" fill="#e0f2fe">Verified in your browser. Nothing uploaded, no account.</text>
+
+  <!-- The four states, including the one every other tool omits -->
+  <g font-family="Helvetica, Arial, sans-serif" font-size="19" font-weight="600">
+    <g transform="translate(96,440)">
+      <rect width="150" height="44" rx="22" fill="#10b981" opacity="0.22"/>
+      <circle cx="26" cy="22" r="7" fill="#34d399"/>
+      <text x="44" y="29" fill="#d1fae5">Trusted</text>
+    </g>
+    <g transform="translate(262,440)">
+      <rect width="206" height="44" rx="22" fill="#f59e0b" opacity="0.22"/>
+      <circle cx="26" cy="22" r="7" fill="#fbbf24"/>
+      <text x="44" y="29" fill="#fef3c7">Unknown signer</text>
+    </g>
+    <g transform="translate(484,440)">
+      <rect width="146" height="44" rx="22" fill="#ef4444" opacity="0.22"/>
+      <circle cx="26" cy="22" r="7" fill="#f87171"/>
+      <text x="44" y="29" fill="#fee2e2">Altered</text>
+    </g>
+    <g transform="translate(646,440)">
+      <rect width="172" height="44" rx="22" fill="#ffffff" opacity="0.12"/>
+      <circle cx="26" cy="22" r="7" fill="#94a3b8"/>
+      <text x="44" y="29" fill="#e2e8f0">Not signed</text>
+    </g>
+  </g>
+
+  <!-- ================= RIGHT: the panel, which is the product ================= -->
+
+  <g transform="translate(872,86)">
+    <rect width="440" height="388" rx="18" fill="url(#card)"/>
+    <rect width="440" height="388" rx="18" fill="none" stroke="#ffffff" stroke-opacity="0.22"/>
+
+    <text x="28" y="46" font-family="Helvetica, Arial, sans-serif" font-size="15"
+          font-weight="600" fill="#bae6fd" letter-spacing="1.8">CONTENT CREDENTIALS</text>
+    <g transform="translate(320,26)">
+      <rect width="92" height="28" rx="14" fill="#10b981" opacity="0.28"/>
+      <text x="46" y="19" font-family="Helvetica, Arial, sans-serif" font-size="14"
+            font-weight="700" fill="#d1fae5" text-anchor="middle">VERIFIED</text>
+    </g>
+
+    <g font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#e0f2fe">
+      <text x="28" y="102" fill="#7dd3fc">signer</text>
+      <text x="168" y="102" font-weight="600">Trusteddit.com</text>
+      <text x="28" y="140" fill="#7dd3fc">trust</text>
+      <text x="168" y="140" font-weight="600">Trusteddit Trust List</text>
+      <text x="28" y="178" fill="#7dd3fc">timestamp</text>
+      <text x="168" y="178" font-weight="600">RFC 3161</text>
+      <text x="28" y="216" fill="#7dd3fc">AI</text>
+      <text x="168" y="216" font-weight="600">declared by signer</text>
+    </g>
+
+    <line x1="28" y1="248" x2="412" y2="248" stroke="#ffffff" stroke-opacity="0.16"/>
+
+    <text x="28" y="284" font-family="Helvetica, Arial, sans-serif" font-size="14"
+          font-weight="600" fill="#bae6fd" letter-spacing="1.6">PROVENANCE CHAIN</text>
+
+    <!-- Miniature of the interactive graph -->
+    <g transform="translate(28,304)">
+      <rect x="0" y="18" width="132" height="42" rx="9" fill="#ffffff" opacity="0.20"/>
+      <rect x="0" y="18" width="132" height="42" rx="9" fill="none" stroke="#7dd3fc" stroke-opacity="0.7"/>
+      <path d="M132 39 L188 24" stroke="#ffffff" stroke-opacity="0.45" fill="none"/>
+      <path d="M132 39 L188 58" stroke="#ffffff" stroke-opacity="0.45" fill="none"/>
+      <rect x="188" y="4" width="196" height="38" rx="9" fill="#ffffff" opacity="0.12"/>
+      <rect x="188" y="52" width="196" height="38" rx="9" fill="#ffffff" opacity="0.12"/>
+    </g>
+  </g>
+</svg>
