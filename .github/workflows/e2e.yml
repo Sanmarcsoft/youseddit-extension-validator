@@ -20,6 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    # The results comment needs pull-requests: write. Without it github-script
+    # fails with "Resource not accessible by integration", which — now that the
+    # test step can actually fail the job — turned a passing suite into a red
+    # check. Least privilege: read the repo, write the comment, nothing else.
+    permissions:
+      contents: read
+      pull-requests: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
