@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <rect width="256" height="256" rx="32" fill="#0369a1"/>
+  <!-- Checkmark / V mark — angle ~55° at vertex, long arm ~20° from vertical -->
+  <path d="M32 115 L75 178 L132 25" stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Letters "it" — centered in middle horizontal third (y 85-171) -->
+  <text x="168" y="155" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="82" fill="white" letter-spacing="-3">it</text>
+</svg>
