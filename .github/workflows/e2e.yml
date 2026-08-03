@@ -1,4 +1,4 @@
-name: E2E Tests (#50)
+name: E2E Tests
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ env:
 
 jobs:
   e2e:
-    name: Run E2E Test Suite (TDD RED Pass)
+    name: Run E2E Test Suite
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -24,24 +24,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
-          cache: 'npm'
+          bun-version: latest
 
+      # Frozen: CI must install exactly what bun.lock records, and fail loudly
+      # if package.json and the lockfile disagree, rather than silently
+      # resolving something nobody tested.
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
+      # build:e2e, not build: the demo corpus is signed by a development CA
+      # that the store build deliberately does not trust, so the suite needs
+      # TRUST_DEV_FIXTURES to exercise the trusted-signer path.
       - name: Build extension
-        run: npm run build
+        run: bun run build:e2e
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Serve demo corpus
+        run: bun run serve:fixtures &
 
       - name: Run E2E tests
-        run: npx playwright test
-        continue-on-error: true
+        run: bunx playwright test
 
       - name: Upload test results
         # Only upload if there is something to upload — the TDD RED pass
@@ -74,21 +81,16 @@ jobs:
             }
 
             const body = `
-            ## E2E Test Results (#50 — TDD RED Pass)
-
-            This is the RED phase of TDD. Tests are expected to FAIL. ❌
+            ## E2E Test Results
 
             **Test Command:**
             \`\`\`
-            npm run build && npx playwright test
+            bun run build:e2e && bunx playwright test
             \`\`\`
 
-            **Expected State:** All 4 tests FAILING (by design)
-
-            **Next Steps:**
-            1. Merge this PR (test infrastructure)
-            2. Create follow-up PRs for each failing feature
-            3. Each follow-up PR fixes one feature and makes one test pass
+            The suite is a real gate: a failure here fails the check. Four specs
+            remain \`test.fixme\` against open issues (#24, #50, #85) and report
+            as skipped, not passed.
 
             See \`test/e2e/README.md\` for details on running tests locally.
             `;

@@ -13,8 +13,10 @@ public/c2pa-web.worker.js
 .DS_Store
 @eaDir
 
-# lock files (use npm)
-bun.lock
+# bun.lock IS the lockfile and is tracked. package-lock.json was abandoned in
+# 2024 and drifted two years out of date, which is why `npm ci` could never
+# install; per the workspace rule (bun always, never npm) there is now exactly
+# one lockfile and CI installs from it frozen.
 
 # local test artifacts
 c2pa-quick-test-*.json
