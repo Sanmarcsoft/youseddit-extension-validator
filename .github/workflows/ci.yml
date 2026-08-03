@@ -8,15 +8,12 @@ on:
     branches:
       - main
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
       name: Check out repository code
       with:
         # Fetch full history + tags so scripts/generate-build-info.js
@@ -41,13 +38,13 @@ jobs:
       run: bun run build
 
     - name: Upload Chrome dist folder's zip as an artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: dist-chrome
         path: dist/chrome/
 
     - name: Upload Firefox dist folder's zip as an artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: dist-firefox
         path: dist/firefox/
