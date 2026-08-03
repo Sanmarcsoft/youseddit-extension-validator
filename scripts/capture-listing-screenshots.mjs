@@ -10,8 +10,14 @@
  * is ~400px wide by design, so those frames are composited onto a 1280x800
  * canvas rather than stretched, which would misrepresent the interface.
  *
+ * Capture from the PRODUCTION build (`bun run build`), never `build:e2e`. The
+ * demo corpus is signed by a development CA that production deliberately does
+ * not trust, so an e2e build would render those fixtures with a green trusted
+ * badge that no real installer will ever see. Screenshotting that would put a
+ * claim on the store listing that is false for every user.
+ *
  * Usage:
- *   bun run build:e2e                       # fixtures must read as trusted here
+ *   bun run build                           # production: fixture CA NOT trusted
  *   bun run serve:fixtures &                # corpus on :3000
  *   node scripts/capture-listing-screenshots.mjs
  *
@@ -140,14 +146,16 @@ async function main () {
     const frame = page.frames().find(f => f.url().includes('iframe.html'))
     if (frame == null) throw new Error('overlay iframe never appeared')
 
-    // Expand a node so the graph shows its detail rather than bare boxes.
+    // The graph sits below the signer summary, so it opens below the fold. Bring
+    // it into view and expand a node, or the listing shows a header and no graph.
     await frame.evaluate(() => {
-      const g = document.querySelector('c2pa-overlay')?.shadowRoot
-        ?.querySelector('c2pa-provenance-graph')
+      const root = document.querySelector('c2pa-overlay')?.shadowRoot
+      const g = root?.querySelector('c2pa-provenance-graph')
+      g?.scrollIntoView({ block: 'center', behavior: 'instant' })
       const node = g?.shadowRoot?.querySelector('.node')
       node?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    await sleep(2000)
+    await sleep(2500)
     await page.screenshot({ path: path.join(OUT_DIR, '02-provenance-graph.png'),
       clip: { x: 0, y: 0, width: SHOT_W, height: SHOT_H } })
     console.log('  wrote 02-provenance-graph.png')
@@ -162,6 +170,16 @@ async function main () {
       if (fs == null) return false
       fs.click()
       return true
+    })
+    await sleep(2500)
+    // Full screen fits the chain to the frame; on a short chain that leaves a
+    // lot of empty canvas. Expand the nodes so the frame carries real detail.
+    await frame.evaluate(() => {
+      const g = document.querySelector('c2pa-overlay')?.shadowRoot
+        ?.querySelector('c2pa-provenance-graph')
+      for (const n of g?.shadowRoot?.querySelectorAll('.node') ?? []) {
+        n.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      }
     })
     await sleep(2500)
     if (wentFull) {
