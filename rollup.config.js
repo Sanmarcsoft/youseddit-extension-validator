@@ -87,7 +87,7 @@ const plugins = [
     // #121: only inline an explicit allowlist of env vars. Spreading the whole
     // process.env would bake the build machine's secrets (tokens, paths) into
     // the public CRX. Never add a secret-bearing var here.
-    ...['NODE_ENV', 'AUTO_SCAN'].reduce((acc, key) => {
+    ...['NODE_ENV', 'AUTO_SCAN', 'TRUST_DEV_FIXTURES'].reduce((acc, key) => {
       acc[`process.env.${key}`] = JSON.stringify(process.env[key] ?? '')
       return acc
     }, {})

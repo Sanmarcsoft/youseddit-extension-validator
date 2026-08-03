@@ -27,6 +27,13 @@
   `bun scripts/sync-c2pa-trust-lists.ts [--check]`.
 - Fixture-signing CA moved out of the production trust list into
   `dev-trust-list.json`, so `default-trust-list.json` is exactly the official list.
+- Fixture-signing CA is no longer loaded as a trust anchor in published builds.
+  Splitting it into its own file left it still being pushed into
+  `globalTrustLists` by `loadDefaultTrustLists()`, so every installed copy
+  trusted a signing key that is public in this repository — anyone holding it
+  could mint media the extension reported as trusted. Loading is now gated on
+  `TRUST_DEV_FIXTURES`, off by default and set only by `bun run build:e2e` so the
+  bundled corpus can still exercise the trusted-signer path.
 
 - Trust-path regression tests now `await` `checkTrustListInclusion`. The function
   became async and three call sites were never updated; the attacker-chain test

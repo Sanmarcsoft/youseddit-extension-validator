@@ -100,6 +100,17 @@ export function taggedLink (url: string, source: ClickSource): string {
 
 export const AWAIT_ASYNC_RESPONSE = true
 export const AUTO_SCAN_DEFAULT = process.env.AUTO_SCAN?.toLowerCase() === 'true' || false
+
+/**
+ * Load the demo-corpus fixture signing CA as a trust anchor.
+ *
+ * OFF by default, and it must stay off in anything users install. The fixture
+ * CA is a key in this repository, so trusting it means whoever holds that key
+ * can mint media the extension reports as trusted — the exact failure this
+ * product exists to prevent. `bun run build:e2e` turns it on so the bundled
+ * corpus can still exercise the trusted-signer path.
+ */
+export const TRUST_DEV_FIXTURES = process.env.TRUST_DEV_FIXTURES?.toLowerCase() === 'true'
 export const TRUSTLIST_UPDATE_INTERVAL = 1440 /* 24 hours */
 export const LOCAL_TRUST_ANCHOR_LIST_NAME = 'Local Trust Anchors'
 export const LOCAL_TRUST_TSA_LIST_NAME = 'Local TSA Anchors'

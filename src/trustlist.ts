@@ -4,7 +4,7 @@
  */
 
 import { type CertificateInfoExtended, calculateSha256CertThumbprintFromX5c, PEMtoDER, certificateFromDer, distinguishedNameToString, verifyParentSignedChild } from './certs/certs';
-import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE } from './constants';
+import { AWAIT_ASYNC_RESPONSE, MSG_ADD_TRUSTLIST, MSG_GET_TRUSTLIST_INFOS, MSG_REMOVE_TRUSTLIST, type MSG_PAYLOAD, LOCAL_TRUST_ANCHOR_LIST_NAME, MSG_TRUSTLIST_UPDATE, LOCAL_TRUST_TSA_LIST_NAME, MSG_ADD_TRUSTFILE, MSG_ADD_TSA_TRUSTFILE , TRUST_DEV_FIXTURES } from './constants';
 import { bytesToBase64, sendMessageToAllTabs } from './utils';
 
 // Directly import the JSON files (bundled into the JS by Rollup; not shipped
@@ -517,13 +517,20 @@ async function loadDefaultTrustLists (): Promise<void> {
     lastError = error
   }
 
-  try {
-    const fixtureTrustList = devTrustList as TrustList;
-    await processDownloadedTrustList(fixtureTrustList);
-    globalTrustLists.push(fixtureTrustList);
-    defaultLoaded += 1
-  } catch (error) {
-    lastError = error
+  // The demo-corpus fixture CA is NOT a C2PA anchor — it is a key we generated.
+  // Loading it in a shipped build means anyone holding that key can mint media
+  // that every user sees as trusted, which is precisely the claim this product
+  // exists to make honestly. Dev and E2E builds keep it so the bundled corpus
+  // still exercises the trusted path; the store artifact must not.
+  if (TRUST_DEV_FIXTURES) {
+    try {
+      const fixtureTrustList = devTrustList as TrustList;
+      await processDownloadedTrustList(fixtureTrustList);
+      globalTrustLists.push(fixtureTrustList);
+      defaultLoaded += 1
+    } catch (error) {
+      lastError = error
+    }
   }
 
   try {
