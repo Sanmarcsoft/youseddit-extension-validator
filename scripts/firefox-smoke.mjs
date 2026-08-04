@@ -42,6 +42,7 @@ const MIN_BADGES = Number(arg('min', '5'))
 const SOURCE_DIR = path.resolve(repoRoot, arg('source-dir', 'dist/firefox'))
 const FIREFOX_BIN = arg('firefox', '/Applications/Firefox.app/Contents/MacOS/firefox')
 const HEADED = process.argv.includes('--headed')
+const CLICK_PROBE = process.argv.includes('--click')
 const PORT = Number(arg('port', '4444'))
 const BASE = `http://127.0.0.1:${PORT}`
 
@@ -155,6 +156,77 @@ async function main () {
   console.log(`\n[smoke] images on page : ${last.images}`)
   console.log(`[smoke] badges rendered: ${last.badges}`)
   for (const t of last.titles) console.log(`         - ${t}`)
+
+  /*
+   * --click: does clicking a badge actually open the overlay?
+   *
+   * Worth probing separately because it exercises a path lint cannot see and
+   * that Chrome and Firefox implement differently. The overlay UI lives in
+   * iframe.html, an extension page embedded as an iframe in the tab, and the
+   * click is delivered by runtime.sendMessage fanning out to extension
+   * contexts. Badges rendering proves the engine works; it says nothing about
+   * whether that fan-out reaches an embedded extension page in Gecko.
+   */
+  if (CLICK_PROBE) {
+    console.log('\n[smoke] --- click probe ---')
+    const before = await wd('POST', `/session/${sessionId}/execute/sync`, {
+      script: `
+        const frames = Array.from(document.querySelectorAll('iframe'));
+        return {
+          iframes: frames.length,
+          extFrames: frames.filter(f => (f.src||'').startsWith('moz-extension://')).map(f => ({
+            src: (f.src||'').slice(-24),
+            display: getComputedStyle(f).display,
+            visibility: getComputedStyle(f).visibility,
+            w: f.getBoundingClientRect().width,
+            h: f.getBoundingClientRect().height
+          }))
+        };`,
+      args: []
+    })
+    console.log(`[smoke] before click: ${before.iframes} iframe(s), ${before.extFrames.length} extension iframe(s)`)
+    for (const f of before.extFrames) console.log(`         ${JSON.stringify(f)}`)
+
+    const clicked = await wd('POST', `/session/${sessionId}/execute/sync`, {
+      script: `
+        const b = document.querySelector('[c2pa-icon]');
+        if (!b) return { clicked: false, reason: 'no badge found' };
+        b.click();
+        return { clicked: true, hasOnclick: typeof b.onclick === 'function' };`,
+      args: []
+    })
+    console.log(`[smoke] click dispatched: ${JSON.stringify(clicked)}`)
+
+    await sleep(3000)
+
+    const after = await wd('POST', `/session/${sessionId}/execute/sync`, {
+      script: `
+        const frames = Array.from(document.querySelectorAll('iframe'));
+        const ext = frames.filter(f => (f.src||'').startsWith('moz-extension://'));
+        return {
+          iframes: frames.length,
+          extFrames: ext.map(f => ({
+            display: getComputedStyle(f).display,
+            visibility: getComputedStyle(f).visibility,
+            w: Math.round(f.getBoundingClientRect().width),
+            h: Math.round(f.getBoundingClientRect().height)
+          })),
+          toasts: document.querySelectorAll('[c2pa-toast]').length
+        };`,
+      args: []
+    })
+    console.log(`[smoke] after click : ${after.iframes} iframe(s), ${after.extFrames.length} extension iframe(s), ${after.toasts} toast(s)`)
+    for (const f of after.extFrames) console.log(`         ${JSON.stringify(f)}`)
+
+    const overlayVisible = after.extFrames.some(
+      (f) => f.display !== 'none' && f.visibility !== 'hidden' && f.w > 0 && f.h > 0
+    )
+    console.log(`[smoke] OVERLAY VISIBLE: ${overlayVisible ? 'YES' : 'NO'}`)
+    if (!overlayVisible) {
+      console.error('\nFAIL: badge click did not open a visible overlay.')
+      return 1
+    }
+  }
 
   if (last.badges < MIN_BADGES) {
     console.error(`\nFAIL: expected >= ${MIN_BADGES} badges, got ${last.badges}.`)
