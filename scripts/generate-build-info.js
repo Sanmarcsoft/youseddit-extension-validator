@@ -9,7 +9,6 @@
 
 import { execSync } from 'child_process';
 import fs from 'fs';
-import os from 'os';
 
 function git(args, fallback) {
   try {
@@ -26,7 +25,12 @@ const tagDescribe = git('describe --tags --always --dirty', 'unknown');
 // Exact tag at HEAD if any; otherwise empty string (rendered as "-" in the UI)
 const exactTag    = git('describe --tags --exact-match', '');
 const buildDate   = new Date().toISOString();
-const buildHost   = (process.env.RUNNER_NAME || process.env.HOSTNAME || os.hostname() || 'unknown').replace(/[\r\n]/g, '');
+// Only a CI runner name is safe to publish. os.hostname() on a developer
+// machine is the build machine's real network name, and this value ships inside
+// the store-listed bundle — the same class of leak the `#121` allowlist in
+// rollup.config.js exists to prevent for env vars. Local builds report 'local',
+// which also keeps a reviewer's rebuild from differing on this field.
+const buildHost   = (process.env.RUNNER_NAME || 'local').replace(/[\r\n]/g, '');
 
 const repoUrl = 'https://github.com/Sanmarcsoft/verifieddit-extension';
 

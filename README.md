@@ -92,7 +92,9 @@ has shared something that turned out to be fake and would rather check first.
 
 ## Install
 
-**Chrome Web Store / Firefox Add-ons:** v1.1.1 submitted, in review.
+**Chrome Web Store:** v1.1.1 submitted, in review.
+**Firefox Add-ons (AMO):** v1.1.1 packaged and verified, awaiting upload — see
+[`FIREFOX_ADDON_LISTING.md`](FIREFOX_ADDON_LISTING.md).
 
 **Side-load a build:**
 
@@ -117,7 +119,10 @@ any image, video or audio element and choose *Verify with Verifieddit.*
 | `bun run build:debug` | Development build with inline source maps |
 | `bunx tsc --noEmit` | Type-check |
 | `bun test test/*.test.ts` | Unit tests (trust path, durable credentials, AI detection, probe consent) |
-| `bun run test` | Playwright end-to-end suite (`test/e2e`) |
+| `bun run test` | Playwright end-to-end suite, Chrome (`test/e2e`) |
+| `bun run smoke:firefox` | Functional smoke test in real Firefox via geckodriver |
+| `bun run package:firefox` | Build, gate, lint and package the AMO submission |
+| `bun run submit:firefox` | Sign and upload a new version to AMO (creds from `pass`) |
 | `bun run serve:fixtures` | Serve the demo corpus on `:3000` |
 
 Always use **bun**, never npm/npx.

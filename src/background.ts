@@ -15,6 +15,17 @@ import {
   TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
+
+// Build-time browser target, inlined by rollup's replace plugin so the branches
+// below are constant-folded rather than evaluated at runtime. 'chrome' is the
+// default; the Gecko bundle is built with 'firefox'.
+//
+// The `: string` annotation is load-bearing. `replace` runs ahead of rpt2, so
+// TypeScript sees the already-substituted literal and rejects the comparison as
+// non-overlapping (TS2367). Widening to string keeps the check legal for tsc
+// while leaving terser a literal it can still fold away.
+const BROWSER_TARGET: string = process.env.BROWSER_TARGET ?? 'chrome'
+const IS_FIREFOX = BROWSER_TARGET === 'firefox'
 // rc11.6 / #83 — Intentionally NOT importing verifiedditApi. rc12 shipped
 // an anonymous cross-origin fallback that fired on every unsigned image;
 // that is a security / privacy surface and must not run in production
@@ -185,6 +196,14 @@ async function openOrSwitchToTab (imageUrl: string): Promise<chrome.tabs.Tab> {
 // silently disabled all manifest validation.)
 async function ensureOffscreen (): Promise<void> {
   // chrome.offscreen is Chrome-only; Firefox runs the engine in its background.
+  //
+  // IS_FIREFOX is inlined by rollup's replace plugin (see makePlugins in
+  // rollup.config.js), so on the Gecko build terser folds this to `return` and
+  // drops the whole body. That matters beyond dead weight: AMO's validator
+  // reports every textual `chrome.offscreen` reference as UNSUPPORTED_API even
+  // when it is guarded at runtime, so the identifier has to be absent from the
+  // shipped bundle, not merely unreachable.
+  if (IS_FIREFOX) return
   if (typeof chrome === 'undefined' || chrome.offscreen === undefined) return
   try {
     if (await chrome.offscreen.hasDocument()) return
