@@ -80,8 +80,14 @@ const watch = {
   - convert commonjs modules to esm (commonjs)
   - minify the production bundle (terser)
   - compile typescript to javascript (typescript)
+
+  `target` inlines process.env.BROWSER_TARGET so browser-specific branches fold
+  away at build time instead of merely being skipped at runtime. Firefox has no
+  chrome.offscreen API at all, and AMO's validator reports every *textual*
+  reference to it as UNSUPPORTED_API even when the call is guarded — so the
+  Gecko bundle has to be free of the identifier, not just of the behaviour.
 */
-const plugins = [
+const makePlugins = (target) => [
   replace({
     preventAssignment: true,
     // #121: only inline an explicit allowlist of env vars. Spreading the whole
@@ -90,7 +96,8 @@ const plugins = [
     ...['NODE_ENV', 'AUTO_SCAN', 'TRUST_DEV_FIXTURES'].reduce((acc, key) => {
       acc[`process.env.${key}`] = JSON.stringify(process.env[key] ?? '')
       return acc
-    }, {})
+    }, {}),
+    'process.env.BROWSER_TARGET': JSON.stringify(target)
   }),
   json(),
   resolve({ browser: true }),
@@ -184,7 +191,7 @@ const backgroundC = {
       // Wait for the bundle to be written to disk before copying the files, otherwise the firefox folder will be empty
       hook: 'writeBundle'
     }),
-    ...plugins
+    ...makePlugins('chrome')
   ],
   onwarn
 }
@@ -207,7 +214,7 @@ const backgroundFF = {
         { find: './c2paProxy', replacement: './c2pa' }
       ]
     }),
-    ...plugins
+    ...makePlugins('firefox')
   ],
   onwarn
 }
@@ -224,7 +231,7 @@ const content = {
     ...output
   },
   watch,
-  plugins,
+  plugins: makePlugins('chrome'),
   onwarn
 }
 
@@ -241,7 +248,7 @@ const inject = {
     ...output
   },
   watch,
-  plugins,
+  plugins: makePlugins('chrome'),
   onwarn
 }
 
