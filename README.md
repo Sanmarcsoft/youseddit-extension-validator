@@ -122,6 +122,7 @@ any image, video or audio element and choose *Verify with Verifieddit.*
 | `bun run test` | Playwright end-to-end suite, Chrome (`test/e2e`) |
 | `bun run smoke:firefox` | Functional smoke test in real Firefox via geckodriver |
 | `bun run package:firefox` | Build, gate, lint and package the AMO submission |
+| `bun run submit:firefox` | Sign and upload a new version to AMO (creds from `pass`) |
 | `bun run serve:fixtures` | Serve the demo corpus on `:3000` |
 
 Always use **bun**, never npm/npx.

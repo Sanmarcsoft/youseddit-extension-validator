@@ -148,20 +148,46 @@ Listed submission: https://addons.mozilla.org/developers/addon/submit/upload-lis
 3. Paste `AMO_REVIEWER_NOTES.md` into "Notes to reviewer".
 4. Fill the listing fields from this document.
 
-### Credentials — blocker for automated submission
+### Credentials
 
-There are currently **no AMO credentials in `pass`** (searched for
-`mozilla|amo|firefox|addon`, zero matches), and no `~/.config/web-ext*`. So
-`web-ext sign` and the AMO v5 API are unavailable and the first submission must
-be a manual upload through the Developer Hub.
+`scripts/submit-firefox.mjs` (`bun run submit:firefox`) reads two `pass`
+entries and hands them to `web-ext sign` through the environment, never argv:
 
-To automate later releases, generate a JWT issuer + secret at
-https://addons.mozilla.org/developers/addon/api/key/ and store them as:
+| Entry | Value |
+|---|---|
+| `sanmarcsoft/amo/jwt-issuer` | JWT issuer, of the form `user:<id>:<id>` |
+| `sanmarcsoft/amo/jwt-secret` | JWT secret, long hex string |
 
+**Creating them** (one time, requires the SanMarcSoft Mozilla account):
+
+1. Sign in at https://addons.mozilla.org/ and accept the Developer Agreement.
+2. Open https://addons.mozilla.org/developers/addon/api/key/ and choose
+   *Generate new credentials*.
+3. **The secret is displayed exactly once.** Copy it before leaving the page.
+4. Store both:
+
+   ```bash
+   pass insert sanmarcsoft/amo/jwt-issuer
+   pass insert sanmarcsoft/amo/jwt-secret
+   ```
+
+Treat the secret as a signing key: it can publish code under the SanMarcSoft
+name to every Firefox user who has the add-on installed. If it leaks, revoke it
+on the same page and generate new credentials.
+
+Verify the wiring without uploading anything:
+
+```bash
+bun run submit:firefox -- --dry-run
 ```
-pass insert sanmarcsoft/amo/jwt-issuer
-pass insert sanmarcsoft/amo/jwt-secret
-```
 
-Then `web-ext sign --api-key=... --api-secret=... --channel=listed` can publish
-from CI.
+### Why the first submission is still manual
+
+`web-ext sign` does support `--upload-source-code`, so the mandatory source
+archive can go through the API. What the API *cannot* do is set listing
+metadata: name, summary, categories, screenshots, privacy policy URL and
+support contact. For a brand-new listing those must be entered in the Developer
+Hub, and we have carefully written copy plus six screenshots to place.
+
+So: **first release through the Hub, every release after that via
+`bun run submit:firefox`.**

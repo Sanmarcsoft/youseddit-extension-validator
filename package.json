@@ -15,6 +15,7 @@
     "e2e:verify": "node scripts/e2e-verify.mjs",
     "smoke:firefox": "node scripts/firefox-smoke.mjs",
     "package:firefox": "node scripts/package-firefox.mjs",
+    "submit:firefox": "node scripts/submit-firefox.mjs",
     "test": "bun run build:e2e && bun x playwright test",
     "test:debug": "bun x playwright test --debug"
   },
