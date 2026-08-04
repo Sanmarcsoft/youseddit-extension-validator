@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## v1.1.2
+
+- Firefox is submittable. The Gecko build existed but had never been checked
+  against AMO's validator or run in Firefox at all. It carried a hard rejection
+  (the add-on name was 46 characters against AMO's 45-character limit) plus 29
+  warnings; it now reports zero errors and eight documented warnings.
+- The Firefox minimum is now 115.0, up from 109.0. `background.type: module`
+  needs 112 and `storage.session` needs 115, so the old floor advertised support
+  the code could not deliver. 115 is an ESR, so no realistic user is dropped.
+- Data collection is declared in the manifest, as AMO now requires. Nothing is
+  collected by default; the opt-in manifest-store probe is disclosed as optional
+  `websiteContent`, which is truthful about the perceptual hashes it sends when
+  a user turns it on.
+- The Firefox bundle no longer contains `chrome.offscreen`. Firefox has no such
+  API and the call site was already guarded, but AMO flags every textual
+  reference, so the branch is now constant-folded out at build time. Chrome
+  keeps its offscreen path unchanged.
+- Dropped a `web_accessible_resources` entry naming `iframe.js`, a file the
+  build has never produced.
+- Builds no longer bake the build machine's hostname into the shipped bundle.
+  That value was published to the store; it now reads `local` unless a CI runner
+  name is present, which also makes a reviewer's rebuild match.
+- First functional proof in Gecko: eight of eight verdict badges across the demo
+  corpus in Firefox 151, confirming the C2PA WebAssembly engine initialises
+  inside a Firefox event page. Chrome runs that engine in an offscreen document,
+  which Firefox has no equivalent for, so this was the real unknown.
+
 ## v1.1.1
 
 - The manifest-store probe is opt-in. During validation the extension used to
