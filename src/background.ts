@@ -11,21 +11,15 @@ import { detectDurablePillars } from './durableCredentials'
 import {
   MSG_GET_ID, MSG_L3_INSPECT_URL, MSG_REMOTE_INSPECT_URL, MSG_FORWARD_TO_CONTENT, REMOTE_VALIDATION_LINK,
   MSG_VALIDATE_URL, AWAIT_ASYNC_RESPONSE, MSG_C2PA_RESULT_FROM_CONTEXT, AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED,
-  MSG_SET_MANIFEST_STORE_PROBE, MANIFEST_STORE_PROBE_KEY,
+  MSG_SET_MANIFEST_STORE_PROBE, MANIFEST_STORE_PROBE_KEY, MSG_OPEN_OVERLAY, PORT_OVERLAY_FRAME, MSG_RELAY_READY,
   TRUSTLIST_UPDATE_INTERVAL
 } from './constants'
 import { sendMessageToAllTabs } from './utils'
 
-// Build-time browser target, inlined by rollup's replace plugin so the branches
-// below are constant-folded rather than evaluated at runtime. 'chrome' is the
-// default; the Gecko bundle is built with 'firefox'.
-//
-// The `: string` annotation is load-bearing. `replace` runs ahead of rpt2, so
-// TypeScript sees the already-substituted literal and rejects the comparison as
-// non-overlapping (TS2367). Widening to string keeps the check legal for tsc
-// while leaving terser a literal it can still fold away.
-const BROWSER_TARGET: string = process.env.BROWSER_TARGET ?? 'chrome'
-const IS_FIREFOX = BROWSER_TARGET === 'firefox'
+// Engine differences all live in one module now (#149). IS_FIREFOX still folds
+// to a literal here — rollup propagates it across the module boundary and terser
+// drops the dead branch, which package-firefox.mjs asserts on the built bundle.
+import { IS_FIREFOX } from './platform'
 // rc11.6 / #83 — Intentionally NOT importing verifiedditApi. rc12 shipped
 // an anonymous cross-origin fallback that fired on every unsigned image;
 // that is a security / privacy surface and must not run in production
@@ -90,6 +84,43 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   })
 })
 
+/**
+ * Overlay-frame relay ports, keyed by tab (#149).
+ *
+ * Each tab's overlay iframe opens a named port on load. This is the only way
+ * the background can push a payload INTO that frame: `chrome.tabs.sendMessage`
+ * reaches content scripts and nothing else, and a content script's
+ * `chrome.runtime.sendMessage` does not reach a sibling extension frame under
+ * Gecko. See src/platform.ts.
+ *
+ * Held in a plain Map rather than storage on purpose. The MV3 background is
+ * torn down when idle, which disconnects every port anyway, so persisting the
+ * map would only preserve stale handles; the frames reconnect on their side.
+ */
+const overlayFramePorts = new Map<number, chrome.runtime.Port>()
+
+chrome.runtime.onConnect.addListener(port => {
+  if (port.name !== PORT_OVERLAY_FRAME) return
+  const tabId = port.sender?.tab?.id
+  // Tell the frame what we resolved, including when we resolved nothing. A port
+  // that connects but cannot be routed looks identical to a healthy one from the
+  // frame's side, and that ambiguity is what made #149 so hard to see.
+  try {
+    port.postMessage({ action: MSG_RELAY_READY, data: { tabId: tabId ?? null } })
+  } catch { /* frame torn down between connect and now */ }
+  if (tabId == null) {
+    // Without a tab we cannot route a payload back, and guessing would risk
+    // showing one tab's verdict over another's media.
+    console.debug('background: overlay-frame port with no tab id, ignoring')
+    return
+  }
+  overlayFramePorts.set(tabId, port)
+  port.onDisconnect.addListener(() => {
+    // Only clear our own entry — a reconnect may already have replaced it.
+    if (overlayFramePorts.get(tabId) === port) overlayFramePorts.delete(tabId)
+  })
+})
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender?.tab?.id
   const action = message.action
@@ -109,6 +140,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (action === MSG_FORWARD_TO_CONTENT && tabId != null) {
     chrome.tabs.sendMessage(tabId, data).catch(() => { /* content script may be absent on this tab */ })
+  }
+
+  // #149 — relay a badge click's payload to this tab's overlay iframe. The
+  // content script cannot reach that frame itself on Gecko, so the hop through
+  // here is what makes the overlay open on both engines.
+  if (action === MSG_OPEN_OVERLAY && tabId != null) {
+    const port = overlayFramePorts.get(tabId)
+    if (port == null) {
+      // The frame has not connected yet, or the background restarted before it
+      // reconnected. Dropping is correct: a click is a live user gesture and a
+      // late overlay over changed page content is worse than none.
+      console.debug('background: no overlay-frame port for tab', tabId)
+      return
+    }
+    try {
+      port.postMessage({ action: MSG_OPEN_OVERLAY, data })
+    } catch (error: unknown) {
+      // postMessage throws synchronously on a port disconnected since lookup.
+      overlayFramePorts.delete(tabId)
+      console.debug('background: overlay-frame port dead, dropped payload:', error)
+    }
   }
 
   if (action === MSG_VALIDATE_URL) {
