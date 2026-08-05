@@ -457,17 +457,25 @@ function sendToContent (message: unknown): void {
   }
 }
 
-// Deliver MSG_OPEN_OVERLAY directly via chrome.runtime.sendMessage (not
-// through the MSG_FORWARD_TO_CONTENT wrapper). The overlay UI lives in
-// `iframe.html`, an extension page hosted as an iframe on the current tab.
-// background.ts's MSG_FORWARD_TO_CONTENT handler forwards via
-// chrome.tabs.sendMessage, which is delivered to **content scripts only** —
-// extension-page iframes are a different world and do not hear it. In
-// contrast, chrome.runtime.sendMessage fans out to every extension context
-// with a runtime.onMessage listener (service worker + popup + options +
-// embedded extension pages), so overlayFrame.ts's listener fires directly.
-// This was the missing link: the click reached the handler, the send
-// completed, but the payload never reached overlayFrame.
+// Send MSG_OPEN_OVERLAY to the BACKGROUND, which relays it into this tab's
+// overlay iframe over a named port (#149).
+//
+// The overlay UI lives in `iframe.html`, an extension page hosted as an iframe
+// on the current tab, and there is no direct route to it from here.
+// chrome.tabs.sendMessage — which is what the MSG_FORWARD_TO_CONTENT wrapper
+// uses — is delivered to **content scripts only**, so it never sees the frame.
+//
+// This code previously relied on chrome.runtime.sendMessage fanning out to
+// every extension context holding a runtime.onMessage listener, including
+// embedded extension pages, and let overlayFrame.ts's listener fire directly.
+// That is true on Chrome and false on Gecko, where the frame is simply not a
+// delivery target. The send resolved without throwing, so nothing surfaced: the
+// click registered, no error appeared anywhere, and the overlay never opened.
+// A packaged, addons-linter-clean Firefox build shipped with a dead UI.
+//
+// runtime.sendMessage still reaches the background on both engines, so the
+// message below is unchanged — only its destination is. The background hands it
+// to the right tab's frame from there. See src/platform.ts.
 function openOverlay (c2paResult: unknown, position: { x: number, y: number }): void {
   try {
     void chrome.runtime.sendMessage({

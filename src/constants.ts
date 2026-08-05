@@ -43,6 +43,30 @@ export const MSG_SHOW_CONTEXT_MENU = 'MSG_SHOW_CONTEXT_MENU'
 export const MSG_C2PA_RESULT_FROM_CONTEXT = 'MSG_C2PA_RESULT_FROM_CONTEXT'
 export const MSG_AUTO_SCAN_UPDATED = 'MSG_AUTO_SCAN_UPDATED'
 
+// #149 — named port the overlay iframe opens to the background so the
+// background can push MSG_OPEN_OVERLAY back to the frame that needs it.
+// A content script's chrome.runtime.sendMessage does not reach a sibling
+// extension-page iframe under Gecko, and chrome.tabs.sendMessage only ever
+// reaches content scripts, so a port is the one channel that lands on both
+// engines. See src/platform.ts for the full note.
+export const PORT_OVERLAY_FRAME = 'overlay-frame'
+// Sent down the port the moment the background registers it, carrying the tab
+// the background will route to. Without it the frame cannot tell "connected and
+// routable" from "connected but the background dropped me", which are the two
+// ways this relay fails and are otherwise indistinguishable from the outside.
+export const MSG_RELAY_READY = 'MSG_RELAY_READY'
+// Mirrors relay state onto <html data-vd-relay> so a WebDriver probe can read
+// it from inside the frame. Diagnostic only — nothing branches on it.
+export const RELAY_STATE_ATTR = 'vdRelay'
+// Records what the frame did with the last overlay payload it received, so a
+// failing click can be pinned to the hop that dropped it rather than to "the
+// overlay did not open". Diagnostic only.
+export const RELAY_EVENT_ATTR = 'vdOverlay'
+// The MV3 background is torn down when idle, which disconnects every port.
+// The frame reconnects after this delay so the next badge click still has a
+// channel; long enough not to spin if the extension is being uninstalled.
+export const PORT_RECONNECT_DELAY = 250 /* ms */
+
 export const DEFAULT_MSG_TIMEOUT = 5000 /* 5 sec */
 // Verifieddit's own in-browser validator page — replaces the upstream
 // Microsoft Content Integrity deep-link (#74). The extension opens this
