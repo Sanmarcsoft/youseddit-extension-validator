@@ -93,14 +93,14 @@ Five trust lists ship built in, 56 entities in total: the C2PA Conformance Progr
 Add your own trust list from a file or a web address at any time, or remove any list you would rather not rely on. Who counts as trustworthy is configuration you control, not a decision we make for you.
 
 
-SUPPORTED FORMATS
+WHAT IT CAN READ
 
-JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, HEIF, DNG, ARW, MP4, AVI, WAV, MP3, M4A and PDF.
+Photographs, video, audio and PDF documents, across sixteen file formats: the ones the web is built on, the raw formats photographers shoot in, and the newer formats publishers have started serving. Coverage tracks what the C2PA specification supports, and the current list is kept in the repository README next to the code that implements it.
 
 
 WHO USES IT
 
-Journalists and picture desks checking wire photos before publication. Photographers and studios proving their own work is theirs. Researchers, moderators, archivists and legal teams tracing where a file came from. Anyone who has shared something that turned out to be fake and would rather check first.
+A picture desk checking a wire photo before it runs. A photographer proving the work is theirs. Anyone tracing where a file came from before relying on it, or who has shared something that turned out to be fake and would rather check first.
 
 
 IF YOU SIGN YOUR OWN WORK
@@ -135,7 +135,19 @@ Published by SanMarcSoft LLC as an independent fork of Microsoft's open source C
 
 **Audience terms earn their place.** "WHO USES IT" captures journalist, picture desk, photographer, studio, researcher, moderator, archivist and legal team as searchable terms while doing real persuasive work rather than sitting as a keyword list.
 
-**Format names are search terms too.** JPEG, PNG, WebP, AVIF, HEIC, DNG, ARW, MP4, PDF each catch "verify [format] C2PA" queries.
+**No format enumeration, deliberately.** An earlier draft listed sixteen file
+extensions on the reasoning that each one catches "verify [format] C2PA"
+queries. Chrome rejected v1.1.1 for it on 2026-08-05 (Yellow Argon, keyword
+stuffing), quoting that line back verbatim. The policy example is "lists of
+sites/brands/keywords without substantial added value", and a bare run of
+extensions is exactly that: it ranks, but it tells a reader nothing. Format
+coverage is now one sentence of prose naming no extensions at all, and the
+enumeration lives in the README where it is useful and where store policy does
+not reach. **Do not put it back.**
+
+**Audience terms are scenarios, not a roll-call.** The same section once named
+eight professions in a row, which reads as a keyword list even though it is
+punctuated as prose. It is now two concrete situations plus a general one.
 
 **What is deliberately absent:** "detects AI", "deepfake detector", "proves authenticity". They rank, and they are false on unsigned media, which is most media. The AI section turns that into the differentiator instead. A listing that overclaims gets pulled, and this product's entire premise is not overclaiming.
 

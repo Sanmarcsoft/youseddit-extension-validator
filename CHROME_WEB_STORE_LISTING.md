@@ -59,8 +59,12 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 - No analytics, tracking, or telemetry
 - No account required
 
-**Supported Formats:**
-JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, and PDF.
+**What It Can Read:**
+Photographs, video, audio, and PDF documents, across sixteen file formats: the ones the web is built on, the raw formats photographers shoot in, and the newer formats publishers have started serving. The current list is in the repository README.
+
+> Do not restore an enumerated format list here. Chrome rejected v1.1.1 on
+> 2026-08-05 under Spam and Placement in the Store (Yellow Argon, keyword
+> stuffing) for exactly that line. See `releases/store-assets/LISTING-COPY.md`.
 
 **Open Source:**
 MIT-licensed. View the source code at https://github.com/Sanmarcsoft/verifieddit-extension

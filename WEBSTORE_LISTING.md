@@ -52,9 +52,13 @@ The internet is now a mix of authentic media and synthetic media at industrial s
 - **Trust list management** — bring your own trust anchors, or use the bundled lists: all 29 anchors from the C2PA Conformance Program, the 21 official C2PA timestamp authorities, and an AI trust list.
 - **100% local processing** — see Privacy below.
 
-### Supported formats
+### What it can read
 
-JPEG, PNG, WebP, AVIF, TIFF, SVG, HEIC, MP4, AVI, WAV, MP3, and PDF.
+Photographs, video, audio, and PDF documents, across sixteen file formats: the ones the web is built on, the raw formats photographers shoot in, and the newer formats publishers have started serving. The current list is in the repository README.
+
+> Do not restore an enumerated format list here. Chrome rejected v1.1.1 on
+> 2026-08-05 under Spam and Placement in the Store (Yellow Argon, keyword
+> stuffing) for exactly that line. See `releases/store-assets/LISTING-COPY.md`.
 
 ### Open source
 
