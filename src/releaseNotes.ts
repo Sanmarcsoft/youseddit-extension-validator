@@ -30,6 +30,61 @@ export const DEMO_URL = 'https://www.verifieddit.com/demo'
 
 export const RELEASE_NOTES: readonly ReleaseEntry[] = [
   {
+    tag: 'v1.2.1',
+    date: '2026-08-11',
+    summary: 'The panel opens for everyone, and the provenance graph can be arranged by hand.',
+    fixes: [
+      {
+        title: 'The panel\'s sections open again with "reduce motion" turned on',
+        howToVerify:
+          'Open the panel on any signed file, click "View more", then click any section heading. Edits and Activity, Signature and Certificates each open and stay open. If your system is set to reduce motion, these headings previously looked like dead controls: the section did open, but the panel stayed clipped to its old height so nothing appeared.'
+      },
+      {
+        title: 'Drag a node in the provenance graph to move it',
+        howToVerify:
+          'Open the panel on a signed file and expand "Provenance chain". Press a node and drag: it follows the cursor and its arrows come with it, so you can pull apart overlapping nodes and read what was hidden behind them. A "Reset layout" button appears once you have moved anything, and puts everything back.',
+        verifyFragment: '07-edge-realworld-cbc-signed'
+      },
+      {
+        title: '"Fit" fills the screen in full-screen view',
+        howToVerify:
+          'In the provenance graph, click "Full screen", then "Fit". The chain now scales up to fill the display instead of sitting small in the middle of an empty canvas.'
+      },
+      {
+        title: 'The panel works on pages that were already open',
+        howToVerify:
+          'Reload or update the extension with tabs already open, then verify an image on one of them. The panel appears. It could previously have nowhere to draw on a page that finished loading before the extension attached.'
+      }
+    ]
+  },
+  {
+    tag: 'v1.2.0',
+    date: '2026-08-11',
+    summary: 'The popup lists everything it looked at, not only what turned out to be signed.',
+    fixes: [
+      {
+        title: 'Every file the extension analysed is listed',
+        howToVerify:
+          'Open the Verifieddit toolbar icon on any ordinary page, a news article or a shop. You now get one row per image, video and audio file, whatever the outcome. The popup used to show only files that turned out to be signed, so on most pages it sat on "Scanning..." forever with nothing to report.'
+      },
+      {
+        title: 'Files with no Content Credentials say so, quietly',
+        howToVerify:
+          'Look for the "No Creds" badge. Those rows are dimmed, and come to full strength when you hover or tab to them. Absence of a signature is a real finding, but a weaker one than any verdict about a signature that exists.'
+      },
+      {
+        title: '"No credentials" and "could not check" are no longer the same answer',
+        howToVerify:
+          'A file the extension could not read now reads "Unchecked" rather than being reported as unsigned. Telling you a signed file carries no credentials is the worst mistake a verifier can make, so the two are kept apart.'
+      },
+      {
+        title: 'Right-click, "Verify with Verifieddit" works again',
+        howToVerify:
+          'Right-click any image on any site and choose "Verify with Verifieddit". A badge appears on the image with the verdict. It now works on wrapped figures, responsive images, and the transparent click-catching layers most news sites put over their photographs, and it tells you when a check fails instead of doing nothing at all.'
+      }
+    ]
+  },
+  {
     tag: 'v1.1.1',
     date: '2026-08-03',
     summary: 'The one thing that phoned home now asks first, and the AI label says only what it can prove.',

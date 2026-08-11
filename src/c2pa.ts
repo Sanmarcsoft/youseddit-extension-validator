@@ -66,6 +66,11 @@ export interface C2paError extends Error {
   url: string
 }
 
+// The wire helpers that flatten a C2paError for extension messaging live in
+// c2paWire.ts. They must not live here: this module initialises the WASM engine
+// on import, and importing a runtime value from it drags that init into the
+// service worker (no `Worker` there) and the content script.
+
 export async function init (): Promise<void> {
   const wasmUrl = chrome.runtime.getURL('c2pa.wasm')
 

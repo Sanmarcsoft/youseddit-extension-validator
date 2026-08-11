@@ -37,6 +37,10 @@ export const MSG_REMOVE_TRUSTLIST = 'MSG_REMOVE_TRUSTLIST'
 export const MSG_FRAME_CLICK = 'MSG_FRAME_CLICK'
 export const MSG_REQUEST_C2PA_ENTRIES = 'MSG_REQUEST_C2PA_ENTRIES'
 export const MSG_RESPONSE_C2PA_ENTRIES = 'MSG_RESPONSE_C2PA_ENTRIES'
+// Sent once per frame after the entry burst, so the popup can tell "the scan
+// finished and found nothing" from "the scan never answered". Without it the
+// popup had no terminal state and sat on its "Scanning…" placeholder forever.
+export const MSG_RESPONSE_C2PA_SUMMARY = 'MSG_RESPONSE_C2PA_SUMMARY'
 export const MSG_TRUSTLIST_UPDATE = 'MSG_TRUSTLIST_UPDATE'
 export const MSG_FORWARD_TO_CONTENT = 'MSG_FORWARD_TO_CONTENT'
 export const MSG_SHOW_CONTEXT_MENU = 'MSG_SHOW_CONTEXT_MENU'

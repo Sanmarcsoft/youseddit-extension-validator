@@ -1,5 +1,88 @@
 # CHANGELOG
 
+## v1.2.1
+
+- The panel's sections open again for anyone running the system setting
+  "reduce motion". The credentials panel released its clipping mask on the
+  `transitionend` of its slide-open animation, and the shared stylesheet
+  disables every transition under `prefers-reduced-motion: reduce`, so that
+  event never fired for those users. The panel then stayed frozen at the height
+  it had while all sections were shut, with overflow still hidden. Every section
+  did toggle when clicked; the detail it revealed was simply clipped away, which
+  made the disclosure arrows look like dead controls. The unclipping now runs on
+  a timer as well as on the animation, so it cannot depend on an event that may
+  never arrive. Verified by running the same gesture under both motion
+  preferences: `scripts/probe-reduced-motion.mjs`.
+- Nodes in the provenance graph can be dragged. Previously a press on a node was
+  ignored, which only matters once two nodes overlap, and an expanded node
+  always overlaps something, so parts of the chain could be permanently hidden
+  behind each other. A node now follows the cursor at any zoom, its edges follow
+  with it, and a "Reset layout" control appears once anything has been moved by
+  hand. The toggle button inside a node still expands it.
+- "Fit" works in full screen. The fit scale was capped at 1, which is invisible
+  in the 372px panel (where the ratio is below 1 anyway) and made the button a
+  no-op on a full display: it re-centred a postage-stamp graph in a wall of
+  empty canvas instead of filling the frame. Measured on a real signed asset at
+  1500x1000, Fit now takes the chain from 4% to 97% of the frame width.
+- The overlay attaches to pages that had already finished loading. The panel's
+  iframe was added on `DOMContentLoaded` only, a one-shot bet that this script
+  always runs before that event. It holds for the normal `document_start`
+  injection and fails for every other entry into the code, including
+  re-injection after an extension reload or update, leaving verification with
+  nowhere to draw.
+
+## v1.2.0
+
+- The popup now lists every image, video and audio file it analysed, not only
+  the ones that turned out to be signed. Before this release the drop-down was
+  fed exclusively from records the in-page monitor had already validated and
+  found a manifest on, so on an ordinary page — a news article, a shop, a photo
+  gallery — it had nothing to show and sat on "Scanning for C2PA-signed media on
+  this page…" indefinitely. Opening the popup now enumerates the page's media
+  directly and reports a row for each file, whatever the outcome.
+- Files with no Content Credentials get a **No Creds** badge, and the whole row
+  is rendered at reduced opacity (full strength on hover or keyboard focus). The
+  in-page badge is faded to match. Absence of a signature is a real finding, but
+  a weaker one than any verdict about a signature that exists, and it should not
+  carry the same visual weight as "trusted" or "invalid".
+- "No credentials" and "could not check" are no longer the same thing. A file
+  the extension could not read — a network failure, an engine that never came
+  up — is now labelled **Unchecked** rather than being reported as unsigned.
+  Telling a user that a signed asset carries no credentials is the worst verdict
+  a verifier can get wrong, so the two are kept apart end to end.
+- Right-click → "Verify with Verifieddit" works again. Three separate faults
+  were in the path. The content script resolved its frame id once, without
+  retrying, so a page that loaded while the MV3 service worker was suspended
+  never got an answer and silently dropped every later verification. The click
+  target had to *be* the media element and its URL had to match `src` exactly,
+  which fails on `<picture>`, `srcset`, wrapped figures, and the transparent
+  click-catching overlays that most news sites put over their images; the
+  browser's own `srcUrl` is now authoritative and the event target is treated as
+  a hint. And a failed validation was discarded with a bare `return`, so when
+  the engine did fail the user's explicit request produced no badge, no message
+  and no error — indistinguishable from the extension not being installed.
+- Errors now survive the trip between the background and the page. Extension
+  messaging is JSON, not structured clone, and `JSON.stringify(new Error(…))` is
+  `{}`: name, message and the attached URL were all dropped, so the receiver's
+  `instanceof Error` check was false and the failure vanished. Failures are
+  flattened onto an explicit wire shape and rebuilt on the far side.
+- The popup always reaches a terminal state. Each frame sends a summary after
+  its entries, so the drop-down can say "no media on this page", "Verifieddit
+  cannot read this page" (browser and Web Store pages are off limits), or how
+  many files are still being checked, instead of showing a placeholder forever.
+- Fixed a spurious "C2PA engine failed to initialise: Worker is not defined"
+  banner. The WASM engine's module-level init ran wherever a runtime value was
+  imported from it, including the service worker, which has no `Worker`.
+  Validation was in fact working, via the offscreen document, and only the
+  banner was wrong. Moving the shared helpers to a side-effect-free module also
+  took the content script injected into every page from 199,934 to 135,572
+  bytes.
+
+## v1.1.3
+
+- Firefox overlay fix: the credentials panel payload is relayed through the
+  background rather than posted directly, which Gecko's port handling dropped.
+
 ## v1.1.2
 
 - Firefox is submittable. The Gecko build existed but had never been checked

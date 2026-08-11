@@ -13,16 +13,39 @@ const SOURCES_TO_IGNORE = ['chrome-extension:', 'moz-extension:', 'blob:', 'data
 
 type MediaStateTypes = 'image' | 'video' | 'audio' | 'none'
 
+export type MediaVerdictKind = 'no-credentials' | 'unavailable'
+
+/**
+ * Outcome of a validation that finished without producing a manifest.
+ *
+ * Previously only a successful validation left a trace on the record (`c2pa`),
+ * so "we checked this image and it carries no credentials" was indistinguishable
+ * from "we never looked at it" — both were `c2pa: null`. That is why the popup
+ * could only ever list signed media and why an unsigned image kept its neutral
+ * scan-in-progress camera badge forever.
+ *
+ * `no-credentials` is a statement about the file: it has no C2PA manifest.
+ * `unavailable` is a statement about the check: it could not be completed, so
+ * the file's credentials are unknown. Collapsing the two would tell the user a
+ * signed asset is unsigned, which is the worst verdict a verifier can get wrong.
+ */
+export interface MediaVerdict {
+  kind: MediaVerdictKind
+  url: string
+  detail: string | null
+}
+
 export interface MediaRecordState {
   type: MediaStateTypes
   viewport: boolean
   visible: boolean
   evaluated: boolean
   c2pa: C2paResult | null
+  verdict: MediaVerdict | null
 }
 
 export class MediaRecord {
-  private readonly _state: MediaRecordState = { type: 'none', visible: false, evaluated: false, viewport: false, c2pa: null }
+  private readonly _state: MediaRecordState = { type: 'none', visible: false, evaluated: false, viewport: false, c2pa: null, verdict: null }
   private readonly _element: MediaElement
   private _icon: CrIcon | null = null
 

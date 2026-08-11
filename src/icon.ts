@@ -43,6 +43,26 @@ const imageSources: { [key in VALIDATION_STATUS]: string } = {
   'no-credentials': SVG_CR_NO_CREDENTIALS
 }
 
+// The "no credentials" verdict is a real finding, but a weaker one than any
+// verdict about a signature: nothing was cryptographically checked because
+// there was nothing to check. Rendering it at full strength gives it the same
+// visual weight as a trusted or invalid badge. Held at partial opacity in both
+// the in-page overlay and the popup so the eye reads it as "we looked, there is
+// nothing here" rather than as a judgement on the file's authenticity.
+export const CR_ICON_NO_CREDENTIALS_OPACITY = '0.55'
+
+/**
+ * The badge art for a status, as a data URL. Exported so the popup renders the
+ * exact same icon set as the in-page overlay instead of maintaining a parallel
+ * mapping to files in `icons/` that has already drifted once.
+ */
+export function crIconDataUrl (status: VALIDATION_STATUS): string {
+  const source = imageSources[status] ?? ''
+  // The camera/video/audio entries are already extension URLs, not SVG markup.
+  if (!source.startsWith('<svg')) return source
+  return `data:image/svg+xml;utf8,${encodeURIComponent(source)}`
+}
+
 export class CrIcon {
   private _crDiv!: HTMLDivElement | null
   private readonly _parent: MediaElement
@@ -166,6 +186,10 @@ export class CrIcon {
     this._crDiv!.style.backgroundImage = `url('data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}')`
     this._crDiv!.style.backgroundSize = 'contain'
     this._crDiv!.style.backgroundRepeat = 'no-repeat'
+    // Re-applied on every status change, not just on the no-credentials branch:
+    // an icon that was set to 'no-credentials' and is later upgraded (right-click
+    // on an image the auto-scan had not reached) would otherwise stay faded.
+    this._crDiv!.style.opacity = status === 'no-credentials' ? CR_ICON_NO_CREDENTIALS_OPACITY : ''
   }
 
   private static validateStatus (status: unknown): status is VALIDATION_STATUS {

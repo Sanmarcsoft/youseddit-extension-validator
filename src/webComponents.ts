@@ -351,7 +351,10 @@ export class C2paOverlay extends LitElement {
       div.style.maxHeight = '0'
       void div.offsetHeight
       div.style.maxHeight = height
-      const onTransitionEnd = (): void => {
+      let settled = false
+      const settle = (): void => {
+        if (settled) return
+        settled = true
         div.style.maxHeight = 'none'
         // `overflow: hidden` exists only to clip the slide-open animation. Left
         // in place afterwards it silently clips anything the sections grow into
@@ -363,9 +366,21 @@ export class C2paOverlay extends LitElement {
         // (elementFromPoint at the button returned the overlay host, #141).
         // Once the animation is done there is nothing left to clip.
         div.style.overflow = 'visible'
-        div.removeEventListener('transitionend', onTransitionEnd)
+        div.removeEventListener('transitionend', settle)
+        clearTimeout(timer)
       }
-      div.addEventListener('transitionend', onTransitionEnd)
+      // The panel must not depend on an animation event to become usable.
+      // `sharedStyles` kills every transition under
+      // `prefers-reduced-motion: reduce`, so `transitionend` never fires for
+      // anyone who has that system setting on — and the panel then stays frozen
+      // at the height it had while all sections were shut, with overflow still
+      // hidden. Every section still toggled; the revealed content was simply
+      // clipped away, so the disclosure arrows read as dead. A background tab,
+      // a display with the transition optimised out, or a second click during
+      // the animation produce the same silence. The timer is the guarantee and
+      // `transitionend` is only the fast path.
+      const timer = setTimeout(settle, 400)
+      div.addEventListener('transitionend', settle)
     }
   }
 

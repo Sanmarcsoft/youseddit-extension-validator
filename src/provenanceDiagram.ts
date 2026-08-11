@@ -87,6 +87,18 @@ export class C2paProvenanceGraph extends LitElement {
   @state() private revision = 0
 
   private dragOrigin: (Point & { panX: number, panY: number }) | null = null
+  /**
+   * Per-node displacement from the computed layout, in layout pixels.
+   *
+   * The layout is a fixed-height grid, but an expanded node grows well past
+   * NODE_H and lands on top of its neighbours, so the reading order the layout
+   * establishes is exactly what the user needs to break by hand. Mutated in
+   * place and paired with `revision++`, the same way `expanded` is.
+   */
+  private readonly nodeOffsets = new Map<string, Point>()
+  private nodeDrag: { id: string, pointerX: number, pointerY: number, originX: number, originY: number } | null = null
+  /** Un-displaced layout of the current view, kept so a drag can clamp against it. */
+  private layoutPositions = new Map<string, Point>()
   /** Laid-out size of the current graph, measured during render for fit(). */
   private contentSize: { width: number, height: number } | null = null
   /** The graph identity the view was last auto-fitted to. */
@@ -163,7 +175,21 @@ export class C2paProvenanceGraph extends LitElement {
       padding: 8px 9px;
       color: #1e293b;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      cursor: default;
+      /* Nodes are hand-placeable, so they advertise it. Text selection is off
+       * because a drag across a card would otherwise select its title instead
+       * of moving it. */
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .node:active {
+      cursor: grabbing;
+    }
+
+    /* The chevron is a button, not a handle — it must keep its own affordance. */
+    .node .toggle {
+      cursor: pointer;
     }
 
     /* An expanded node grows past its laid-out NODE_H, so it overlaps whatever
@@ -429,6 +455,15 @@ export class C2paProvenanceGraph extends LitElement {
    * refit — the user is reading detail, and yanking the viewport out from under
    * them mid-read is worse than a card that runs past the edge.
    */
+  /**
+   * Hand placement belongs to one graph. Carrying offsets into the next asset
+   * would displace whichever node happened to reuse an id, so they are dropped
+   * before the new graph is laid out rather than after it has been drawn.
+   */
+  protected willUpdate (changed: PropertyValues): void {
+    if (changed.has('graph')) this.nodeOffsets.clear()
+  }
+
   protected updated (changed: PropertyValues): void {
     const frameResized = changed.has('fullscreen')
     if (this.graph !== this.fittedGraph || frameResized) {
@@ -453,6 +488,17 @@ export class C2paProvenanceGraph extends LitElement {
     this.revision++
   }
 
+  /**
+   * Return every node to its computed position. The control only exists while
+   * something has been moved, so a user who tangles the graph is never left
+   * without a way back short of closing the overlay.
+   */
+  private resetLayout (): void {
+    this.nodeOffsets.clear()
+    this.revision++
+    requestAnimationFrame(() => { this.fit() })
+  }
+
   private zoomBy (factor: number): void {
     this.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, this.zoom * factor))
   }
@@ -464,6 +510,13 @@ export class C2paProvenanceGraph extends LitElement {
    * overlay card. Resetting to zoom 1 (what a naive "Fit" does) leaves the
    * active manifest off the right edge, so the button has to actually measure:
    * content bounds against the frame's client box.
+   *
+   * The scale is NOT capped at 1. It used to be, and that made Fit a no-op in
+   * full screen: the frame is then the whole display, so the fit ratio is well
+   * above 1, the cap pinned it back to 1, and the button only ever re-centred a
+   * postage-stamp graph in a wall of empty canvas. MAX_ZOOM is the only ceiling,
+   * which is what makes Fit fill a large frame and still behave in a small one,
+   * where the ratio is below 1 anyway.
    */
   private fit (): void {
     const frame = this.renderRoot.querySelector('.frame')
@@ -476,7 +529,7 @@ export class C2paProvenanceGraph extends LitElement {
     const { width: cw, height: ch } = this.contentSize
     if (fw === 0 || fh === 0 || cw === 0 || ch === 0) return
 
-    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(fw / cw, fh / ch, 1)))
+    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(fw / cw, fh / ch)))
     this.zoom = zoom
     this.pan = { x: (fw - cw * zoom) / 2, y: (fh - ch * zoom) / 2 }
   }
@@ -487,10 +540,9 @@ export class C2paProvenanceGraph extends LitElement {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
-    // Only pan from the canvas BACKGROUND. Anything interactive must be left
-    // alone, because the line below calls setPointerCapture on the frame: that
-    // redirects the rest of the gesture to the frame, so pointerup lands on the
-    // frame rather than on whatever was pressed, and the browser then fires no
+    // Controls must be left alone, because the setPointerCapture calls below
+    // redirect the rest of the gesture to the frame: pointerup then lands on the
+    // frame rather than on whatever was pressed, and the browser fires no
     // `click` at all on that element.
     //
     // The guard used to name only `.node`, which silently killed every control
@@ -498,12 +550,47 @@ export class C2paProvenanceGraph extends LitElement {
     // unclickable, and Full screen merely got reported first (#141). Dragging
     // and wheel-zoom kept working, which is what made it read as "the button is
     // broken" rather than "the toolbar never receives clicks".
-    if ((event.target as HTMLElement)?.closest('.node, .controls, button, a, input, select, textarea') != null) return
+    const target = event.target as HTMLElement | null
+    if (target?.closest('.controls, button, a, input, select, textarea') != null) return
+
+    // A press on a node body moves that node; a press on the canvas pans the
+    // whole view. `.node` used to fall into the same bail-out as the toolbar,
+    // so nodes could not be moved at all — which is only a problem once two of
+    // them overlap, and an expanded node always overlaps something.
+    const nodeEl = target?.closest('.node') as HTMLElement | null
+    if (nodeEl != null) {
+      const id = nodeEl.dataset.nodeId
+      if (id == null) return
+      const current = this.nodeOffsets.get(id) ?? { x: 0, y: 0 }
+      this.nodeDrag = { id, pointerX: event.clientX, pointerY: event.clientY, originX: current.x, originY: current.y }
+      ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+      return
+    }
+
     this.dragOrigin = { x: event.clientX, y: event.clientY, panX: this.pan.x, panY: this.pan.y }
     ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    const drag = this.nodeDrag
+    if (drag != null) {
+      // Pointer travel is in screen pixels; the viewport is scaled, so the
+      // layout-space displacement is the travel divided by the zoom. Without
+      // that the node lags the cursor at zoom < 1 and outruns it at zoom > 1.
+      const base = this.layoutPositions.get(drag.id)
+      const dx = drag.originX + (event.clientX - drag.pointerX) / this.zoom
+      const dy = drag.originY + (event.clientY - drag.pointerY) / this.zoom
+      // Clamped so a node cannot be pushed off the top-left, where it would be
+      // clipped by the viewport and unreachable: content bounds are measured
+      // from the origin, not from the minimum coordinate.
+      this.nodeOffsets.set(drag.id, {
+        x: base != null ? Math.max(-base.x, dx) : dx,
+        y: base != null ? Math.max(-base.y, dy) : dy
+      })
+      this.revision++
+      return
+    }
+
     if (this.dragOrigin == null) return
     this.pan = {
       x: this.dragOrigin.panX + (event.clientX - this.dragOrigin.x),
@@ -513,6 +600,7 @@ export class C2paProvenanceGraph extends LitElement {
 
   private readonly onPointerUp = (event: PointerEvent): void => {
     this.dragOrigin = null
+    this.nodeDrag = null
     ;(event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId)
   }
 
@@ -526,7 +614,17 @@ export class C2paProvenanceGraph extends LitElement {
     void this.revision
 
     const view = visibleSubgraph(graph, this.expanded)
-    const positions = computeLayout(view)
+    const layout = computeLayout(view)
+    this.layoutPositions = layout
+
+    // Hand-placed nodes displace the computed layout. Edges read from the same
+    // merged map, so a dragged node keeps its connections rather than leaving
+    // its arrows behind at the layout position.
+    const positions = new Map<string, Point>()
+    for (const [id, p] of layout) {
+      const offset = this.nodeOffsets.get(id)
+      positions.set(id, offset == null ? p : { x: p.x + offset.x, y: p.y + offset.y })
+    }
 
     let maxX = 0
     let maxY = 0
@@ -571,6 +669,14 @@ export class C2paProvenanceGraph extends LitElement {
         <div class="controls">
           <button type="button" title="Zoom out" aria-label="Zoom out" @click=${() => { this.zoomBy(1 / 1.2) }}>−</button>
           <button type="button" title="Reset view" aria-label="Reset view" @click=${() => { this.fit() }}>Fit</button>
+          ${this.nodeOffsets.size > 0
+            ? html`<button
+                type="button"
+                title="Undo hand placement and return every node to the computed layout"
+                aria-label="Reset layout"
+                @click=${() => { this.resetLayout() }}
+              >Reset layout</button>`
+            : nothing}
           <button type="button" title="Zoom in" aria-label="Zoom in" @click=${() => { this.zoomBy(1.2) }}>+</button>
           <button
             type="button"
@@ -584,7 +690,7 @@ export class C2paProvenanceGraph extends LitElement {
 
       <div class="footer">
         ${this.renderLegend(view)}
-        <span class="hint">drag to pan · scroll to zoom · click a node to expand</span>
+        <span class="hint">drag a node to move it · drag the canvas to pan · scroll to zoom · ▸ expands a node</span>
       </div>
     `
   }
@@ -634,6 +740,7 @@ export class C2paProvenanceGraph extends LitElement {
     return html`
       <div
         class="node ${isExpanded ? 'expanded' : ''} ${node.isActive ? 'active' : ''}"
+        data-node-id=${node.id}
         style="left:${pos.x}px; top:${pos.y}px; border-color:${style.accent}; background:${style.bg}"
       >
         <div class="node-head">

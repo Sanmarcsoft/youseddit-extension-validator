@@ -7,6 +7,10 @@ import 'c2pa'
 import { validateUrl as c2paValidateUrl } from './c2paProxy'
 import { init as initTrustlist, checkTrustListInclusion, refreshTrustLists, checkTSATrustListInclusion } from './trustlist'
 import { type C2paError, type C2paResult } from './c2pa'
+// Value import, so it must come from the side-effect-free wire module: pulling
+// it from './c2pa' would run the WASM engine's init() inside this service
+// worker, where `Worker` is undefined.
+import { toC2paErrorWire } from './c2paWire'
 import { detectDurablePillars } from './durableCredentials'
 import {
   MSG_GET_ID, MSG_L3_INSPECT_URL, MSG_REMOTE_INSPECT_URL, MSG_FORWARD_TO_CONTENT, REMOTE_VALIDATION_LINK,
@@ -74,10 +78,17 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 
   void validateUrl(url).then(c2paResult => {
-    if (c2paResult instanceof Error) {
-      return
-    }
-    const message = { action: MSG_C2PA_RESULT_FROM_CONTEXT, data: { url, c2paResult, frame: info.frameId } }
+    // A thrown Error used to be dropped here with a bare `return`, so when the
+    // engine failed to come up the user's explicit right-click produced no
+    // badge, no toast and no error — indistinguishable from the extension not
+    // being installed. Relay it instead; the content script has UI for it.
+    //
+    // toWire() is not cosmetic. Extension messaging is JSON-only, so an Error
+    // instance arrives at the content script as `{}` — name, message and url all
+    // gone. The no-manifest verdict survived only because c2pa.ts happens to
+    // return a plain object rather than an Error.
+    const payload = c2paResult instanceof Error ? toC2paErrorWire(c2paResult, url) : c2paResult
+    const message = { action: MSG_C2PA_RESULT_FROM_CONTEXT, data: { url, c2paResult: payload, frame: info.frameId } }
     if (tab?.id != null) {
       chrome.tabs.sendMessage(tab.id, message).catch(() => { /* tab may not have a content-script listener */ })
     }
@@ -164,7 +175,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (action === MSG_VALIDATE_URL) {
-    void validateUrl(data as string).then(sendResponse)
+    // Flatten Errors before they cross the port — see C2paErrorWire in c2pa.ts.
+    void validateUrl(data as string)
+      .then((result) => { sendResponse(result instanceof Error ? toC2paErrorWire(result, data as string) : result) })
     return AWAIT_ASYNC_RESPONSE
   }
 

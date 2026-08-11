@@ -212,6 +212,37 @@
 .status-ai-success { background: #2a8a3c; }
 .status-ai-error   { background: #c83232; }
 .status-unknown    { background: #888; }
+.status-no-credentials { background: #8a8a8a; }
+.status-unavailable    { background: #6b6b6b; }
+
+/* Files with nothing to verify are listed so the user can see the scan
+ * covered them, but they are held back visually: the rows that carry a
+ * cryptographic finding are the ones worth the eye. Hovering or expanding a
+ * row brings it to full strength so the detail stays readable.
+ */
+.v-row-no-credentials,
+.v-row-unavailable {
+    opacity: 0.55;
+    transition: opacity 120ms ease-out;
+}
+.v-row-no-credentials:hover,
+.v-row-unavailable:hover,
+.v-row-no-credentials:focus-within,
+.v-row-unavailable:focus-within {
+    opacity: 1;
+}
+
+.v-note {
+    color: #444;
+    line-height: 1.45;
+    margin-bottom: 8px;
+}
+.v-note p { margin: 0 0 6px 0; }
+.v-source {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: #666;
+}
 
 .v-disclosure {
     transition: transform 120ms ease-out;

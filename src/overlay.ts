@@ -60,9 +60,19 @@ export class C2paOverlay /* extends HTMLElement */ {
     this._iframe = iframe
     this.hide()
 
-    document.addEventListener('DOMContentLoaded', () => {
-      document.body.appendChild(iframe)
-    })
+    // Attach now if the document is already parsed. The listener alone was a
+    // one-shot bet that this script always runs before DOMContentLoaded, which
+    // holds for the `document_start` registration and fails for every other
+    // entry into this code — a re-injection after an extension reload or
+    // update, or any `chrome.scripting.executeScript` into a loaded tab. The
+    // event has already fired by then, so the overlay iframe was never added to
+    // the page and every verification silently had nowhere to draw.
+    const attach = (): void => { document.body.appendChild(iframe) }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attach, { once: true })
+    } else {
+      attach()
+    }
 
     /*
       The IFrame cannot resize itself from within the IFrame.

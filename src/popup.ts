@@ -6,8 +6,9 @@
 import { type TrustListInfo, getTrustListInfos, removeTrustList, addTSATrustFile, addTrustFile } from './trustlistProxy.js'
 import packageManifest from '../package.json'
 import { BUILD_INFO } from './build-info'
-import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, TRUSTEDDIT_LINK, taggedLink, MSG_RESPONSE_C2PA_ENTRIES, MANIFEST_STORE_PROBE_DEFAULT, MANIFEST_STORE_PROBE_KEY } from './constants.js'
-import { type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD } from './inject.js'
+import { AUTO_SCAN_DEFAULT, MSG_AUTO_SCAN_UPDATED, MSG_REQUEST_C2PA_ENTRIES, TRUSTEDDIT_LINK, taggedLink, MSG_RESPONSE_C2PA_ENTRIES, MSG_RESPONSE_C2PA_SUMMARY, MANIFEST_STORE_PROBE_DEFAULT, MANIFEST_STORE_PROBE_KEY } from './constants.js'
+import { type C2paEntryDetails, type MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD, type MSG_RESPONSE_C2PA_SUMMARY_PAYLOAD } from './inject.js'
+import { crIconDataUrl } from './icon.js'
 // Side-effect import: registers <c2pa-provenance-graph>. rollup's
 // moduleSideEffects predicate keeps src/ modules, so this survives the build
 // (see rollup.config.js — a bare import here was silently dropped before).
@@ -348,9 +349,71 @@ async function showResults (): Promise<void> {
   const activeBrowserTab = await chrome.tabs.query({ active: true, currentWindow: true })
   const id = activeBrowserTab[0].id
   if (id == null) {
+    setEmptyText(NO_TAB_TEXT)
     return
   }
-  void chrome.tabs.sendMessage(id, { action: MSG_REQUEST_C2PA_ENTRIES, data: null })
+  armScanTimeout()
+  chrome.tabs.sendMessage(id, { action: MSG_REQUEST_C2PA_ENTRIES, data: null })
+    .catch(() => {
+      // No content script in this tab: a browser page, the Web Store, a PDF
+      // viewer, or a page loaded before the extension was installed. Say so,
+      // rather than leaving the placeholder implying a scan is under way.
+      setEmptyText(NO_CONTENT_SCRIPT_TEXT)
+    })
+}
+
+const NO_TAB_TEXT = 'No active tab to scan.'
+const NO_CONTENT_SCRIPT_TEXT = 'Verifieddit cannot read this page. Browser and Web Store pages are off limits; on an ordinary page, reload the tab and try again.'
+/**
+ * How long to wait for the first frame to answer before saying so. The content
+ * script answers in milliseconds when it is there at all, so anything past this
+ * means it is not coming.
+ */
+const SCAN_TIMEOUT = 6000
+
+let _entriesRendered = 0
+let _scanTimer: ReturnType<typeof setTimeout> | undefined
+const _summaries = new Map<number, MSG_RESPONSE_C2PA_SUMMARY_PAYLOAD>()
+
+function setEmptyText (text: string): void {
+  const empty = document.getElementById('validationEmpty')
+  if (empty == null) return
+  empty.textContent = text
+  empty.style.display = _entriesRendered > 0 ? 'none' : ''
+}
+
+function armScanTimeout (): void {
+  if (_scanTimer != null) clearTimeout(_scanTimer)
+  _scanTimer = setTimeout(() => {
+    if (_entriesRendered === 0 && _summaries.size === 0) {
+      setEmptyText(NO_CONTENT_SCRIPT_TEXT)
+    }
+  }, SCAN_TIMEOUT)
+}
+
+/** An entry reached the list, so the placeholder has served its purpose. */
+function noteEntryRendered (): void {
+  _entriesRendered++
+  const empty = document.getElementById('validationEmpty')
+  if (empty != null) empty.style.display = 'none'
+}
+
+function noteSummary (frameId: number, summary: MSG_RESPONSE_C2PA_SUMMARY_PAYLOAD): void {
+  _summaries.set(frameId, summary)
+  if (_scanTimer != null) clearTimeout(_scanTimer)
+
+  if (_entriesRendered > 0) return
+
+  const all = Array.from(_summaries.values())
+  const pending = all.reduce((n, s) => n + s.pending, 0)
+  if (pending > 0) {
+    setEmptyText(`Checking ${pending} ${pending === 1 ? 'file' : 'files'} on this page…`)
+    return
+  }
+  const total = all.reduce((n, s) => n + s.total, 0)
+  setEmptyText(total === 0
+    ? 'No images, video or audio were found on this page.'
+    : 'Scan finished. Nothing could be listed for this page.')
 }
 
 // Escape untrusted strings before insertion into innerHTML (#59).
@@ -359,18 +422,23 @@ function esc (s: string | null | undefined): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c)
 }
 
-function statusLabel (status: string): { text: string, cls: string } {
-  switch (status) {
-    case 'success':    return { text: 'Trusted',     cls: 'status-success' }
-    case 'warning':    return { text: 'Untrusted',   cls: 'status-warning' }
-    case 'error':      return { text: 'Invalid',     cls: 'status-error' }
-    case 'ai-success': return { text: 'AI (signed)', cls: 'status-ai-success' }
-    case 'ai-error':   return { text: 'AI (error)',  cls: 'status-ai-error' }
-    default:           return { text: status,        cls: 'status-unknown' }
+function statusLabel (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): { text: string, cls: string } {
+  // 'unavailable' shares the red 'error' status code with a genuine integrity
+  // failure but is a different claim, so it gets its own label. "Unchecked"
+  // says we could not look; "Invalid" would say the file is broken.
+  if (r.kind === 'unavailable') return { text: 'Unchecked', cls: 'status-unavailable' }
+  switch (r.status) {
+    case 'success':         return { text: 'Trusted',     cls: 'status-success' }
+    case 'warning':         return { text: 'Untrusted',   cls: 'status-warning' }
+    case 'error':           return { text: 'Invalid',     cls: 'status-error' }
+    case 'ai-success':      return { text: 'AI (signed)', cls: 'status-ai-success' }
+    case 'ai-error':        return { text: 'AI (error)',  cls: 'status-ai-error' }
+    case 'no-credentials':  return { text: 'No Creds',    cls: 'status-no-credentials' }
+    default:                return { text: r.status,      cls: 'status-unknown' }
   }
 }
 
-function renderIngredientTree (ingredients: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD['ingredients']): string {
+function renderIngredientTree (ingredients: C2paEntryDetails['ingredients']): string {
   if (ingredients.length === 0) {
     return '<div class="ingredient-empty">No ingredients in manifest</div>'
   }
@@ -390,47 +458,102 @@ function renderIngredientTree (ingredients: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD['i
   return `<ul class="ingredient-tree">${rows}</ul>`
 }
 
-function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
-  // Status icon — same two-tone CR set as the in-page overlay.
-  const iconUrl = {
-    success:      chrome.runtime.getURL('icons/cr.svg'),
-    warning:      chrome.runtime.getURL('icons/cr!.svg'),
-    error:        chrome.runtime.getURL('icons/crx.svg'),
-    'ai-success': chrome.runtime.getURL('icons/cr.svg'),
-    'ai-error':   chrome.runtime.getURL('icons/crx.svg')
-  } as Record<string, string>
-  const icon = iconUrl[r.status] ?? iconUrl.success
+/**
+ * Rows already on screen, keyed by media URL.
+ *
+ * Entries stream in from every frame and a popup-triggered scan can re-report
+ * a URL an earlier auto-scan already covered, so rows are replaced in place
+ * rather than appended twice.
+ */
+const _rows = new Map<string, Element>()
 
-  const thumbSrc = (r.thumbnail != null && r.thumbnail !== '')
-    ? r.thumbnail
-    : chrome.runtime.getURL('icons/camera.svg')
-
-  const { text: statusText, cls: statusCls } = statusLabel(r.status)
-
-  const errorsSection = r.validationErrors.length > 0
-    ? `<dt>Errors</dt><dd class="validation-errors">${r.validationErrors.map((e) => `<div>${esc(e)}</div>`).join('')}</dd>`
+/** Details panel for a file whose credentials we read. */
+function credentialsDetails (c: C2paEntryDetails): string {
+  const errorsSection = c.validationErrors.length > 0
+    ? `<dt>Errors</dt><dd class="validation-errors">${c.validationErrors.map((e) => `<div>${esc(e)}</div>`).join('')}</dd>`
     : ''
 
-  const trustLine = r.trustListName != null
-    ? `${esc(r.trustListName)}${r.trustListEntity != null ? ` · ${esc(r.trustListEntity)}` : ''}`
+  const trustLine = c.trustListName != null
+    ? `${esc(c.trustListName)}${c.trustListEntity != null ? ` · ${esc(c.trustListEntity)}` : ''}`
     : '<span class="detail-dim">not in any trust list</span>'
 
-  const tsaLine = r.hasTSA
+  const tsaLine = c.hasTSA
     ? '<span class="tsa-ok">✓ present</span>'
     : '<span class="detail-dim">absent</span>'
 
   // "no" claimed the file is not AI-generated. What we actually know is
   // narrower: the signer declared nothing. An unsigned file, or one whose
   // manifest omits digitalSourceType, is not evidence of human authorship.
-  const aiLine = r.isAIDetected
+  const aiLine = c.isAIDetected
     ? '<span class="ai-flag">⚠ declared AI-generated</span>'
     : '<span class="detail-dim">not declared</span>'
 
+  return `
+        <dl>
+          <dt>Signer</dt>
+          <dd>${esc(c.signer)}</dd>
+          <dt>Trust list</dt>
+          <dd>${trustLine}</dd>
+          <dt>Certificate</dt>
+          <dd>${c.certIssuer != null ? `issued by <b>${esc(c.certIssuer)}</b>${c.certSubject != null ? ` to <b>${esc(c.certSubject)}</b>` : ''}` : '<span class="detail-dim">no chain</span>'}</dd>
+          <dt>Trusted timestamp</dt>
+          <dd>${tsaLine}</dd>
+          <dt>AI (declared by signer)</dt>
+          <dd>${aiLine}</dd>
+          <dt>Manifests</dt>
+          <dd>${c.manifestCount} · active: <b>${esc(c.activeManifest)}</b></dd>
+          ${errorsSection}
+        </dl>
+        <div class="ingredient-header">Provenance chain</div>
+        <div class="popup-provenance"></div>
+        <div class="ingredient-header">Ingredients (${c.ingredients.length})</div>
+        ${renderIngredientTree(c.ingredients)}`
+}
+
+/**
+ * Details panel for a file that carries no credentials, or that we could not
+ * check. These two are kept textually distinct on purpose: telling a user a
+ * signed file is unsigned because a fetch failed is the worst verdict a
+ * verifier can get wrong.
+ */
+function verdictDetails (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): string {
+  const body = r.kind === 'no-credentials'
+    ? `<p>This image carries no embedded Content Credentials. There is no C2PA
+       manifest to check, so nothing about its origin or edit history can be
+       verified. That is the normal state for most images on the web today, and
+       it is not by itself evidence that the image is fake.</p>`
+    : `<p>Verification could not be completed, so this image's Content
+       Credentials are <b>unknown</b>. This is not a finding that the file is
+       unsigned: the check itself failed.</p>
+       <p class="detail-dim">${esc(r.detail ?? 'unknown error')}</p>`
+
+  return `
+        <div class="v-note">${body}</div>
+        <dl>
+          <dt>Source</dt>
+          <dd class="v-source">${esc(r.url)}</dd>
+        </dl>`
+}
+
+function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
+  // Status icon — same two-tone CR set as the in-page overlay, resolved from
+  // the one definition in icon.ts so the popup and the page badge cannot drift.
+  const icon = crIconDataUrl(r.status)
+
+  const thumbSrc = (r.thumbnail != null && r.thumbnail !== '')
+    ? r.thumbnail
+    : chrome.runtime.getURL('icons/camera.svg')
+
+  const { text: statusText, cls: statusCls } = statusLabel(r)
+  const signer = r.credentials?.signer ?? null
+  const title = `Verifieddit · ${decodeURIComponent(r.name)} · ${statusText}${signer != null && signer !== '(unknown signer)' ? ` (${signer})` : ''}`
+
   // Unique id so each row's details panel can be toggled independently.
   const rowId = `v-${Math.random().toString(36).slice(2, 9)}`
+  const rowCls = r.kind === 'credentials' ? 'v-row' : `v-row v-row-${r.kind}`
 
   const html = `
-    <div class="v-row" data-status="${esc(r.status)}" data-url="${esc(r.url)}" data-title="${esc(`Verifieddit · ${decodeURIComponent(r.name)} · ${statusText}${r.signer !== '(unknown signer)' ? ` (${r.signer})` : ''}`)}">
+    <div class="${rowCls}" data-status="${esc(r.status)}" data-kind="${esc(r.kind)}" data-url="${esc(r.url)}" data-title="${esc(title)}">
       <button class="v-summary" data-target="${rowId}" aria-expanded="false">
         <img class="v-status-icon" src="${esc(icon)}" alt="${esc(statusText)}">
         <img class="v-thumb" src="${esc(thumbSrc)}" alt="">
@@ -439,40 +562,28 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
         <span class="v-disclosure">▸</span>
       </button>
       <div class="v-details" id="${rowId}" hidden>
-        <dl>
-          <dt>Signer</dt>
-          <dd>${esc(r.signer)}</dd>
-          <dt>Trust list</dt>
-          <dd>${trustLine}</dd>
-          <dt>Certificate</dt>
-          <dd>${r.certIssuer != null ? `issued by <b>${esc(r.certIssuer)}</b>${r.certSubject != null ? ` to <b>${esc(r.certSubject)}</b>` : ''}` : '<span class="detail-dim">no chain</span>'}</dd>
-          <dt>Trusted timestamp</dt>
-          <dd>${tsaLine}</dd>
-          <dt>AI (declared by signer)</dt>
-          <dd>${aiLine}</dd>
-          <dt>Manifests</dt>
-          <dd>${r.manifestCount} · active: <b>${esc(r.activeManifest)}</b></dd>
-          ${errorsSection}
-        </dl>
-        <div class="ingredient-header">Provenance chain</div>
-        <div class="popup-provenance"></div>
-        <div class="ingredient-header">Ingredients (${r.ingredients.length})</div>
-        ${renderIngredientTree(r.ingredients)}
+        ${r.credentials != null ? credentialsDetails(r.credentials) : verdictDetails(r)}
       </div>
     </div>
   `
 
   const validationEntries = document.getElementById('validationEntries')
   if (validationEntries == null) return
-  // Hide the "scanning…" empty state as soon as the first entry arrives.
-  const empty = document.getElementById('validationEmpty')
-  if (empty != null) empty.style.display = 'none'
-  // Append; wire up the toggle for the newly inserted row.
   const wrap = document.createElement('template')
   wrap.innerHTML = html.trim()
   const node = wrap.content.firstElementChild
   if (node == null) return
-  validationEntries.appendChild(node)
+
+  const existing = _rows.get(r.url)
+  if (existing != null) {
+    // A later, better answer for a URL we already listed (a popup scan
+    // upgrading an auto-scan placeholder, say) replaces the row in place.
+    existing.replaceWith(node)
+  } else {
+    validationEntries.appendChild(node)
+  }
+  _rows.set(r.url, node)
+  noteEntryRendered()
 
   // The graph is an object, so it cannot travel in the HTML string above; set
   // it as a property once the element is in the document. No graph means the
@@ -480,9 +591,10 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
   // the overlay's fallback.
   const provSlot = node.querySelector('.popup-provenance')
   if (provSlot != null) {
-    if (r.provenanceGraph != null && r.provenanceGraph.nodes.length > 0) {
+    const graph = r.credentials?.provenanceGraph
+    if (graph != null && graph.nodes.length > 0) {
       const diagram = document.createElement('c2pa-provenance-graph') as HTMLElement & { graph?: unknown }
-      diagram.graph = r.provenanceGraph
+      diagram.graph = graph
       provSlot.appendChild(diagram)
     } else {
       provSlot.innerHTML = '<div class="ingredient-empty">No provenance graph available</div>'
@@ -596,5 +708,10 @@ if (trustListInfoElement !== null) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === MSG_RESPONSE_C2PA_ENTRIES) {
     addValidationResult(request.data as MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD)
+  }
+  if (request.action === MSG_RESPONSE_C2PA_SUMMARY) {
+    // Keyed by frame: a page with iframes answers once per frame, and each
+    // frame's later summary supersedes its own earlier one, not its siblings'.
+    noteSummary(sender.frameId ?? 0, request.data as MSG_RESPONSE_C2PA_SUMMARY_PAYLOAD)
   }
 })
