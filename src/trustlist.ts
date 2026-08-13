@@ -494,74 +494,88 @@ async function notifyTabsOfTrustListUpdate (): Promise<void> {
  *  Other modules import functions from this module, but they don't want the listeners
  *  So the init function needs to be called explicitly
  */
-async function loadDefaultTrustLists (): Promise<void> {
+/*
+ * Stable identity for a trust list: the anchors it actually carries.
+ *
+ * Names cannot serve as the key — the official and Trusteddit TSA lists are
+ * both deliberately called 'Local TSA Anchors' so checkTSATrustListInclusion
+ * finds them — and download_url is empty on every bundled list. The thumbprint
+ * set is version-independent, so a list stored by an older build still matches
+ * the bundled list it came from.
+ */
+function trustListKey (tl: TrustList): string {
+  const thumbprints = tl.entities
+    .flatMap((entity) => entity.jwks.keys.map((jwk) => jwk['x5t#S256']))
+    .filter((thumbprint): thumbprint is string => thumbprint != null && thumbprint !== '')
+    .sort()
+  return `${tl.name ?? ''}|${thumbprints.join(',')}`
+}
 
+/*
+ * Reconciles the bundled trust anchors into whatever is already stored.
+ *
+ * chrome.storage.local survives extension updates, so this MUST merge rather
+ * than load-once-when-empty. It used to only run on an empty store, which meant
+ * any anchor added after a user's first install was shipped in the bundle but
+ * never loaded: the Trusteddit anchors arrived in v1.2.0, so every profile
+ * created on v1.1.3 or earlier kept showing trusteddit.com-signed media as
+ * untrusted while a fresh install looked perfect.
+ *
+ * User-added anchors are preserved; only bundled lists are reconciled.
+ */
+async function mergeDefaultTrustLists (): Promise<void> {
   let defaultLoaded = 0
   let lastError: unknown = null
-
-  try {
-    const testTrustList = defaultTestTrustList as TrustList;
-    await processDownloadedTrustList(testTrustList);
-    globalTrustLists.push(testTrustList);
-    defaultLoaded += 1
-  } catch (error) {
-    lastError = error
-  }
-
-  try {
-    const officialTsaTrustList = defaultTsaTrustList as TrustList;
-    await processDownloadedTrustList(officialTsaTrustList);
-    globalTrustLists.push(officialTsaTrustList);
-    defaultLoaded += 1
-  } catch (error) {
-    lastError = error
-  }
+  let changed = false
 
   // The demo-corpus fixture CA is NOT a C2PA anchor — it is a key we generated.
   // Loading it in a shipped build means anyone holding that key can mint media
   // that every user sees as trusted, which is precisely the claim this product
   // exists to make honestly. Dev and E2E builds keep it so the bundled corpus
   // still exercises the trusted path; the store artifact must not.
-  if (TRUST_DEV_FIXTURES) {
+  const bundled: TrustList[] = [
+    defaultTestTrustList as TrustList,
+    defaultTsaTrustList as TrustList,
+    ...(TRUST_DEV_FIXTURES ? [devTrustList as TrustList] : []),
+    defaultAiTrustList as TrustList,
+    trustedditTrustList as TrustList,
+    // Named 'Local TSA Anchors' so checkTSATrustListInclusion picks it up.
+    trustedditTsaTrustList as TrustList
+  ]
+
+  const stored = new Set(globalTrustLists.map(trustListKey))
+  for (const trustList of bundled) {
     try {
-      const fixtureTrustList = devTrustList as TrustList;
-      await processDownloadedTrustList(fixtureTrustList);
-      globalTrustLists.push(fixtureTrustList);
+      await processDownloadedTrustList(trustList)
       defaultLoaded += 1
+      if (!stored.has(trustListKey(trustList))) {
+        globalTrustLists.push(trustList)
+        stored.add(trustListKey(trustList))
+        changed = true
+      }
     } catch (error) {
       lastError = error
     }
   }
 
-  try {
-    const aiTrustList = defaultAiTrustList as TrustList;
-    await processDownloadedTrustList(aiTrustList);
-    globalTrustLists.push(aiTrustList);
-    defaultLoaded += 1
-  } catch (error) {
-    lastError = error
+  // A profile that once ran a dev or E2E build has the fixture CA persisted.
+  // Storage outlives the build flag, so a production build must evict it —
+  // otherwise the public fixture key stays trusted for that user forever.
+  if (!TRUST_DEV_FIXTURES) {
+    try {
+      await processDownloadedTrustList(devTrustList as TrustList)
+      const fixtureKey = trustListKey(devTrustList as TrustList)
+      const kept = globalTrustLists.filter((tl) => trustListKey(tl) !== fixtureKey)
+      if (kept.length !== globalTrustLists.length) {
+        globalTrustLists.splice(0, globalTrustLists.length, ...kept)
+        changed = true
+      }
+    } catch (error) {
+      lastError = error
+    }
   }
 
-  try {
-    const tdTrustList = trustedditTrustList as TrustList;
-    await processDownloadedTrustList(tdTrustList);
-    globalTrustLists.push(tdTrustList);
-    defaultLoaded += 1
-  } catch (error) {
-    lastError = error
-  }
-
-  try {
-    // Named 'Local TSA Anchors' so checkTSATrustListInclusion picks it up.
-    const tdTsaTrustList = trustedditTsaTrustList as TrustList;
-    await processDownloadedTrustList(tdTsaTrustList);
-    globalTrustLists.push(tdTsaTrustList);
-    defaultLoaded += 1
-  } catch (error) {
-    lastError = error
-  }
-
-  // If BOTH default lists fail to load, every signed image renders untrusted
+  // If every default list fails to load, every signed image renders untrusted
   // and the user has no idea why. Throw so init() can surface it instead of
   // silently persisting an empty trust list.
   if (defaultLoaded === 0) {
@@ -569,25 +583,26 @@ async function loadDefaultTrustLists (): Promise<void> {
     throw new Error(`No default trust lists loaded: ${msg}`)
   }
 
-  await storeUpdatedTrustLists('Default trust lists loaded.');
+  // Only write when the set actually moved: init() runs on every service worker
+  // wake-up, and a write notifies every open tab to re-render.
+  if (changed) {
+    await storeUpdatedTrustLists('Default trust lists loaded.')
+  }
 }
 
 export async function init (): Promise<void> {
   await loadTrustLists(); // Attempt to load existing trust lists first
-  if (globalTrustLists.length === 0) {
-    try {
-      await loadDefaultTrustLists();
-      // Clear any prior error so the popup banner reflects current state.
-      void chrome.storage.session?.remove('trustListsInitError')
-    } catch (error) {
-      // Surface the failure via chrome.storage.session so the popup can
-      // render a banner, but keep init alive so the message handlers
-      // below still register. A SW that cannot answer GET_TRUSTLIST_INFOS
-      // is worse than one that answers with the explicit error state.
-      const message = error instanceof Error ? error.message : String(error)
-      void chrome.storage.session?.set({ trustListsInitError: message })
-    }
-  } else {
+  try {
+    await mergeDefaultTrustLists();
+    // Clear any prior error so the popup banner reflects current state.
+    void chrome.storage.session?.remove('trustListsInitError')
+  } catch (error) {
+    // Surface the failure via chrome.storage.session so the popup can
+    // render a banner, but keep init alive so the message handlers
+    // below still register. A SW that cannot answer GET_TRUSTLIST_INFOS
+    // is worse than one that answers with the explicit error state.
+    const message = error instanceof Error ? error.message : String(error)
+    void chrome.storage.session?.set({ trustListsInitError: message })
   }
 
   chrome.runtime.onMessage.addListener(

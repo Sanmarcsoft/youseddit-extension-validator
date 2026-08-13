@@ -20,11 +20,16 @@ export class C2paOverlay /* extends HTMLElement */ {
     // iframe. Without the permission, `requestFullscreen()` inside the frame is
     // rejected, and the CSS fallback (`position: fixed; height: 100vh`) resolves
     // against THIS iframe's 372px viewport rather than the page's — the button
-    // appears to do nothing at all. Both spellings: `allow` is the current
-    // Permissions-Policy delegation, `allowFullscreen` the legacy attribute
-    // some engines still gate on.
+    // appears to do nothing at all. `allow` is the current Permissions-Policy
+    // delegation; `allowFullscreen` is the legacy attribute some engines still
+    // gate on. Setting BOTH makes Chrome log "Allow attribute will take
+    // precedence over 'allowfullscreen'" into the extension's error pane for
+    // every page the content script touches, so the legacy spelling is applied
+    // only where `allow` is genuinely unavailable.
     iframe.allow = 'fullscreen'
-    iframe.allowFullscreen = true
+    if (!('allow' in HTMLIFrameElement.prototype)) {
+      iframe.allowFullscreen = true
+    }
     // rc11.2 / #70 — give the iframe real default dimensions + an opaque
     // background so it's actually a visible panel on first paint rather than
     // a 302×2 transparent slit hidden behind the page content. Width /
