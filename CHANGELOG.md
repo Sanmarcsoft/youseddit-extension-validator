@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v1.2.3
+
+- No-credentials and verification-failed badges are restored when media
+  re-enters the viewport (#162). Leaving the viewport destroys the badge DOM
+  node, and recreation went through setIcon, which early-returns when
+  state.c2pa is null, so every verdict-only image lost its badge permanently
+  after one scroll-out. restoreIcon() now restores from whichever result shape
+  the record holds. Also dedupes the expired-cert reason string that
+  getC2PAStatus pushed into validationStatus on every recompute.
+- The overlay trust row and screen-reader summary qualify a trust-list match
+  when the signing certificate is expired and no trusted RFC 3161 timestamp
+  covers the signature (#161). The on-page badge already degraded to the error
+  state for this case; the panel rendered an unqualified checkmark.
+
 ## v1.2.2
 
 - Legitimate Adobe-signed content is trusted (#160). Real Photoshop, Firefly

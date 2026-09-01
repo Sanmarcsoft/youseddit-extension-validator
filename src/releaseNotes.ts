@@ -30,6 +30,23 @@ export const DEMO_URL = 'https://www.verifieddit.com/demo'
 
 export const RELEASE_NOTES: readonly ReleaseEntry[] = [
   {
+    tag: 'v1.2.3',
+    date: '2026-09-01',
+    summary: 'Badges survive scrolling, and an expired signing certificate is never presented as plainly trusted.',
+    fixes: [
+      {
+        title: 'Badges come back when you scroll back',
+        howToVerify:
+          'On a long page with auto-scan enabled, scroll away from a checked image and return to it. Its badge is recreated, including for images that carried no credentials at all. Previously any image whose result was "no credentials found" or "verification failed" lost its badge permanently the first time it left the screen.'
+      },
+      {
+        title: 'An expired signing certificate is called out in the panel',
+        howToVerify:
+          'Open the panel on a file whose signing certificate has expired without a trusted timestamp. The trust line now reads "cert expired, no trusted timestamp" instead of an unqualified checkmark, and the spoken summary for screen readers says the same.'
+      }
+    ]
+  },
+  {
     tag: 'v1.2.2',
     date: '2026-09-01',
     summary: 'Content signed by real-world tools (Photoshop, Firefly, Lightroom, Truepic) is now recognised as trusted.',
