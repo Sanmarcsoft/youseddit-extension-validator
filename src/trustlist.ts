@@ -18,6 +18,13 @@ import defaultTestTrustList from './trust-anchors/default-trust-list.json';
 // Trusteddit TSA chain only, so RFC 3161 timestamps from every official C2PA
 // timestamp authority failed the trust check.
 import defaultTsaTrustList from './trust-anchors/default-tsa-trust-list.json';
+// CAI known-certificate anchors (contentcredentials.org/trust/anchors.pem) -
+// the list Adobe's own Verify trusts. The conformance list alone carries a
+// single Adobe cert (vault-a-or2) while real Photoshop/Firefly/Lightroom
+// output chains through Adobe Product Services G3/G4 to Adobe Root CA G2,
+// which only this list holds. Without it every legitimate Adobe-signed asset
+// rendered valid-but-untrusted (found live 2026-09-01).
+import caiKnownAnchors from './trust-anchors/cai-known-anchors.json';
 // Fixture-signing CA for the bundled demo corpus. NOT a C2PA anchor — kept out
 // of default-trust-list.json so that file is exactly the official list.
 import devTrustList from './trust-anchors/dev-trust-list.json';
@@ -540,6 +547,7 @@ async function mergeDefaultTrustLists (): Promise<void> {
   const bundled: TrustList[] = [
     defaultTestTrustList as TrustList,
     defaultTsaTrustList as TrustList,
+    caiKnownAnchors as TrustList,
     ...(TRUST_DEV_FIXTURES ? [devTrustList as TrustList] : []),
     defaultAiTrustList as TrustList,
     trustedditTrustList as TrustList,

@@ -7,6 +7,16 @@
  *   trust-list/C2PA-TRUST-LIST.pem      -> src/trust-anchors/default-trust-list.json
  *   trust-list/C2PA-TSA-TRUST-LIST.pem  -> src/trust-anchors/default-tsa-trust-list.json
  *
+ * Plus the CAI known-certificate anchors (what Adobe's own Verify trusts):
+ *   https://contentcredentials.org/trust/anchors.pem -> src/trust-anchors/cai-known-anchors.json
+ *
+ * The conformance list alone is NOT sufficient: as of 2026-09-01 it carries a
+ * single Adobe cert (the vault-a-or2 issuing CA) while real Photoshop, Firefly
+ * and Lightroom output chains through Adobe Product Services G3/G4 to
+ * Adobe Root CA G2 - which only the CAI anchors list contains. Shipping only
+ * the conformance list made every legitimate Adobe-signed asset render as
+ * valid-but-untrusted.
+ *
  * Why this exists: the bundled default list was hand-maintained and drifted.
  * As of 2026-08-01 it carried 18 of the 29 official anchors, so assets signed by
  * eleven conformant CAs (Huawei, Huanyu, Verimago, Snowball, Encypher,
@@ -25,6 +35,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const REPO = 'https://raw.githubusercontent.com/Sanmarcsoft/c2pa-org-conformance-public/main'
+const CAI_ANCHORS_URL = 'https://contentcredentials.org/trust/anchors.pem'
 const ANCHOR_DIR = resolve(import.meta.dir, '..', 'src', 'trust-anchors')
 
 /** Matches LOCAL_TRUST_TSA_LIST_NAME in src/constants.ts — checkTSATrustListInclusion filters on it. */
@@ -103,13 +114,16 @@ function buildTrustList (pem: string, meta: Omit<TrustList, 'entities'>): TrustL
 }
 
 async function loadPem (name: string, fromDir: string | null): Promise<string> {
+  // The CAI anchors are not in the conformance repo; a --from dir may still
+  // override them (trust-list/anchors.pem) for offline runs.
   if (fromDir != null) {
     const p = join(fromDir, 'trust-list', name)
-    if (!existsSync(p)) throw new Error(`missing ${p}`)
-    return await readFile(p, 'utf8')
+    if (existsSync(p)) return await readFile(p, 'utf8')
+    if (name !== 'anchors.pem') throw new Error(`missing ${p}`)
   }
-  const res = await fetch(`${REPO}/trust-list/${name}`)
-  if (!res.ok) throw new Error(`fetch ${name}: HTTP ${res.status}`)
+  const url = name === 'anchors.pem' ? CAI_ANCHORS_URL : `${REPO}/trust-list/${name}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`fetch ${url}: HTTP ${res.status}`)
   return await res.text()
 }
 
@@ -139,6 +153,13 @@ async function main (): Promise<void> {
         download_url: '',
         description: 'Official C2PA trust anchors, generated from trust-list/C2PA-TRUST-LIST.pem in Sanmarcsoft/c2pa-org-conformance-public. Do not edit by hand — run bun scripts/sync-c2pa-trust-lists.ts.',
         website: 'https://github.com/Sanmarcsoft/c2pa-org-conformance-public',
+        last_updated: stamp
+      }],
+      ['anchors.pem', 'cai-known-anchors.json', {
+        name: 'CAI Known Certificates',
+        download_url: '',
+        description: 'CAI known-certificate anchors (contentcredentials.org/trust/anchors.pem), the list the Content Credentials Verify site trusts. Carries the production roots (Adobe Root CA G2, Leica, Nikon, Canon, Sony, Microsoft, Truepic) absent from the conformance list. Do not edit by hand - run bun scripts/sync-c2pa-trust-lists.ts.',
+        website: 'https://contentcredentials.org/verify',
         last_updated: stamp
       }],
       ['C2PA-TSA-TRUST-LIST.pem', 'default-tsa-trust-list.json', {

@@ -3,7 +3,7 @@
   "download_url": "",
   "description": "Official C2PA trust anchors, generated from trust-list/C2PA-TRUST-LIST.pem in Sanmarcsoft/c2pa-org-conformance-public. Do not edit by hand — run bun scripts/sync-c2pa-trust-lists.ts.",
   "website": "https://github.com/Sanmarcsoft/c2pa-org-conformance-public",
-  "last_updated": "2026-08-01T08:04:24Z",
+  "last_updated": "2026-09-01T10:34:41Z",
   "entities": [
     {
       "name": "Adobe Inc - Adobe Product Issuing CA vault-a-or2.adobe.net cai",

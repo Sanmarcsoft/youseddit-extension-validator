@@ -3,7 +3,7 @@
   "download_url": "",
   "description": "Official C2PA TSA trust anchors, generated from trust-list/C2PA-TSA-TRUST-LIST.pem in Sanmarcsoft/c2pa-org-conformance-public. Named \"Local TSA Anchors\" so checkTSATrustListInclusion picks it up. Do not edit by hand.",
   "website": "https://github.com/Sanmarcsoft/c2pa-org-conformance-public",
-  "last_updated": "2026-08-01T08:04:24Z",
+  "last_updated": "2026-09-01T10:34:41Z",
   "entities": [
     {
       "name": "DigiCert, Inc. - DigiCert ECC P384 Root for C2PA G1",
