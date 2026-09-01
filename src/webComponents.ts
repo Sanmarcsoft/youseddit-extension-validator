@@ -446,10 +446,22 @@ export class C2paOverlay extends LitElement {
       ? 'none'
       : tsaTrusted ? 'RFC 3161 · trusted' : 'RFC 3161'
 
+    // #161: a trust-list match alone is not a green tick when the signing cert
+    // has expired and no TRUSTED RFC 3161 timestamp proves the signature was
+    // made inside the validity window. The on-page badge already degrades to
+    // 'error' for this case (getC2PAStatus); the trust row rendered a plain
+    // checkmark regardless, telling the user the signer is fine.
+    const expiredNoTs = this.status?.expired === true && !(tstTokens.length > 0 && tsaTrusted)
+    const trustLabel = !trusted
+      ? 'not in trust list'
+      : expiredNoTs
+          ? `${this.trustList ?? 'trust list'} · cert expired, no trusted timestamp`
+          : (this.trustList ?? 'trust list')
+
     // [key, value, valueClass, typeSpeed]
     const rows: Array<[string, string, string, number]> = [
-      ['signer', this.signer ?? 'unknown', trusted ? 'ok' : '', 12],
-      ['trust', trusted ? (this.trustList ?? 'trust list') : 'not in trust list', trusted ? 'ok' : 'dim', 10],
+      ['signer', this.signer ?? 'unknown', trusted && !expiredNoTs ? 'ok' : '', 12],
+      ['trust', trustLabel, trusted && !expiredNoTs ? 'ok' : 'dim', 10],
       ['timestamp', tsLabel, tstTokens.length === 0 ? 'dim' : (tsaTrusted ? 'ok' : ''), 14],
       ['manifests', String(manifestCount), 'dim', 24]
     ]
@@ -503,11 +515,20 @@ export class C2paOverlay extends LitElement {
 
     const trusted = this.status?.trusted === true
     const hasErrors = this.status?.errors === true
+    // #161: same qualifier as the trust row in renderLog. A trust-list match
+    // with an expired cert and no trusted timestamp must not be announced as
+    // plain "Trusted".
+    const tsOk = (c2paResult.tstTokens?.length ?? 0) > 0 && c2paResult.tsaTrustList != null
+    const expiredNoTs = this.status?.expired === true && !tsOk
     // #128/#129: a plain-text, screen-reader summary in THIS shadow root (not the
     // nested typewriter). Makes the verdict announceable via aria-live and keeps
     // the signer + trust state available to overlay.shadowRoot.textContent.
     const srSummary = `${mediaType} signed by ${this.signer ?? 'unknown'}. ` +
-      (trusted ? `Trusted: ${this.trustList ?? ''}.` : 'Signer unknown to your trust list.') +
+      (trusted
+        ? expiredNoTs
+            ? `Signer in trust list ${this.trustList ?? ''}, but its certificate has expired and no trusted timestamp covers the signature.`
+            : `Trusted: ${this.trustList ?? ''}.`
+        : 'Signer unknown to your trust list.') +
       (hasErrors ? ' Validation errors present.' : '')
 
     return html`
