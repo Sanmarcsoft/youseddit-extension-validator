@@ -1,6 +1,6 @@
-# Verifieddit v1.1.1 Chrome Web Store listing copy
+# Verifieddit v1.2.3 Chrome Web Store listing copy
 
-Every claim checked against the v1.1.1 source. No em-dashes.
+Every claim checked against the v1.2.3 source. No em-dashes.
 
 ---
 
@@ -88,7 +88,7 @@ Content Credentials can appear on any page you visit, so the extension has to re
 
 TRUST IS YOURS TO SET
 
-Five trust lists ship built in, 56 entities in total: the C2PA Conformance Program anchors, 29 for signing and 21 official timestamp authorities, an AI trust list, and the Trusteddit signing and timestamp anchors.
+Six trust lists ship built in, 82 entities in total: the C2PA Conformance Program anchors, 29 for signing and 21 official timestamp authorities, the 26 known-certificate anchors trusted by the Content Credentials Verify site (covering production signers such as Adobe, Leica, Nikon, Canon, Sony, Fujifilm, Microsoft and Truepic), an AI trust list, and the Trusteddit signing and timestamp anchors.
 
 Add your own trust list from a file or a web address at any time, or remove any list you would rather not rely on. Who counts as trustworthy is configuration you control, not a decision we make for you.
 
@@ -156,7 +156,7 @@ punctuated as prose. It is now two concrete situations plus a general one.
 # Privacy tab (Chrome Web Store Developer Dashboard)
 
 Paste-ready. Each field is under the 1,000 character limit. Every statement was
-checked against the v1.1.1 source, not from memory, because a justification that
+checked against the v1.2.3 source, not from memory, because a justification that
 does not match the code is a rejection.
 
 ## Single purpose
