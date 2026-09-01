@@ -17,7 +17,13 @@ Verifieddit
 Verify content authenticity with C2PA Content Credentials. See who signed a file, whether it was altered, and declared AI origin.
 
 ## Category
-Developer Tools
+Privacy & Security
+
+> Changed from Developer Tools at the v1.2.3 submission (2026-09-01). The
+> audience is anyone verifying media authenticity, a trust/security
+> proposition; Developer Tools shelved it among coding utilities where nobody
+> searches for content verification. Category played no part in the v1.1.1
+> rejection, which was purely the description text.
 
 ## Language
 English
