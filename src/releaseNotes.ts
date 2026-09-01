@@ -30,6 +30,28 @@ export const DEMO_URL = 'https://www.verifieddit.com/demo'
 
 export const RELEASE_NOTES: readonly ReleaseEntry[] = [
   {
+    tag: 'v1.2.2',
+    date: '2026-09-01',
+    summary: 'Content signed by real-world tools (Photoshop, Firefly, Lightroom, Truepic) is now recognised as trusted.',
+    fixes: [
+      {
+        title: 'Adobe- and Truepic-signed content shows a trusted signer',
+        howToVerify:
+          'Open an image exported from a current Photoshop, Lightroom or Firefly with Content Credentials attached, or any of the example images at contentcredentials.org/verify. The signer panel now reports it as trusted. Previously every one of these rendered as "valid but the signer is not on any trust list", because the extension bundled only the C2PA conformance anchors and not the known-certificate list that real production signers chain to.'
+      },
+      {
+        title: 'Trust anchors added in updates now reach existing installs',
+        howToVerify:
+          'If you installed before v1.2.0, media signed via trusteddit.com previously stayed untrusted until you reinstalled from scratch. Updating the extension is now enough: newly bundled anchors are merged into your profile on every update.'
+      },
+      {
+        title: 'One damaged trust record no longer disables trust checking',
+        howToVerify:
+          'Nothing to do: this is a resilience fix. If a stored trust list ever became unreadable, the extension used to stop loading all trust anchors and silently kept stale ones. It now skips the damaged record and carries on.'
+      }
+    ]
+  },
+  {
     tag: 'v1.2.1',
     date: '2026-08-11',
     summary: 'The panel opens for everyone, and the provenance graph can be arranged by hand.',

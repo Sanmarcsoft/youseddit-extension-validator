@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## v1.2.2
+
+- Legitimate Adobe-signed content is trusted (#160). Real Photoshop, Firefly
+  and Lightroom output chains through Adobe Product Services G3/G4 to Adobe
+  Root CA G2, and our only general bundled list (the C2PA conformance list)
+  carries a single Adobe cert, the vault-a-or2 issuing CA, which none of those
+  chains touch. The CAI known-certificate anchors
+  (contentcredentials.org/trust/anchors.pem, the list the Content Credentials
+  Verify site trusts; 26 anchors including Adobe Root CA G2, Leica, Nikon,
+  Canon, Sony, Fujifilm, Microsoft, Truepic) are now generated into
+  src/trust-anchors/cai-known-anchors.json by sync-c2pa-trust-lists.ts and
+  merged at init. Regression locked by test/caiKnownAnchors.test.ts using the
+  real chains extracted from the CAI example assets.
+- Bundled trust anchors are merged on every update (#155). The store used to be
+  seeded only when empty, so anchors added after a profile's first install
+  never loaded: profiles from v1.1.3 or earlier kept showing
+  trusteddit.com-signed media as untrusted while a fresh install looked
+  perfect.
+- One malformed stored trust record no longer aborts reconciliation. The
+  key derivation over stored lists was unguarded, so a single record without a
+  well-formed entities array threw before the merge loop and before fixture
+  eviction, silently disabling both halves of the #155 fix (a fail-open).
+- The overlay iframe no longer logs an allowfullscreen precedence warning on
+  every page (#156).
+
 ## v1.2.1
 
 - The panel's sections open again for anyone running the system setting
