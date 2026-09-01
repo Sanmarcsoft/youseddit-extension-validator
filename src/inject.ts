@@ -446,8 +446,13 @@ function getC2PAStatus(c2pa: C2paResult): VALIDATION_STATUS {
   if (c2pa.certChain && c2pa.certChain.length > 0 && new Date(c2pa.certChain[0].validTo) < new Date()) {
     // cert is expired, make sure we have a match in the TSA trust list (if not, timestamp must be ignored)
     if (c2pa.tstTokens == null || c2pa.tsaTrustList == null) {
-      // add an error to the validation status
-      c2pa.manifestStore.validationStatus.push('certificate is expired and no trusted timestamp found');
+      // Record the reason once. This used to push unconditionally, and
+      // getC2PAStatus runs on every icon restore, so the same string
+      // accumulated in validationStatus on each scroll pass (#161).
+      const reason = 'certificate is expired and no trusted timestamp found'
+      if (!c2pa.manifestStore.validationStatus.includes(reason)) {
+        c2pa.manifestStore.validationStatus.push(reason);
+      }
       return 'error';
     }
   }
@@ -900,8 +905,29 @@ MediaMonitor.onMonitoringStop = (): void => {
 }
 
 VisibilityMonitor.onVisible((mediaRecord: MediaRecord): void => {
-  setIcon(mediaRecord)
+  restoreIcon(mediaRecord)
 })
+
+// #162: onNotVisible destroys the badge DOM node (`mediaRecord.icon = null`
+// runs CrIcon.remove() via the setter), and recreation on re-entry went
+// through setIcon, which early-returns when state.c2pa is null. Any image
+// whose result was a verdict rather than a manifest ('no-credentials',
+// 'unavailable') therefore lost its badge permanently after one scroll-out,
+// which is why a long page showed a handful of fluctuating badges instead of
+// one per analysed image. Restore from whichever result shape the record holds.
+function restoreIcon (mediaRecord: MediaRecord): void {
+  if (mediaRecord.state.c2pa != null) {
+    setIcon(mediaRecord)
+    return
+  }
+  const verdict = mediaRecord.state.verdict
+  if (verdict == null) return
+  if (verdict.kind === 'no-credentials') {
+    ensureNoCredentialsIcon(mediaRecord, verdict.url)
+  } else if (verdict.kind === 'unavailable') {
+    ensureVerificationFailedIcon(mediaRecord, verdict.url, verdict.detail ?? 'unknown error')
+  }
+}
 
 VisibilityMonitor.onNotVisible((mediaRecord: MediaRecord): void => {
   mediaRecord.icon = null
