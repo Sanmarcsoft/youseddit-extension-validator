@@ -504,8 +504,12 @@ async function notifyTabsOfTrustListUpdate (): Promise<void> {
  * the bundled list it came from.
  */
 function trustListKey (tl: TrustList): string {
-  const thumbprints = tl.entities
-    .flatMap((entity) => entity.jwks.keys.map((jwk) => jwk['x5t#S256']))
+  // Total by construction. This runs over whatever chrome.storage.local holds,
+  // which may predate any current schema, so a missing entities/jwks/keys must
+  // yield a key rather than throw. See the per-entry guard in
+  // mergeDefaultTrustLists for why a throw here is a fail-OPEN.
+  const thumbprints = (tl.entities ?? [])
+    .flatMap((entity) => entity?.jwks?.keys?.map((jwk) => jwk['x5t#S256']) ?? [])
     .filter((thumbprint): thumbprint is string => thumbprint != null && thumbprint !== '')
     .sort()
   return `${tl.name ?? ''}|${thumbprints.join(',')}`
@@ -543,7 +547,22 @@ async function mergeDefaultTrustLists (): Promise<void> {
     trustedditTsaTrustList as TrustList
   ]
 
-  const stored = new Set(globalTrustLists.map(trustListKey))
+  // Built one entry at a time on purpose. This is the first statement that
+  // touches stored data, and it used to be an unguarded .map(): a single
+  // malformed record threw here, before the merge loop and before the fixture
+  // eviction below, so init() caught it and BOTH halves of the #155 fix were
+  // skipped. That failure is fail-open (the public demo-corpus CA stays
+  // trusted and newly bundled anchors never arrive), which is the opposite of
+  // what a trust store should do when it cannot read itself.
+  const stored = new Set<string>()
+  for (const tl of globalTrustLists) {
+    try {
+      stored.add(trustListKey(tl))
+    } catch (error) {
+      lastError = error
+    }
+  }
+
   for (const trustList of bundled) {
     try {
       await processDownloadedTrustList(trustList)
