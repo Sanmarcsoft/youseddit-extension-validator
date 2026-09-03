@@ -49,7 +49,7 @@ The internet is now a mix of authentic media and synthetic media at industrial s
 - **AI content identification** based on C2PA metadata and digital-source-type assertions, surfaced when the manifest declares AI involvement.
 - **Interactive provenance graph** — the chain of custody as a graph you can explore: expand any node for its detail, pan, zoom, fit to frame, or open it full screen. Covers multi-generation ingredient history, assertions, sensor telemetry, signer certificate, timestamp authority, and trust-list match.
 - **Right-click manual inspection** for images, videos, and audio files, even outside the auto-scan flow.
-- **Trust list management** — bring your own trust anchors, or use the bundled lists: all 29 anchors from the C2PA Conformance Program, the 21 official C2PA timestamp authorities, and an AI trust list.
+- **Trust list management** — bring your own trust anchors, or use the bundled lists: the 29 anchors from the C2PA Conformance Program, the 21 official C2PA timestamp authorities, the 26 known-certificate anchors the Content Authenticity Initiative publishes (so mainstream cameras and editing software read as trusted out of the box), an AI trust list, and the Trusteddit anchors.
 - **100% local processing** — see Privacy below.
 
 ### What it can read
@@ -58,7 +58,11 @@ Photographs, video, audio, and PDF documents, across sixteen file formats: the o
 
 > Do not restore an enumerated format list here. Chrome rejected v1.1.1 on
 > 2026-08-05 under Spam and Placement in the Store (Yellow Argon, keyword
-> stuffing) for exactly that line. See `releases/store-assets/LISTING-COPY.md`.
+> stuffing) for exactly that line. Do not name the vendors behind the CAI
+> anchors either: v1.2.3 was rejected on 2026-09-03 under the same reference
+> for "Adobe, Leica, Nikon, Canon, Sony, Fujifilm, Microsoft and Truepic".
+> Google's limit is five brands per description. See
+> `releases/store-assets/LISTING-COPY.md`.
 
 ### Open source
 

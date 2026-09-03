@@ -56,7 +56,7 @@ Content Credentials are a new open standard (C2PA) for proving where digital con
 - Interactive Provenance Graph: Explore the full chain of custody as a graph — click a node to expand its detail, drag to pan, zoom, fit to frame, or open it full screen. Shows multi-generation ingredient history, assertions, and sensor telemetry
 - Certificate Verification: Validates signer certificates against the C2PA Trust List, including RFC 3161 trusted timestamps
 - Right-Click Inspection: Right-click any image, video, or audio to inspect its Content Credentials
-- Trust List Management: Ships all 29 anchors from the C2PA Conformance Program and the 21 official timestamp authorities; import your own trust anchors and TSA certificates alongside them
+- Trust List Management: Ships the 29 anchors from the C2PA Conformance Program, the 21 official timestamp authorities, and the 26 known-certificate anchors the Content Authenticity Initiative publishes, so mainstream cameras and editing software read as trusted out of the box; import your own trust anchors and TSA certificates alongside them
 - Auto-Scan Toggle: Enable or disable automatic scanning per your preference
 
 **Privacy-First:**
@@ -70,7 +70,11 @@ Photographs, video, audio, and PDF documents, across sixteen file formats: the o
 
 > Do not restore an enumerated format list here. Chrome rejected v1.1.1 on
 > 2026-08-05 under Spam and Placement in the Store (Yellow Argon, keyword
-> stuffing) for exactly that line. See `releases/store-assets/LISTING-COPY.md`.
+> stuffing) for exactly that line. Do not name the vendors behind the CAI
+> anchors either: v1.2.3 was rejected on 2026-09-03 under the same reference
+> for "Adobe, Leica, Nikon, Canon, Sony, Fujifilm, Microsoft and Truepic".
+> Google's limit is five brands per description. See
+> `releases/store-assets/LISTING-COPY.md`.
 
 **Open Source:**
 MIT-licensed. View the source code at https://github.com/Sanmarcsoft/verifieddit-extension

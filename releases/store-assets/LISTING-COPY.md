@@ -1,6 +1,7 @@
 # Verifieddit v1.2.3 Chrome Web Store listing copy
 
-Every claim checked against the v1.2.3 source. No em-dashes.
+Every claim checked against the v1.2.3 source. No em-dashes. No brand roll-calls
+(see "No brand roll-call" under SEO before touching the trust section).
 
 ---
 
@@ -88,7 +89,7 @@ Content Credentials can appear on any page you visit, so the extension has to re
 
 TRUST IS YOURS TO SET
 
-Six trust lists ship built in, 82 entities in total: the C2PA Conformance Program anchors, 29 for signing and 21 official timestamp authorities, the 26 known-certificate anchors trusted by the Content Credentials Verify site (covering production signers such as Adobe, Leica, Nikon, Canon, Sony, Fujifilm, Microsoft and Truepic), an AI trust list, and the Trusteddit signing and timestamp anchors.
+Six trust lists ship built in, 82 entities in total: the C2PA Conformance Program anchors, 29 for signing and 21 official timestamp authorities; the Content Authenticity Initiative's 26 known-certificate anchors, the same production roots the Content Credentials Verify site trusts, so photos from mainstream cameras and edits from mainstream software read as trusted out of the box; an AI trust list; and the Trusteddit signing and timestamp anchors.
 
 Add your own trust list from a file or a web address at any time, or remove any list you would rather not rely on. Who counts as trustworthy is configuration you control, not a decision we make for you.
 
@@ -144,6 +145,19 @@ extensions is exactly that: it ranks, but it tells a reader nothing. Format
 coverage is now one sentence of prose naming no extensions at all, and the
 enumeration lives in the README where it is useful and where store policy does
 not reach. **Do not put it back.**
+
+**No brand roll-call, deliberately.** The v1.2.3 draft described the CAI
+known-certificate list by naming the vendors behind its roots: "Adobe, Leica,
+Nikon, Canon, Sony, Fujifilm, Microsoft and Truepic". Chrome rejected it on
+2026-09-03, again under Spam and Placement in the Store (Yellow Argon), quoting
+those eight names back verbatim. Google's spam FAQ is explicit: "When listing
+supported websites or brands in the description, do not list more than five",
+and any single keyword should appear fewer than five times. The trust section
+now says what the list does for the reader (mainstream cameras and software
+read as trusted) and names no vendor. The vendor names live in the trust list
+JSON and the CHANGELOG, where they are facts rather than search bait. **Do not
+put them back.** The one brand mention that stays is the ABOUT paragraph, which
+is a required non-affiliation disclaimer, not a feature claim.
 
 **Audience terms are scenarios, not a roll-call.** The same section once named
 eight professions in a row, which reads as a keyword list even though it is
