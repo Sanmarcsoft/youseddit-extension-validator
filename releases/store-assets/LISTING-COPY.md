@@ -111,7 +111,7 @@ Verifying is the free half. If you are the photographer, the newsroom or the tea
 
 ABOUT
 
-Free and open source, MIT licensed. Source code, issue tracker and full release history at github.com/Sanmarcsoft/verifieddit-extension.
+Free and open source, MIT licensed. Source code, issue tracker and full release history at github.com/Sanmarcsoft/verifieddit-browser-extension.
 
 Published by SanMarcSoft LLC as an independent fork of Microsoft's open source C2PA validator, built on the Content Authenticity Initiative's c2pa toolkit. SanMarcSoft is not affiliated with, endorsed by, or partnered with Microsoft, Adobe, or the Content Authenticity Initiative.
 ```

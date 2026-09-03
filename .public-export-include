@@ -1,0 +1,63 @@
+# What MUST be in the public reference repo. Nothing else is exported.
+#
+# scripts/export-public.ts reads this file. Only tracked paths matching a
+# pattern here are copied into the filtered export that becomes the public
+# open-source repo referenced by the Chrome Web Store listing and the
+# verifieddit.com announcement. An allowlist fails safe: a doc added to this
+# repo tomorrow stays private unless someone deliberately admits it here.
+#
+# Patterns are Bun.Glob globs matched against paths relative to the repo root.
+# Each entry says why it must ship. If you cannot write the reason, it does
+# not belong in the export.
+
+# --- Build inputs: without these `bun install` and `bun run build` fail ---
+package.json
+bun.lock
+tsconfig.json
+rollup.config.js
+update-version.js
+.env
+.eslintrc.json
+.eslintignore
+.gitignore
+
+# --- The extension itself ---
+src/**
+public/**
+
+# --- Tests: unit (test/*.test.ts), Playwright e2e, fixtures and demo corpus ---
+test/**
+playwright.config.ts
+
+# --- Scripts the build, test and packaging commands in package.json call ---
+scripts/patch-c2pa-worker-scheme.mjs
+scripts/extract-c2pa-worker.mjs
+scripts/generate-build-info.js
+scripts/e2e-verify.mjs
+scripts/firefox-smoke.mjs
+scripts/package-firefox.mjs
+scripts/submit-firefox.mjs
+scripts/package-release.sh
+# Regenerates the bundled trust anchors from the published C2PA and CAI lists,
+# so a reader can reproduce src/trust-anchors/*.json rather than trust ours.
+scripts/sync-c2pa-trust-lists.ts
+
+# --- CI: both workflows run on ubuntu-latest with no internal runner ---
+.github/workflows/ci.yml
+.github/workflows/e2e.yml
+
+# --- Icon sources: public/icons is rendered from these ---
+design/icons-v2/**
+
+# --- Community and legal ---
+# README.public.md is installed as README.md in the export.
+README.public.md
+LICENSE
+CHANGELOG.md
+SECURITY.md
+SUPPORT.md
+CODE_OF_CONDUCT.md
+VERSIONING.md
+# Bundled into the Firefox source archive by scripts/package-firefox.mjs.
+AMO_REVIEWER_NOTES.md
+Verifieddit_logo.png

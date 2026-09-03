@@ -34,7 +34,7 @@ English
 - **Marketing site:** https://www.verifieddit.com
 - **Support / contact email:** support@verifieddit.com (publicly displayed on the listing; mailbox confirmed-by-user 2026-05-17)
 - **Privacy policy URL:** https://www.verifieddit.com/privacy
-- **Source repository:** https://github.com/Sanmarcsoft/verifieddit-extension
+- **Source repository:** https://github.com/Sanmarcsoft/verifieddit-browser-extension
 
 Listing the LLC as Publisher on the Chrome Web Store requires either (a) submitting from a Google Workspace account on a SanMarcSoft-owned domain, or (b) setting "SanMarcSoft LLC" as the verified Publisher name on an existing CWS developer account. CWS will display the registered publisher name to end users — verify spelling before submit.
 
@@ -77,7 +77,7 @@ Photographs, video, audio, and PDF documents, across sixteen file formats: the o
 > `releases/store-assets/LISTING-COPY.md`.
 
 **Open Source:**
-MIT-licensed. View the source code at https://github.com/Sanmarcsoft/verifieddit-extension
+MIT-licensed. View the source code at https://github.com/Sanmarcsoft/verifieddit-browser-extension
 
 Learn more at https://www.verifieddit.com
 

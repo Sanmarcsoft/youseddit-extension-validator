@@ -8,7 +8,7 @@
  * screenshots, privacy policy) and cannot attach the source archive that AMO
  * requires for bundled code. Once the listing exists and the source archive has
  * been accepted once, version bumps can ship from here.
- * See FIREFOX_ADDON_LISTING.md for the manual first-submission walkthrough.
+ * The manual first-submission walkthrough lives in the publisher's internal notes.
  *
  * Credentials come from `pass` and are handed to web-ext through the
  * environment, never through argv — argv is visible in `ps` to every user on
