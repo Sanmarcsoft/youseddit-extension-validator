@@ -162,7 +162,7 @@ async function main() {
   for (const [name, cmd] of Object.entries(pkg.scripts ?? {}) as [string, string][]) {
     const scriptRefs = [...cmd.matchAll(/scripts\/[\w.-]+/g)].map((m) => m[0])
     const callsPrivate = scriptRefs.some((s) => !keptSet.has(s))
-    const callsTests = /\b(playwright|test\/)/.test(cmd) || /^(pre)?test(:|$)/.test(name) || cmd.includes('run test')
+    const callsTests = /\b(playwright|test\/)/.test(cmd) || /^(pre)?test(:|$)/.test(name) || /e2e/.test(name) || cmd.includes('run test')
     if (callsPrivate || callsTests) {
       delete pkg.scripts[name]
       pruned.push(name)
