@@ -56,9 +56,9 @@ async function git(args: string[], cwd = REPO_ROOT, binary = false): Promise<str
   return binary ? new Uint8Array(out as ArrayBuffer) : (out as string)
 }
 
-async function run(cmd: string[], cwd: string): Promise<void> {
+async function run(cmd: string[], cwd: string, env: Record<string, string | undefined> = {}): Promise<void> {
   console.log(`\n$ ${cmd.join(' ')}   (in ${cwd})`)
-  const proc = Bun.spawn(cmd, { cwd, stdout: 'inherit', stderr: 'inherit' })
+  const proc = Bun.spawn(cmd, { cwd, stdout: 'inherit', stderr: 'inherit', env: { ...process.env, ...env } })
   const code = await proc.exited
   if (code !== 0) throw new Error(`${cmd.join(' ')} exited ${code}`)
 }
@@ -151,6 +151,26 @@ async function main() {
   }
   console.log(`\nwrote ${kept.length} files to ${outDir}`)
 
+  // package.json scripts that would call something left private (the test
+  // suite, the e2e and smoke tooling) are pruned so `bun run <x>` in the
+  // public repo never fails on a missing file. Dependencies are untouched:
+  // bun.lock must still match for --frozen-lockfile.
+  const keptSet = new Set(kept.map((e) => e.path))
+  const pkgPath = path.join(outDir, 'package.json')
+  const pkg = await Bun.file(pkgPath).json()
+  const pruned: string[] = []
+  for (const [name, cmd] of Object.entries(pkg.scripts ?? {}) as [string, string][]) {
+    const scriptRefs = [...cmd.matchAll(/scripts\/[\w.-]+/g)].map((m) => m[0])
+    const callsPrivate = scriptRefs.some((s) => !keptSet.has(s))
+    const callsTests = /\b(playwright|test\/)/.test(cmd) || /^(pre)?test(:|$)/.test(name) || cmd.includes('run test')
+    if (callsPrivate || callsTests) {
+      delete pkg.scripts[name]
+      pruned.push(name)
+    }
+  }
+  await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
+  if (pruned.length) console.log(`pruned package.json scripts: ${pruned.join(', ')}`)
+
   // A markdown link in the export to a file that was left private is a
   // dangling link the store reviewer will click. Fail on it.
   const leftBase = new Set(left.map((p) => path.basename(p)))
@@ -174,12 +194,10 @@ async function main() {
     // The Firefox bundle step needs more than Node's default old-space on an
     // 8 GB devcontainer (it died at 1 GB on 2026-09-03). CI's ubuntu runner
     // does not need this; setting it here does not change what is built.
-    process.env.NODE_OPTIONS ??= '--max-old-space-size=4096'
-    await run(['bun', 'install', '--frozen-lockfile'], outDir)
-    await run(['bun', 'run', 'build'], outDir)
-    const unitTests = (await readdir(path.join(outDir, 'test'))).filter((f) => f.endsWith('.test.ts'))
-    if (unitTests.length) await run(['bun', 'test', ...unitTests.map((f) => `test/${f}`)], outDir)
-    console.log('\nverify: CI gate passed in the export')
+    const env = { NODE_OPTIONS: process.env.NODE_OPTIONS ?? '--max-old-space-size=4096' }
+    await run(['bun', 'install', '--frozen-lockfile'], outDir, env)
+    await run(['bun', 'run', 'build'], outDir, env)
+    console.log('\nverify: CI gate (install + build) passed in the export')
   }
 
   const target = arg('--push')

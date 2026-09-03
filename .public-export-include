@@ -7,8 +7,14 @@
 # repo tomorrow stays private unless someone deliberately admits it here.
 #
 # Patterns are Bun.Glob globs matched against paths relative to the repo root.
+# A line starting with "!" carves an exception out of an earlier include.
 # Each entry says why it must ship. If you cannot write the reason, it does
 # not belong in the export.
+#
+# Deliberately absent (M, 2026-09-03: "no testing cruft in the public facing
+# repo"): test/, playwright.config.ts, the e2e workflow, and the e2e and
+# Firefox smoke scripts. The exporter also prunes the package.json scripts
+# that would call them.
 
 # --- Build inputs: without these `bun install` and `bun run build` fail ---
 package.json
@@ -25,22 +31,10 @@ update-version.js
 src/**
 public/**
 
-# --- Tests: unit (test/*.test.ts), Playwright e2e, fixtures and demo corpus ---
-test/**
-playwright.config.ts
-# Carve-outs inside test/: internal QA reports from the 0.1.x era, a walkthrough
-# with a developer's local paths, and one unit test that reads certificates
-# from the private trusteddit-pki-services checkout next to this repo.
-!test/UAT_*.md
-!test/HOW_TO_TEST_NOW.md
-!test/trustPath.test.ts
-
-# --- Scripts the build, test and packaging commands in package.json call ---
+# --- Scripts the build and packaging commands in package.json call ---
 scripts/patch-c2pa-worker-scheme.mjs
 scripts/extract-c2pa-worker.mjs
 scripts/generate-build-info.js
-scripts/e2e-verify.mjs
-scripts/firefox-smoke.mjs
 scripts/package-firefox.mjs
 scripts/submit-firefox.mjs
 scripts/package-release.sh
@@ -48,9 +42,8 @@ scripts/package-release.sh
 # so a reader can reproduce src/trust-anchors/*.json rather than trust ours.
 scripts/sync-c2pa-trust-lists.ts
 
-# --- CI: both workflows run on ubuntu-latest with no internal runner ---
+# --- CI: the build workflow runs on ubuntu-latest with no internal runner ---
 .github/workflows/ci.yml
-.github/workflows/e2e.yml
 
 # --- Icon sources: public/icons is rendered from these ---
 design/icons-v2/**
