@@ -28,6 +28,12 @@ public/**
 # --- Tests: unit (test/*.test.ts), Playwright e2e, fixtures and demo corpus ---
 test/**
 playwright.config.ts
+# Carve-outs inside test/: internal QA reports from the 0.1.x era, a walkthrough
+# with a developer's local paths, and one unit test that reads certificates
+# from the private trusteddit-pki-services checkout next to this repo.
+!test/UAT_*.md
+!test/HOW_TO_TEST_NOW.md
+!test/trustPath.test.ts
 
 # --- Scripts the build, test and packaging commands in package.json call ---
 scripts/patch-c2pa-worker-scheme.mjs

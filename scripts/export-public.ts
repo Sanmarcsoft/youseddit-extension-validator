@@ -63,12 +63,26 @@ async function run(cmd: string[], cwd: string): Promise<void> {
   if (code !== 0) throw new Error(`${cmd.join(' ')} exited ${code}`)
 }
 
-function loadPatterns(text: string): Glob[] {
-  return text
+interface Patterns {
+  include: Glob[]
+  exclude: Glob[]
+}
+
+// Lines starting with "!" carve exceptions out of an include, for the odd
+// file inside an admitted directory that must not ship.
+function loadPatterns(text: string): Patterns {
+  const lines = text
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith('#'))
-    .map((p) => new Glob(p))
+  return {
+    include: lines.filter((l) => !l.startsWith('!')).map((p) => new Glob(p)),
+    exclude: lines.filter((l) => l.startsWith('!')).map((p) => new Glob(p.slice(1)))
+  }
+}
+
+function admitted(p: string, patterns: Patterns): boolean {
+  return patterns.include.some((g) => g.match(p)) && !patterns.exclude.some((g) => g.match(p))
 }
 
 async function main() {
@@ -109,7 +123,7 @@ async function main() {
   const kept: typeof entries = []
   const left: string[] = []
   for (const e of entries) {
-    if (patterns.some((g) => g.match(e.path))) kept.push(e)
+    if (admitted(e.path, patterns)) kept.push(e)
     else left.push(e.path)
   }
   if (!kept.some((e) => e.path === PUBLIC_README)) {
