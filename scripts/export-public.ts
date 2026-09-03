@@ -191,10 +191,12 @@ async function main() {
   }
 
   if (flag('--verify')) {
-    // The Firefox bundle step needs more than Node's default old-space on an
-    // 8 GB devcontainer (it died at 1 GB on 2026-09-03). CI's ubuntu runner
-    // does not need this; setting it here does not change what is built.
-    const env = { NODE_OPTIONS: process.env.NODE_OPTIONS ?? '--max-old-space-size=4096' }
+    // The Firefox bundle step needs more than a 1 GB heap, and the devcontainer
+    // presets NODE_OPTIONS=--max-old-space-size=1024 (found 2026-09-03 after
+    // three OOMs). Override it outright; deferring to the inherited value
+    // kept the cap. CI's ubuntu runner does not need this, and it does not
+    // change what is built.
+    const env = { NODE_OPTIONS: '--max-old-space-size=4096' }
     await run(['bun', 'install', '--frozen-lockfile'], outDir, env)
     await run(['bun', 'run', 'build'], outDir, env)
     console.log('\nverify: CI gate (install + build) passed in the export')
