@@ -3,30 +3,50 @@
 
 <head>
     <meta charset='utf-8'>
-    <title>Verifieddit internal harness</title>
+    <title>Verifieddit Options</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script type="module" src="./toggle.js"></script>
+    <link rel='stylesheet' type='text/css' media='screen' href='popup.css'>
+    <link rel='stylesheet' type='text/css' media='screen' href='options.css'>
+    <script type='module' src='options.js'></script>
 </head>
 
-<body>
-    <!--
-      NOT a user surface. This page is deliberately empty.
+<!--
+  Declared as options_ui in the Firefox manifest only. On Chrome the same two
+  controls live in the popup's Options tab. Both surfaces write the same
+  chrome.storage.local keys, so they cannot drift.
 
-      It exists because the e2e and probe scripts need a page on the extension
-      origin from which to call chrome.runtime.sendMessage, and every extension
-      page will do. scripts/e2e-verify.mjs and the probe-*.mjs family all
-      navigate here for exactly that reason and never read the markup.
+  This page is also the extension-origin page the e2e and probe scripts
+  navigate to in order to call chrome.runtime.sendMessage
+  (scripts/e2e-verify.mjs and the probe-*.mjs family). They never read the
+  markup, so content here is free to change.
+-->
 
-      It used to be declared as options_ui in both manifests, inherited from the
-      Microsoft extension template this project was scaffolded from. src/options.ts
-      was never implemented, so Chrome and Firefox both offered a Preferences
-      entry that opened a blank page. The declaration was removed in #170. Every
-      real setting lives in the popup: auto-scan, the durable-credential opt-in,
-      and trust-list import.
+<body class="options-standalone">
+    <h1>Verifieddit Options</h1>
 
-      If you are adding a user-facing settings screen, build it properly and
-      re-declare options_ui. Do not fill this file in.
-    -->
-    <p>Verifieddit internal test harness. Nothing to see here.</p>
+    <toggle-switch label="Automatically scan all media elements" id="toggleAutoScan"></toggle-switch>
+
+    <br>
+
+    <toggle-switch label="Check durable credentials online" id="toggleManifestStoreProbe"></toggle-switch>
+    <p class="option-note">
+        Off by default. When on, Verifieddit sends a perceptual fingerprint
+        of images that declare a durable credential to
+        <code>manifests.sanmarcsoft.com</code> to confirm the credential is
+        registered and recoverable. Fingerprints only, never the image, and
+        nothing identifying you or your device. With this off, such assets
+        still verify: their durable binding reads as declared rather than
+        confirmed.
+    </p>
+
+    <hr>
+
+    <p class="option-note">
+        Trust-list import, the trust-list listing, validation detail and the
+        release notes are in the toolbar popup. Click the Verifieddit icon in
+        the toolbar.
+    </p>
 </body>
 
 </html>
