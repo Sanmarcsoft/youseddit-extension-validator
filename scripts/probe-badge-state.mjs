@@ -83,12 +83,17 @@ for (let i = 0; i < 12; i++) {
 await page.evaluate(() => { window.scrollTo(0, 0) })
 await page.waitForTimeout(4000)
 
-const diag = await page.evaluate(async () => ({
+const diag = await page.evaluate(() => ({
   media: document.querySelectorAll('img, video, audio').length,
-  icons: document.querySelectorAll('[c2pa-icon]').length,
-  autoScan: (await chrome.storage.local.get('autoScan')).autoScan
+  icons: document.querySelectorAll('[c2pa-icon]').length
 }))
-console.log('\ndiagnostics  :', JSON.stringify(diag))
+// chrome.storage is not reachable from the page's main world, only from an
+// extension context, so the auto-scan setting is read on its own page.
+const optionsPage = await ctx.newPage()
+await optionsPage.goto(`chrome-extension://${new URL(sw.url()).host}/options.html`)
+const autoScan = await optionsPage.evaluate(async () => (await chrome.storage.local.get('autoScan')).autoScan)
+await optionsPage.close()
+console.log('\ndiagnostics  :', JSON.stringify({ ...diag, autoScan }))
 
 const badges = await page.evaluate(() => {
   // Each status paints a distinct SVG. Match on marks unique to one of them
