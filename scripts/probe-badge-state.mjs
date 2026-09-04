@@ -71,6 +71,8 @@ console.log('extension id :', new URL(sw.url()).host)
 
 const page = await ctx.newPage()
 page.on('pageerror', (e) => console.log('PAGEERROR:', e.message))
+const pageLog = []
+page.on('console', (m) => pageLog.push(`${m.type()}: ${m.text()}`))
 await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' })
 
 // Media is badged only while visible (src/visible.ts), so a grid taller than
@@ -94,6 +96,8 @@ await optionsPage.goto(`chrome-extension://${new URL(sw.url()).host}/options.htm
 const autoScan = await optionsPage.evaluate(async () => (await chrome.storage.local.get('autoScan')).autoScan)
 await optionsPage.close()
 console.log('\ndiagnostics  :', JSON.stringify({ ...diag, autoScan }))
+console.log('\n===== page console (last 40) =====')
+for (const l of pageLog.slice(-40)) console.log(' ', l)
 
 const badges = await page.evaluate(() => {
   // Each status paints a distinct SVG. Match on marks unique to one of them
