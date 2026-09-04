@@ -20,7 +20,7 @@
 import { chromium } from 'playwright'
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { dirname, extname, join, resolve } from 'node:path'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -40,10 +40,15 @@ const MIME = {
   '.json': 'application/json'
 }
 
+// index.html references its images by absolute path (/demo-corpus/01-...), so
+// the corpus directory has to be served under its own name, not as the root.
+const SERVE_ROOT = dirname(CORPUS)
+const CORPUS_NAME = basename(CORPUS)
+
 const server = createServer(async (req, res) => {
   try {
-    const name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html'
-    const body = await readFile(join(CORPUS, name))
+    const name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || `${CORPUS_NAME}/index.html`
+    const body = await readFile(join(SERVE_ROOT, name))
     res.writeHead(200, { 'content-type': MIME[extname(name).toLowerCase()] ?? 'application/octet-stream' })
     res.end(body)
   } catch {
@@ -73,7 +78,7 @@ const page = await ctx.newPage()
 page.on('pageerror', (e) => console.log('PAGEERROR:', e.message))
 const pageLog = []
 page.on('console', (m) => pageLog.push(`${m.type()}: ${m.text()}`))
-await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' })
+await page.goto(`${origin}/${CORPUS_NAME}/index.html`, { waitUntil: 'networkidle' })
 
 // Media is badged only while visible (src/visible.ts), so a grid taller than
 // the viewport leaves everything below the fold unscanned. Walk the page.
