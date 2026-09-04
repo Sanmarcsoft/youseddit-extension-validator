@@ -26,7 +26,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
     - background.js
     - content.js
     - popup.js
-    - options.js (optional)
 
   - Copy the dist/chrome folder to dist/firefox
 
@@ -127,8 +126,6 @@ const makePlugins = (target) => [
         '.env',
         'src/manifest.chrome.v3.json',
         'src/manifest.firefox.v3.json',
-        'public/options.css',
-        'public/options.html',
         'public/popup.css',
         'public/popup.html'
       ].forEach((file) => {
@@ -171,7 +168,7 @@ const treeshake = { moduleSideEffects: (id) => /[\\/]src[\\/]/.test(id) }
   background.js (Chrome v3)
 */
 const backgroundC = {
-  input: ['src/background.ts', 'src/popup.ts', 'src/options.ts', 'src/c2pa.ts', 'src/overlayFrame.ts', 'src/webComponents.ts', 'src/components/toggle.ts'],
+  input: ['src/background.ts', 'src/popup.ts', 'src/c2pa.ts', 'src/overlayFrame.ts', 'src/webComponents.ts', 'src/components/toggle.ts'],
   treeshake,
   output: {
     dir: 'dist/chrome',

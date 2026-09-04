@@ -3,16 +3,30 @@
 
 <head>
     <meta charset='utf-8'>
-    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
-    <title>Verifieddit Options</title>
+    <title>Verifieddit internal harness</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel='stylesheet' type='text/css' media='screen' href='options.css'>
-    <!-- TODO: dynamically add attribute type='module' if using manifest v3 and building options.js as ESM -->
-    <script type='module' src='options.js'></script>
 </head>
 
 <body>
-    <h1>Verifieddit Options</h1>
+    <!--
+      NOT a user surface. This page is deliberately empty.
+
+      It exists because the e2e and probe scripts need a page on the extension
+      origin from which to call chrome.runtime.sendMessage, and every extension
+      page will do. scripts/e2e-verify.mjs and the probe-*.mjs family all
+      navigate here for exactly that reason and never read the markup.
+
+      It used to be declared as options_ui in both manifests, inherited from the
+      Microsoft extension template this project was scaffolded from. src/options.ts
+      was never implemented, so Chrome and Firefox both offered a Preferences
+      entry that opened a blank page. The declaration was removed in #170. Every
+      real setting lives in the popup: auto-scan, the durable-credential opt-in,
+      and trust-list import.
+
+      If you are adding a user-facing settings screen, build it properly and
+      re-declare options_ui. Do not fill this file in.
+    -->
+    <p>Verifieddit internal test harness. Nothing to see here.</p>
 </body>
 
 </html>

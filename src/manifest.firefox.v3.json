@@ -42,9 +42,6 @@
             "128": "icons/vd128.png"
         }
     },
-    "options_ui": {
-        "page": "options.html"
-    },
     "icons": {
         "16": "icons/vd16.png",
         "32": "icons/vd32.png",
