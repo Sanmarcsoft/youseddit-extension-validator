@@ -8,6 +8,7 @@ import { customElement, property, state } from 'lit/decorators.js'
 import { type ExtensionC2paIngredient, type C2paResult } from './c2pa'
 import { type CertificateInfoExtended } from './certs/certs'
 import { type DurablePillars } from './durableCredentials'
+import { buildExpiryEvidence, classifyExpiry, expiryReason, type ExpiryVerdict } from './signatureValidity'
 import { MSG_L3_INSPECT_URL, TRUSTEDDIT_LINK, taggedLink, MSG_SET_MANIFEST_STORE_PROBE, MANIFEST_STORE_PROBE_KEY, MANIFEST_STORE_PROBE_DEFAULT } from './constants'
 import './provenanceDiagram'
 
@@ -32,6 +33,20 @@ type StatusTone = 'verified' | 'authentic' | 'invalid' | 'unsigned'
 // altered. Everything else in the list (hash/signature mismatch, missing
 // assertions, malformed claims, …) is a genuine failure.
 const NON_FATAL_VALIDATION_CODE = /\.(untrusted|expired)$/i
+
+/**
+ * What the panel, the log rows and the screen-reader summary all read from.
+ * `expiry` is the verdict `getC2PAStatus` uses for the badge, carried through
+ * so the three surfaces cannot describe the same asset differently.
+ */
+interface StatusSummary {
+  errors: boolean
+  trusted: boolean
+  tone: StatusTone
+  expired: boolean
+  expiry: ExpiryVerdict
+}
+
 function isFatalValidationCode (code: string): boolean {
   return code !== '' && !NON_FATAL_VALIDATION_CODE.test(code)
 }
@@ -327,7 +342,7 @@ export class C2paOverlay extends LitElement {
 
   private trustList?: string
 
-  private status?: { errors: boolean, trusted: boolean, tone: StatusTone, expired: boolean }
+  private status?: StatusSummary
 
   @property({ type: Boolean })
     additionalInfoCollapsed = true
@@ -409,13 +424,24 @@ export class C2paOverlay extends LitElement {
     this.trustList = newValue?.trustList?.tlInfo.name ?? 'unknown'
   }
 
-  private setStatus (c2paResult: C2paResult): { errors: boolean, trusted: boolean, tone: StatusTone, expired: boolean } {
+  private setStatus (c2paResult: C2paResult): StatusSummary {
     const codes = c2paResult.manifestStore?.validationStatus ?? []
     // Only genuine integrity failures make a credential "invalid". An untrusted
     // or expired signer is not a failure — it is signed, intact, just not in the
     // trust list (or past its cert validity).
     const errors = codes.some(isFatalValidationCode)
-    const expired = codes.some((c) => /\.expired$/i.test(c))
+    // Expiry is decided from the certificate and the timestamps, by the same
+    // module getC2PAStatus uses (src/signatureValidity.ts). Reading only the
+    // validation codes was not enough: c2pa-rs accepts a signature whose
+    // timestamp covers the validity window and emits no `signingCredential.
+    // expired` code at all, so the panel announced "Trusted" on assets the
+    // badge had already qualified. One source, one answer.
+    const expiry = classifyExpiry(buildExpiryEvidence(
+      c2paResult.certChain,
+      c2paResult.tstTokens,
+      c2paResult.tsaTrustList != null
+    ))
+    const expired = expiry.kind !== 'not-expired' || codes.some((c) => /\.expired$/i.test(c))
     const trusted = c2paResult.trustList != null
     const signed = (c2paResult.certChain?.length ?? 0) > 0 ||
       (c2paResult.manifestStore?.manifests?.length ?? 0) > 0
@@ -424,7 +450,7 @@ export class C2paOverlay extends LitElement {
       : !signed
           ? 'unsigned'
           : trusted ? 'verified' : 'authentic'
-    return { errors, trusted, tone, expired }
+    return { errors, trusted, tone, expired, expiry }
   }
 
   private readonly handleClick = (): void => {
@@ -447,15 +473,19 @@ export class C2paOverlay extends LitElement {
       : tsaTrusted ? 'RFC 3161 · trusted' : 'RFC 3161'
 
     // #161: a trust-list match alone is not a green tick when the signing cert
-    // has expired and no TRUSTED RFC 3161 timestamp proves the signature was
-    // made inside the validity window. The on-page badge already degrades to
-    // 'error' for this case (getC2PAStatus); the trust row rendered a plain
-    // checkmark regardless, telling the user the signer is fine.
-    const expiredNoTs = this.status?.expired === true && !(tstTokens.length > 0 && tsaTrusted)
+    // has expired and nothing places the signature inside the validity window.
+    // The verdict is the badge's verdict (setStatus), so the row and the badge
+    // can no longer disagree — they previously could, and did, on the CBC
+    // photograph, where the badge went red while this row printed a checkmark.
+    const expiryKind = this.status?.expiry?.kind ?? 'not-expired'
+    const expiredNoTs = expiryKind === 'uncovered' || expiryKind === 'covered-untrusted-tsa'
+    const expiredNote = expiryKind === 'covered-untrusted-tsa'
+      ? 'cert expired, timestamp authority unrecognised'
+      : 'cert expired, no timestamp covers it'
     const trustLabel = !trusted
       ? 'not in trust list'
       : expiredNoTs
-          ? `${this.trustList ?? 'trust list'} · cert expired, no trusted timestamp`
+          ? `${this.trustList ?? 'trust list'} · ${expiredNote}`
           : (this.trustList ?? 'trust list')
 
     // [key, value, valueClass, typeSpeed]
@@ -468,8 +498,12 @@ export class C2paOverlay extends LitElement {
     if (errors) {
       rows.push(['result', 'validation errors present', 'bad', 14])
     } else if (this.status?.expired === true) {
-      // Expired signer cert is an expiry note, not an integrity failure.
-      rows.push(['cert', 'signing certificate expired', 'dim', 14])
+      // Expired signer cert is an expiry note, not an integrity failure. A
+      // timestamp from a recognised authority answers it outright, so say so
+      // rather than leaving the user with a bare "expired".
+      rows.push(['cert', expiryKind === 'covered-trusted'
+        ? 'signing certificate expired · covered by trusted timestamp'
+        : 'signing certificate expired', 'dim', 14])
     }
 
     return html`
@@ -515,18 +549,18 @@ export class C2paOverlay extends LitElement {
 
     const trusted = this.status?.trusted === true
     const hasErrors = this.status?.errors === true
-    // #161: same qualifier as the trust row in renderLog. A trust-list match
-    // with an expired cert and no trusted timestamp must not be announced as
-    // plain "Trusted".
-    const tsOk = (c2paResult.tstTokens?.length ?? 0) > 0 && c2paResult.tsaTrustList != null
-    const expiredNoTs = this.status?.expired === true && !tsOk
+    // #161: same verdict as the trust row in renderLog and as the on-page
+    // badge. A trust-list match with an expired cert that nothing timestamps
+    // inside its window must not be announced as plain "Trusted".
+    const expiryVerdict = this.status?.expiry ?? { kind: 'not-expired' as const }
+    const expiredReason = expiryReason(expiryVerdict)
     // #128/#129: a plain-text, screen-reader summary in THIS shadow root (not the
     // nested typewriter). Makes the verdict announceable via aria-live and keeps
     // the signer + trust state available to overlay.shadowRoot.textContent.
     const srSummary = `${mediaType} signed by ${this.signer ?? 'unknown'}. ` +
       (trusted
-        ? expiredNoTs
-            ? `Signer in trust list ${this.trustList ?? ''}, but its certificate has expired and no trusted timestamp covers the signature.`
+        ? expiredReason != null
+            ? `Signer in trust list ${this.trustList ?? ''}, but the ${expiredReason}. The file itself is intact.`
             : `Trusted: ${this.trustList ?? ''}.`
         : 'Signer unknown to your trust list.') +
       (hasErrors ? ' Validation errors present.' : '')

@@ -28,8 +28,18 @@ export type isoDateString = string
 export interface CertificateInfo {
   issuer: DistinguishedName
   subject: DistinguishedName
+  /**
+   * Localised display strings, NOT ISO instants, despite the type alias.
+   * `parseCertificate` runs them through `Intl.DateTimeFormat`, which drops the
+   * time of day. Render these; never compare them. For any decision about
+   * whether a signature falls inside the validity window, use `notBefore` and
+   * `notAfter` below.
+   */
   validFrom: isoDateString
   validTo: isoDateString
+  /** True ISO instants, kept so expiry can be decided rather than guessed. */
+  notBefore: isoDateString
+  notAfter: isoDateString
   isCA: boolean
 }
 
@@ -229,6 +239,8 @@ function parseCertificate (cert: Certificate): CertificateInfo {
     subject: getDistinguishedName(cert.subject),
     validFrom: localDateTime(cert.validFrom.toString()),
     validTo: localDateTime(cert.validTo.toString()),
+    notBefore: cert.validFrom.toISOString(),
+    notAfter: cert.validTo.toISOString(),
     isCA: cert.isCA
   }
 }

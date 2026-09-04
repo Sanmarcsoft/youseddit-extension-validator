@@ -23,6 +23,11 @@
 
 import { LitElement, css, html, nothing, svg, type PropertyValues, type TemplateResult } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
+import { exportSlug, graphToCsv, nodeToCsv, nodeToText } from './provenanceCsv'
+import { copyText, downloadText } from './exportActions'
+
+/** Toolbar copy is graph-wide; per-node keys are namespaced by node id. */
+const GRAPH_COPY_KEY = 'graph'
 import type {
   ProvenanceGraph,
   ProvenanceNode,
@@ -85,6 +90,12 @@ export class C2paProvenanceGraph extends LitElement {
   @state() private fullscreen = false
   /** Bumped to force a re-render when the expanded Set mutates in place. */
   @state() private revision = 0
+  /**
+   * Which export control last succeeded, for the transient tick. Keyed so a
+   * per-node copy confirms on that node rather than on the toolbar.
+   */
+  @state() private copiedKey: string | null = null
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null
 
   private dragOrigin: (Point & { panX: number, panY: number }) | null = null
   /**
@@ -352,6 +363,26 @@ export class C2paProvenanceGraph extends LitElement {
     }
     .controls button:hover { background: rgba(255, 255, 255, 0.92); color: #0f172a; }
     .controls svg { width: 12px; height: 12px; }
+    .controls button.done { color: #15803d; border-color: rgba(21, 128, 61, 0.45); }
+
+    /* Per-node export sits with the node's own data, not in the canvas
+     * toolbar: the toolbar acts on the whole graph and these act on one
+     * card, and conflating the two is how someone exports the wrong thing. */
+    .detail-actions { display: flex; gap: 4px; justify-content: flex-end; }
+    .detail-actions button {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 5px;
+      background: transparent;
+      color: #475569;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 5px;
+      cursor: pointer;
+    }
+    .detail-actions button:hover { color: #0f172a; background: rgba(148, 163, 184, 0.12); }
+    .detail-actions button.done { color: #15803d; border-color: rgba(21, 128, 61, 0.45); }
 
     /* The legend sits BELOW the canvas, not floating inside it: an expanded
      * node card is tall, and an overlay legend lands squarely on top of the
@@ -411,6 +442,11 @@ export class C2paProvenanceGraph extends LitElement {
     document.removeEventListener('fullscreenchange', this.syncFullscreen)
     this.frameObserver?.disconnect()
     this.frameObserver = null
+    // A pending flash would fire setState on a detached element.
+    if (this.copiedTimer != null) {
+      clearTimeout(this.copiedTimer)
+      this.copiedTimer = null
+    }
     super.disconnectedCallback()
   }
 
@@ -680,6 +716,19 @@ export class C2paProvenanceGraph extends LitElement {
           <button type="button" title="Zoom in" aria-label="Zoom in" @click=${() => { this.zoomBy(1.2) }}>+</button>
           <button
             type="button"
+            class=${this.copiedKey === GRAPH_COPY_KEY ? 'done' : ''}
+            title="Copy the whole provenance chain to the clipboard as CSV"
+            aria-label="Copy provenance chain as CSV"
+            @click=${() => { void this.copyGraph(view) }}
+          >${this.copiedKey === GRAPH_COPY_KEY ? 'Copied' : 'Copy'}</button>
+          <button
+            type="button"
+            title="Download the whole provenance chain as a CSV file"
+            aria-label="Export provenance chain as CSV"
+            @click=${() => { this.downloadGraph(view) }}
+          >CSV</button>
+          <button
+            type="button"
             aria-pressed=${this.fullscreen ? 'true' : 'false'}
             title=${this.fullscreen ? 'Exit full screen (Esc)' : 'Full screen'}
             @click=${this.toggleFullscreen}
@@ -693,6 +742,35 @@ export class C2paProvenanceGraph extends LitElement {
         <span class="hint">drag a node to move it · drag the canvas to pan · scroll to zoom · ▸ expands a node</span>
       </div>
     `
+  }
+
+  /**
+   * Flashes a tick on one control. Single key rather than a per-button flag so
+   * two controls can never both claim success at once.
+   */
+  private flagCopied (key: string): void {
+    if (this.copiedTimer != null) clearTimeout(this.copiedTimer)
+    this.copiedKey = key
+    this.copiedTimer = setTimeout(() => {
+      this.copiedKey = null
+      this.copiedTimer = null
+    }, 1600)
+  }
+
+  private async copyGraph (view: ProvenanceGraph): Promise<void> {
+    if (await copyText(graphToCsv(view))) this.flagCopied(GRAPH_COPY_KEY)
+  }
+
+  private async copyNode (node: ProvenanceNode, key: string, as: 'text' | 'csv'): Promise<void> {
+    if (await copyText(as === 'csv' ? nodeToCsv(node) : nodeToText(node))) this.flagCopied(key)
+  }
+
+  private downloadGraph (view: ProvenanceGraph): void {
+    // Named from the asset, not "export.csv": these get saved next to each
+    // other during a review and an undated generic name is useless a week later.
+    const stamp = new Date().toISOString().slice(0, 10)
+    const base = exportSlug(view.nodes[0]?.label ?? 'provenance')
+    downloadText(graphToCsv(view), `${base}-provenance-${stamp}.csv`, 'text/csv')
   }
 
   private renderLegend (view: ProvenanceGraph): TemplateResult {
@@ -782,8 +860,26 @@ export class C2paProvenanceGraph extends LitElement {
 
   private renderDetail (node: ProvenanceNode, isAssertion: boolean, detailId: string): TemplateResult {
     const fields = node.dataFields ?? []
+    const copyKey = `node:${node.id}`
+    const csvKey = `node-csv:${node.id}`
     return html`
       <div class="detail" id=${detailId}>
+        <div class="detail-actions">
+          <button
+            type="button"
+            class=${this.copiedKey === copyKey ? 'done' : ''}
+            title="Copy this step's details to the clipboard as text"
+            aria-label=${`Copy details for ${node.label}`}
+            @click=${(e: Event) => { e.stopPropagation(); void this.copyNode(node, copyKey, 'text') }}
+          >${this.copiedKey === copyKey ? 'Copied' : 'Copy'}</button>
+          <button
+            type="button"
+            class=${this.copiedKey === csvKey ? 'done' : ''}
+            title="Copy this step's details to the clipboard as CSV"
+            aria-label=${`Copy details for ${node.label} as CSV`}
+            @click=${(e: Event) => { e.stopPropagation(); void this.copyNode(node, csvKey, 'csv') }}
+          >${this.copiedKey === csvKey ? 'Copied' : 'CSV'}</button>
+        </div>
         ${node.signer != null
           ? html`
               ${row('Issuer', node.signer.issuer)}
