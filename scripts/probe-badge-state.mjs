@@ -72,7 +72,23 @@ console.log('extension id :', new URL(sw.url()).host)
 const page = await ctx.newPage()
 page.on('pageerror', (e) => console.log('PAGEERROR:', e.message))
 await page.goto(`${origin}/index.html`, { waitUntil: 'networkidle' })
-await page.waitForTimeout(12000)
+
+// Media is badged only while visible (src/visible.ts), so a grid taller than
+// the viewport leaves everything below the fold unscanned. Walk the page.
+await page.setViewportSize({ width: 1280, height: 1400 })
+for (let i = 0; i < 12; i++) {
+  await page.mouse.wheel(0, 700)
+  await page.waitForTimeout(1200)
+}
+await page.evaluate(() => { window.scrollTo(0, 0) })
+await page.waitForTimeout(4000)
+
+const diag = await page.evaluate(async () => ({
+  media: document.querySelectorAll('img, video, audio').length,
+  icons: document.querySelectorAll('[c2pa-icon]').length,
+  autoScan: (await chrome.storage.local.get('autoScan')).autoScan
+}))
+console.log('\ndiagnostics  :', JSON.stringify(diag))
 
 const badges = await page.evaluate(() => {
   // Each status paints a distinct SVG. Match on marks unique to one of them
@@ -93,12 +109,10 @@ const badges = await page.evaluate(() => {
     const bg = getComputedStyle(painted).backgroundImage
     const m = /url\("data:image\/svg\+xml;utf8,([^"]*)"\)/.exec(bg)
     const svg = m == null ? '' : decodeURIComponent(m[1])
-    // The badge is positioned over its media; the media is the nearest
-    // preceding img/video/audio in document order.
-    let el = c.previousElementSibling
-    while (el != null && !['IMG', 'VIDEO', 'AUDIO'].includes(el.tagName)) el = el.previousElementSibling
-    const src = el?.currentSrc ?? el?.src ?? '(unmatched)'
-    out.push({ media: src.split('/').pop(), status: classify(svg) })
+    // Icons are appended to document.body, not next to their media, so the
+    // only link back is the title set by CrIcon.setMetadataLink.
+    const src = /C2PA metadata: (\S+)/.exec(c.title ?? '')?.[1] ?? '(unlinked)'
+    out.push({ media: decodeURIComponent(src.split('/').pop() ?? src), status: classify(svg) })
   }
   return out
 })
