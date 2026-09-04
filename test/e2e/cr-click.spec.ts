@@ -195,9 +195,16 @@ test.describe('CR overlay click (issue #65)', () => {
       expect(panel.hasOverlay, '<c2pa-overlay> must exist in iframe body').toBe(true)
       expect(panel.hasShadow, '<c2pa-overlay>.shadowRoot must be populated').toBe(true)
       expect(panel.signer, 'signer must be parsed from the CBC manifest').toBe('CBC/Radio-Canada')
-      expect(panel.trustList, 'trust list must read "unknown" for the CBC fixture').toBe('unknown')
+      // #160 bundled the CAI known-certificate anchors, so the CBC signer now
+      // chains to a root the extension ships and reads as trusted. This pair
+      // asserted 'unknown' from 2026-04-24, which was correct only while those
+      // anchors were absent. The suite runs on pull_request only, so #160
+      // merged without ever exercising it and the staleness surfaced here.
+      // Assert the list the signer actually matches: a real regression would
+      // read 'unknown' again, or name a different list.
+      expect(panel.trustList, 'CBC chains to a CAI known-certificate root (#160)').toBe('CAI Known Certificates')
       expect(panel.shadowText, 'overlay must show the signer').toContain('CBC/Radio-Canada')
-      expect(panel.shadowText, 'overlay must indicate signer is unknown to current trust list').toMatch(/unknown/i)
+      expect(panel.shadowText, 'overlay must name the trust list that matched').toMatch(/CAI Known Certificates/i)
 
       // rc11.3 / #74 — the overlay's "For more details" inspection copy must
       // point at Verifieddit, not the upstream Microsoft Content Integrity
