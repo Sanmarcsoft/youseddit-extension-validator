@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v1.2.5
+
+- The Preferences page is no longer blank (#170). `options_ui` pointed at the
+  Microsoft scaffold template from the day the repo was created: a 535 byte page
+  carrying a heading and a `TODO:` comment, reachable as an Options entry in the
+  extensions menu of both browsers. Chrome drops `options_ui` entirely, because
+  the same two controls already live in the popup's Options tab and a second
+  surface only lets the two drift. Firefox gets a real page with
+  `open_in_tab: false`, so it renders inside the Add-ons Manager panel where
+  Firefox users look for preferences. Both surfaces write the same
+  `chrome.storage.local` keys, so they cannot disagree. The page also carries the
+  durable-credentials privacy note that backs
+  `data_collection_permissions.optional: ["websiteContent"]` in the AMO manifest;
+  a reviewer clicking Preferences previously found a blank page where the
+  manifest promises a disclosure.
+
 ## v1.2.4
 
 - Auto-scan no longer badges unsigned media (#169). With auto-scan on, every

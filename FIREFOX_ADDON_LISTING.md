@@ -1,10 +1,10 @@
 # Firefox Add-ons (AMO) Listing — Verifieddit
 
-> Operational submission doc for addons.mozilla.org. Verified against the v1.2.4
+> Operational submission doc for addons.mozilla.org. Verified against the v1.2.5
 > source tree: every permission below is one `src/manifest.firefox.v3.json`
 > actually requests, and every UI string is one the code actually renders.
 >
-> **Applies to:** v1.2.4 · **Last verified:** 2026-09-04
+> **Applies to:** v1.2.5 · **Last verified:** 2026-09-04
 > **Chrome equivalent:** `releases/store-assets/LISTING-COPY.md` is the current
 > user-facing copy; `CHROME_WEB_STORE_LISTING.md` is the older operational doc
 > and still carries v1.1.0 counts. This file records only what AMO does
@@ -17,6 +17,17 @@
 > (#160 added the CAI known-certificate anchors, so the shipped build carries
 > six lists and 82 entities) and the auto-scan badge behaviour (#169: media
 > with no Content Credentials is no longer badged during an auto-scan).
+
+> **v1.2.5 delta a reviewer will see.** `options_ui` now points at a real
+> preferences page (#170). Before v1.2.5 it pointed at the generator's scaffold,
+> so clicking *Preferences* in the Add-ons Manager opened a page with a heading
+> and nothing else. The page is now the disclosure surface for
+> `data_collection_permissions.optional: ["websiteContent"]`: it explains, in
+> the UI rather than only in this document, that the durable-credential check is
+> off by default and what it sends when it is on. `open_in_tab` is `false`, so
+> it renders inline in the Add-ons Manager. Chrome's manifest drops `options_ui`
+> altogether; the same two controls live in the toolbar popup there. No
+> permission changed.
 
 ## How AMO differs from the Chrome Web Store
 
@@ -61,7 +72,7 @@ privacy framing, and the add-on's value is verification, not development.)
 
 Reuse the fenced "Detailed description" block of
 `releases/store-assets/LISTING-COPY.md` verbatim. That is the post-#166 copy,
-the only one carrying v1.2.4 counts, and the only one that has been audited
+the only one carrying v1.2.5 counts, and the only one that has been audited
 against the Yellow Argon rejections. Do **not** paste from
 `CHROME_WEB_STORE_LISTING.md`: it still reads "Applies to v1.1.0", and writing
 listing copy from a stale doc is precisely how v1.2.3 was rejected.

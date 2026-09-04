@@ -30,6 +30,18 @@ export const DEMO_URL = 'https://www.verifieddit.com/demo'
 
 export const RELEASE_NOTES: readonly ReleaseEntry[] = [
   {
+    tag: 'v1.2.5',
+    date: '2026-09-04',
+    summary: 'Preferences opens a real settings page instead of an empty one.',
+    fixes: [
+      {
+        title: 'Settings you can actually reach',
+        howToVerify:
+          'In Firefox, open the Add-ons Manager, find Verifieddit and click Preferences. You get both settings, automatic scanning and the online durable-credential check, each with a note on what it does. In Chrome the same settings live in the toolbar popup under Options, and the empty Options entry that used to sit in the extensions menu is gone.'
+      }
+    ]
+  },
+  {
     tag: 'v1.2.4',
     date: '2026-09-03',
     summary: 'Auto-scan leaves unsigned images alone. A badge now means something was found.',

@@ -1,6 +1,6 @@
-# Verifieddit v1.2.4 Chrome Web Store listing copy
+# Verifieddit v1.2.5 Chrome Web Store listing copy
 
-Every claim checked against the v1.2.4 source. No em-dashes. No brand roll-calls
+Every claim checked against the v1.2.5 source. No em-dashes. No brand roll-calls
 (see "No brand roll-call" under SEO before touching the trust section).
 
 ---
