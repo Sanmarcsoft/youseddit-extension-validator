@@ -1,12 +1,22 @@
 # Firefox Add-ons (AMO) Listing — Verifieddit
 
-> Operational submission doc for addons.mozilla.org. Verified against the v1.1.1
+> Operational submission doc for addons.mozilla.org. Verified against the v1.2.4
 > source tree: every permission below is one `src/manifest.firefox.v3.json`
 > actually requests, and every UI string is one the code actually renders.
 >
-> **Applies to:** v1.1.1 · **Last verified:** 2026-08-04
-> **Chrome equivalent:** `CHROME_WEB_STORE_LISTING.md` — read that first; this
-> file records only what AMO does *differently*.
+> **Applies to:** v1.2.4 · **Last verified:** 2026-09-04
+> **Chrome equivalent:** `releases/store-assets/LISTING-COPY.md` is the current
+> user-facing copy; `CHROME_WEB_STORE_LISTING.md` is the older operational doc
+> and still carries v1.1.0 counts. This file records only what AMO does
+> *differently*.
+
+> **2026-09-04 re-verification.** The permission table below was re-checked
+> against `src/manifest.firefox.v3.json` at tag `v1.2.4` and is unchanged and
+> correct: `storage`, `activeTab`, `contextMenus`, `alarms`, `<all_urls>`, and
+> no `offscreen`. What did change since v1.1.1 is the bundled trust material
+> (#160 added the CAI known-certificate anchors, so the shipped build carries
+> six lists and 82 entities) and the auto-scan badge behaviour (#169: media
+> with no Content Credentials is no longer badged during an auto-scan).
 
 ## How AMO differs from the Chrome Web Store
 
@@ -49,12 +59,21 @@ privacy framing, and the add-on's value is verification, not development.)
 
 ## Detailed Description
 
-Reuse the "Detailed Description" section of `CHROME_WEB_STORE_LISTING.md`
-verbatim — it is accurate for Firefox. Two edits when pasting:
+Reuse the fenced "Detailed description" block of
+`releases/store-assets/LISTING-COPY.md` verbatim. That is the post-#166 copy,
+the only one carrying v1.2.4 counts, and the only one that has been audited
+against the Yellow Argon rejections. Do **not** paste from
+`CHROME_WEB_STORE_LISTING.md`: it still reads "Applies to v1.1.0", and writing
+listing copy from a stale doc is precisely how v1.2.3 was rejected.
+
+Three edits when pasting:
 
 1. Change "browser extension" phrasing that says *Chrome* to *Firefox*.
 2. AMO renders a restricted HTML subset, not Markdown. Bullet lists survive;
-   `**bold**` does not — use `<b>` or plain text.
+   `**bold**` does not, so use `<b>` or plain text.
+3. Stop at the closing fence. The prose after it is the "How this is engineered"
+   rationale, which names the eight vendors that got v1.2.3 rejected. It is
+   commentary for us, never listing copy.
 
 ## Support and Identity
 

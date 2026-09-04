@@ -1,11 +1,19 @@
 # Handoff — Firefox / AMO submission
 
+> **SUPERSEDED 2026-09-04. The hold below has been lifted.** #149 is closed, so
+> the "must not be submitted" line no longer applies. v1.2.4 is packaged from
+> tag `v1.2.4` and is cleared for the first listed AMO submission tracked in
+> #148. Read `FIREFOX_ADDON_LISTING.md` for the current field-by-field doc; this
+> file is kept only as a record of the 2026-08-04 session. Anything below that
+> contradicts `FIREFOX_ADDON_LISTING.md` is stale, including the v1.1.x version
+> numbers and artifact hashes.
+
 > Written 2026-08-04 at the end of a working session. Pick up from
 > **"Start here tomorrow"** below.
 >
-> **One-line status:** the Firefox add-on is built, packaged and AMO-clean, but
-> **must not be submitted** — a Gecko-only bug (#149) leaves the verdict overlay
-> dead on click.
+> **One-line status (2026-08-04, no longer true):** the Firefox add-on is built,
+> packaged and AMO-clean, but **must not be submitted**, because a Gecko-only
+> bug (#149) leaves the verdict overlay dead on click.
 
 ## Where things stand
 
