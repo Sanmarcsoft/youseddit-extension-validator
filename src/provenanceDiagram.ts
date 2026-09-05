@@ -23,11 +23,11 @@
 
 import { LitElement, css, html, nothing, svg, type PropertyValues, type TemplateResult } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import { exportSlug, graphToCsv, nodeToCsv, nodeToText } from './provenanceCsv'
+import { graphToCsv, nodeToCsv, nodeToText, exportFilename } from './provenanceCsv'
 import { copyText, downloadText } from './exportActions'
+import { isResizeHandlePress } from './nodeResizeHandle'
+import { resolveFullscreenStrategy, type FullscreenStrategy } from './fullscreenStrategy'
 
-/** Toolbar copy is graph-wide; per-node keys are namespaced by node id. */
-const GRAPH_COPY_KEY = 'graph'
 import type {
   ProvenanceGraph,
   ProvenanceNode,
@@ -41,6 +41,18 @@ import {
   visibleSubgraph,
   type Point
 } from './provenanceLayout.js'
+
+/** Toolbar copy is graph-wide; per-node keys are namespaced by node id. */
+const GRAPH_COPY_KEY = 'graph'
+
+/**
+ * Fired instead of entering full screen when the host cannot usefully do so.
+ *
+ * Carries the graph so the listener does not have to reach back into the
+ * component for it. Composed, because the popup listens outside this shadow
+ * root.
+ */
+export const OPEN_IN_TAB_EVENT = 'provenance-open-in-tab'
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 1.8
@@ -82,6 +94,14 @@ function styleFor (node: ProvenanceNode): StateStyle {
 @customElement('c2pa-provenance-graph')
 export class C2paProvenanceGraph extends LitElement {
   @property({ attribute: false }) graph: ProvenanceGraph | null = null
+
+  /**
+   * What the host wants "Full screen" to do: `element` or `tab`.
+   *
+   * Set by the toolbar popup to `tab`. Left unset by the in-page overlay,
+   * which is in an iframe carrying allow="fullscreen" and where the API works.
+   */
+  @property({ attribute: 'fullscreen-mode' }) fullscreenMode?: string
 
   /** Ids whose detail panel and child nodes are revealed. */
   @state() private readonly expanded = new Set<string>()
@@ -468,16 +488,51 @@ export class C2paProvenanceGraph extends LitElement {
     const frame = this.shadowRoot?.querySelector('.frame') as HTMLElement | null
     if (frame == null) return
 
-    if (document.fullscreenElement == null) {
-      frame.requestFullscreen?.().catch((error: unknown) => {
-        // Blocked (no allow attribute, or no user-activation). Fall back to the
-        // in-iframe expansion rather than leaving the button inert.
-        console.debug('provenance: fullscreen request rejected, expanding in place:', error)
-        this.fullscreen = true
-      })
-    } else {
+    if (document.fullscreenElement != null) {
       void document.exitFullscreen?.()
+      return
     }
+
+    // Where full screen has nowhere to expand into, asking for it is the bug.
+    // The toolbar popup is the case that was reported: requestFullscreen is
+    // refused, the catch below applies `.frame.fullscreen`, and `inset: 0` plus
+    // `height: 100vh` resolve against the popup window the diagram already
+    // filled. Every layer succeeds and the button appears dead. Hand the graph
+    // to the host instead and let it reopen somewhere with room.
+    if (this.strategy() === 'tab') {
+      this.requestOpenInTab()
+      return
+    }
+
+    frame.requestFullscreen?.().catch((error: unknown) => {
+      // Blocked (no allow attribute, or no user-activation). Fall back to the
+      // in-iframe expansion rather than leaving the button inert.
+      console.debug('provenance: fullscreen request rejected, expanding in place:', error)
+      this.fullscreen = true
+    })
+  }
+
+  /** Resolved once per press, so a host can change its mind at runtime. */
+  private strategy (): FullscreenStrategy {
+    return resolveFullscreenStrategy({
+      requested: this.fullscreenMode as FullscreenStrategy | undefined,
+      fullscreenEnabled: document.fullscreenEnabled
+    })
+  }
+
+  /**
+   * Ask the host to reopen this graph with room to breathe.
+   *
+   * Deliberately an event rather than a `chrome.tabs.create` call here: this
+   * component also renders inside the in-page overlay iframe, which has no
+   * business opening tabs, and inside unit tests with no `chrome` at all.
+   */
+  private requestOpenInTab (): void {
+    this.dispatchEvent(new CustomEvent(OPEN_IN_TAB_EVENT, {
+      detail: { graph: this.graph },
+      bubbles: true,
+      composed: true
+    }))
   }
 
   /** Browser is the source of truth for full-screen state. */
@@ -595,6 +650,18 @@ export class C2paProvenanceGraph extends LitElement {
     // them overlap, and an expanded node always overlaps something.
     const nodeEl = target?.closest('.node') as HTMLElement | null
     if (nodeEl != null) {
+      // Leave the UA resize gripper alone. `resize: both` on `.node.expanded`
+      // paints a corner that is not an element, so the selector guard above
+      // cannot match it. Capturing the pointer here is exactly what made that
+      // CSS dead: the node moved instead of resizing. Returning without
+      // preventDefault and without setPointerCapture hands the drag to the UA.
+      if (nodeEl.classList.contains('expanded') && isResizeHandlePress({
+        rect: nodeEl.getBoundingClientRect(),
+        clientX: event.clientX,
+        clientY: event.clientY,
+        zoom: this.zoom
+      })) return
+
       const id = nodeEl.dataset.nodeId
       if (id == null) return
       const current = this.nodeOffsets.get(id) ?? { x: 0, y: 0 }
@@ -768,9 +835,24 @@ export class C2paProvenanceGraph extends LitElement {
   private downloadGraph (view: ProvenanceGraph): void {
     // Named from the asset, not "export.csv": these get saved next to each
     // other during a review and an undated generic name is useless a week later.
-    const stamp = new Date().toISOString().slice(0, 10)
-    const base = exportSlug(view.nodes[0]?.label ?? 'provenance')
-    downloadText(graphToCsv(view), `${base}-provenance-${stamp}.csv`, 'text/csv')
+    downloadText(
+      graphToCsv(view),
+      exportFilename(view.nodes[0]?.label ?? 'provenance', 'provenance'),
+      'text/csv'
+    )
+  }
+
+  /**
+   * Saves one step as a CSV file.
+   *
+   * The node's CSV button used to copy to the clipboard while the toolbar's CSV
+   * button, one control away, downloaded a file. Same word, two behaviours, and
+   * the node one gave no file at all to anybody who pressed it expecting an
+   * export. Copying that step as text is still available: it is the Copy button
+   * next to this one.
+   */
+  private downloadNode (node: ProvenanceNode): void {
+    downloadText(nodeToCsv(node), exportFilename(node.label, 'step'), 'text/csv')
   }
 
   private renderLegend (view: ProvenanceGraph): TemplateResult {
@@ -861,7 +943,6 @@ export class C2paProvenanceGraph extends LitElement {
   private renderDetail (node: ProvenanceNode, isAssertion: boolean, detailId: string): TemplateResult {
     const fields = node.dataFields ?? []
     const copyKey = `node:${node.id}`
-    const csvKey = `node-csv:${node.id}`
     return html`
       <div class="detail" id=${detailId}>
         <div class="detail-actions">
@@ -874,11 +955,10 @@ export class C2paProvenanceGraph extends LitElement {
           >${this.copiedKey === copyKey ? 'Copied' : 'Copy'}</button>
           <button
             type="button"
-            class=${this.copiedKey === csvKey ? 'done' : ''}
-            title="Copy this step's details to the clipboard as CSV"
-            aria-label=${`Copy details for ${node.label} as CSV`}
-            @click=${(e: Event) => { e.stopPropagation(); void this.copyNode(node, csvKey, 'csv') }}
-          >${this.copiedKey === csvKey ? 'Copied' : 'CSV'}</button>
+            title="Download this step's details as a CSV file"
+            aria-label=${`Export details for ${node.label} as CSV`}
+            @click=${(e: Event) => { e.stopPropagation(); this.downloadNode(node) }}
+          >CSV</button>
         </div>
         ${node.signer != null
           ? html`

@@ -196,3 +196,12 @@ export const MIME = {
   X_MSVIDEO: 'video/x-msvideo',
   PDF: 'application/pdf'
 }
+
+/**
+ * Where the popup parks a provenance graph on its way to the full-page view.
+ *
+ * Written to `storage.session` where available so it never outlives the browser
+ * session: a provenance graph names files the user has looked at, which is not
+ * something to leave on disk for a convenience feature.
+ */
+export const DIAGRAM_HANDOFF_KEY = 'diagramHandoff'

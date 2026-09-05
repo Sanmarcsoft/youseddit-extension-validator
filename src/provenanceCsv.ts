@@ -142,3 +142,17 @@ export function exportSlug (label: string): string {
   const base = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   return base === '' ? 'node' : base.slice(0, 48)
 }
+
+/**
+ * Dated filename for a CSV export.
+ *
+ * Shared by the chain export and the single-step export so the two sort next to
+ * each other in a downloads folder. `suffix` is what distinguishes them, and it
+ * is the caller's word rather than a boolean, because a third kind of export is
+ * more likely than a second meaning for `true`.
+ *
+ * The date is injected so this is testable without freezing the clock.
+ */
+export function exportFilename (label: string, suffix: string, date: Date = new Date()): string {
+  return `${exportSlug(label)}-${suffix}-${date.toISOString().slice(0, 10)}.csv`
+}

@@ -11,7 +11,7 @@
  *  alone so exported telemetry stays arithmetic instead of text.
  */
 import { describe, it, expect } from 'bun:test'
-import { csvCell, nodeToCsv, nodeToText, graphToCsv, exportSlug, CSV_HEADER } from '../src/provenanceCsv'
+import { csvCell, nodeToCsv, nodeToText, graphToCsv, exportSlug, CSV_HEADER, exportFilename } from '../src/provenanceCsv'
 import type { ProvenanceGraph, ProvenanceNode } from '../src/provenanceTypes'
 
 function node (over: Partial<ProvenanceNode> = {}): ProvenanceNode {
@@ -122,5 +122,32 @@ describe('exportSlug', () => {
 
   it('caps length', () => {
     expect(exportSlug('x'.repeat(200)).length).toBeLessThanOrEqual(48)
+  })
+})
+
+/*
+ * A per-node CSV must arrive as a FILE, matching the toolbar's chain export.
+ * The node button used to copy to the clipboard while the toolbar button next
+ * to it downloaded, so "CSV" meant two different things one control apart.
+ * Naming is shared so a chain export and a step export sort together in the
+ * downloads folder instead of looking unrelated.
+ */
+describe('exportFilename', () => {
+  const day = new Date('2026-09-05T11:00:00.000Z')
+
+  it('names a chain export from the asset, dated', () => {
+    expect(exportFilename('Origin capture', 'provenance', day)).toBe('origin-capture-provenance-2026-09-05.csv')
+  })
+
+  it('names a single-step export the same way, with its own suffix', () => {
+    expect(exportFilename('This asset', 'step', day)).toBe('this-asset-step-2026-09-05.csv')
+  })
+
+  it('falls back to a usable name when the label slugs to nothing', () => {
+    expect(exportFilename('!!!', 'step', day)).toBe('node-step-2026-09-05.csv')
+  })
+
+  it('always ends in .csv so the OS opens it as a spreadsheet', () => {
+    expect(exportFilename('Any label', 'provenance', day).endsWith('.csv')).toBe(true)
   })
 })

@@ -12,7 +12,10 @@ import { crIconDataUrl } from './icon.js'
 // Side-effect import: registers <c2pa-provenance-graph>. rollup's
 // moduleSideEffects predicate keeps src/ modules, so this survives the build
 // (see rollup.config.js — a bare import here was silently dropped before).
-import './provenanceDiagram.js'
+import { OPEN_IN_TAB_EVENT } from './provenanceDiagram.js'
+import { DIAGRAM_HANDOFF_KEY } from './constants'
+import { writeHandoff } from './diagramHandoff'
+import type { ProvenanceGraph } from './provenanceTypes'
 import { type ToggleSwitch } from './components/toggle.js'
 import { RELEASE_NOTES, DEMO_URL, type ReleaseEntry, type ReleaseFix } from './releaseNotes.js'
 
@@ -595,6 +598,12 @@ function addValidationResult (r: MSG_RESPONSE_C2PA_ENTRIES_PAYLOAD): void {
     if (graph != null && graph.nodes.length > 0) {
       const diagram = document.createElement('c2pa-provenance-graph') as HTMLElement & { graph?: unknown }
       diagram.graph = graph
+      // The popup is a transient ~380px window, so "Full screen" has nowhere to
+      // expand into: the API is refused and the CSS fallback's `inset: 0`
+      // resolves against the popup the diagram already fills, which is why the
+      // button looked dead. Ask for a real tab instead.
+      diagram.setAttribute('fullscreen-mode', 'tab')
+      diagram.addEventListener(OPEN_IN_TAB_EVENT, openDiagramInTab as EventListener)
       provSlot.appendChild(diagram)
     } else {
       provSlot.innerHTML = '<div class="ingredient-empty">No provenance graph available</div>'
@@ -715,3 +724,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     noteSummary(sender.frameId ?? 0, request.data as MSG_RESPONSE_C2PA_SUMMARY_PAYLOAD)
   }
 })
+
+/**
+ * Reopen a provenance chain in a real tab, in response to the diagram's
+ * "Full screen" control.
+ *
+ * The graph travels through storage rather than the URL: it is far too big for
+ * a query string, and it would then sit in browsing history. The tab is opened
+ * only after the write resolves, otherwise the new page can boot and read the
+ * key before it exists, which shows the empty state on a chain that is fine.
+ */
+function openDiagramInTab (event: Event): void {
+  const graph = (event as CustomEvent<{ graph: ProvenanceGraph | null }>).detail?.graph
+  if (graph == null) return
+
+  void (async () => {
+    try {
+      await writeHandoff(DIAGRAM_HANDOFF_KEY, graph)
+      await chrome.tabs.create({ url: chrome.runtime.getURL('diagram.html') })
+      // The popup is dismissed the moment the tab takes focus. Closing it
+      // explicitly keeps that from looking like a crash on slower machines.
+      window.close()
+    } catch (error: unknown) {
+      console.debug('popup: could not open the provenance chain in a tab:', error)
+    }
+  })()
+}
