@@ -11,6 +11,7 @@ import { type ProvenanceGraph } from './provenanceTypes.js'
 import { type MediaElement } from './content'
 import { CrIcon } from './icon'
 import { checkTrustListInclusion, loadTrustLists } from './trustlist'
+import { buildExpiryEvidence, classifyExpiry, expiryDegradesTo } from './signatureValidity'
 import { type MediaRecord, type MediaVerdict } from './mediaRecord'
 import * as VisibilityMonitor from './visible'
 import { MediaMonitor } from './mediaMonitor' // requires treeshake: { moduleSideEffects: [path.resolve('src/mediaMonitor.ts')] }, in rollup.config.js
@@ -459,23 +460,21 @@ function getC2PAStatus(c2pa: C2paResult): VALIDATION_STATUS {
   if (c2pa.trustList == null) {
     return 'warning';
   }
-  // if the cert is expired, make sure the TSA time stamp is trusted
-  // (no easy way to check that, we need to check the cert chain)
-  if (c2pa.certChain && c2pa.certChain.length > 0 && new Date(c2pa.certChain[0].validTo) < new Date()) {
-    // cert is expired, make sure we have a match in the TSA trust list (if not, timestamp must be ignored)
-    if (c2pa.tstTokens == null || c2pa.tsaTrustList == null) {
-      // Record the reason once. This used to push unconditionally, and
-      // getC2PAStatus runs on every icon restore, so the same string
-      // accumulated in validationStatus on each scroll pass (#161).
-      const reason = 'certificate is expired and no trusted timestamp found'
-      if (!c2pa.manifestStore.validationStatus.includes(reason)) {
-        c2pa.manifestStore.validationStatus.push(reason);
-      }
-      return 'error';
-    }
-  }
-  // otherwise, return the success status
-  return 'success';
+  // An expired signing certificate is a question about time, never about
+  // integrity, so it can cost the badge its green but must never earn it red.
+  // This branch used to `return 'error'`, which was invisible until #160 added
+  // the CAI known-certificate anchors in v1.2.4: the CBC/Radio-Canada press
+  // photograph's Truepic signer started matching a trust list, so it passed the
+  // `trustList == null` return above, reached here, and a real, intact,
+  // correctly-signed news photograph was badged as if its pixels had been
+  // altered. `expiryDegradesTo` caps this path at 'warning' by construction.
+  // The decision itself lives in src/signatureValidity.ts, under test.
+  const expiry = classifyExpiry(buildExpiryEvidence(
+    c2pa.certChain,
+    c2pa.tstTokens,
+    c2pa.tsaTrustList != null
+  ))
+  return expiryDegradesTo(expiry);
 }
 
 /**

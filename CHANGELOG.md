@@ -2,6 +2,40 @@
 
 ## v1.2.5
 
+- Expanded diagram nodes can be resized again (#175). `.node.expanded` has
+  carried `resize: both` since the detail panel was introduced, but the
+  pointerdown handler captured every press anywhere on the node, including the
+  user agent's resize gripper in the bottom-right corner, so the node moved
+  instead of growing and the CSS was dead. A press inside the gripper now falls
+  through without `preventDefault` and without `setPointerCapture`, which hands
+  the drag back to the browser. Dragging the node body still moves it. Locked by
+  test/nodeResizeHandle.test.ts and test/e2e/node-resize.spec.ts.
+
+- A single step exports as a CSV file instead of copying to the clipboard
+  (#175). The node's CSV button called the clipboard while the toolbar's CSV
+  button, one control away, downloaded a file: the same word for two behaviours,
+  and nobody who pressed the node one got a file. It now downloads
+  `<label>-step-<date>.csv`, sharing filename construction with the chain export
+  so the two sort next to each other in a downloads folder. Copying a step as
+  text is still the Copy button beside it.
+
+- Full Screen works in the toolbar popup (#175). Pressing it did nothing at all.
+  Both halves of the handler were useless there: `requestFullscreen` is refused
+  in a browser action popup, and the CSS fallback its catch block applies sets
+  `inset: 0` and `height: 100vh` against the popup window the diagram already
+  fills, so every layer reported success and the button looked dead. The popup
+  now marks the diagram `fullscreen-mode="tab"`, the button hands the graph up
+  over a `provenance-open-in-tab` event, and the popup parks it in
+  `storage.session` and opens the chain in a real tab. The in-page overlay is
+  unchanged: its iframe carries `allow="fullscreen"`, where the API works.
+  Feature detection alone cannot tell the two hosts apart, because
+  `document.fullscreenEnabled` is true inside a popup, so the host states its
+  intent instead. Locked by test/fullscreenStrategy.test.ts and
+  test/e2e/fullscreen-tab.spec.ts.
+
+- The unit suite runs in CI. Eleven test files sat in test/ with no workflow step
+  and no package script, so a broken invariant could reach main unnoticed.
+
 - The Preferences page is no longer blank (#170). `options_ui` pointed at the
   Microsoft scaffold template from the day the repo was created: a 535 byte page
   carrying a heading and a `TODO:` comment, reachable as an Options entry in the

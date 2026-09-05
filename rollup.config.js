@@ -170,7 +170,7 @@ const treeshake = { moduleSideEffects: (id) => /[\\/]src[\\/]/.test(id) }
   background.js (Chrome v3)
 */
 const backgroundC = {
-  input: ['src/background.ts', 'src/popup.ts', 'src/options.ts', 'src/c2pa.ts', 'src/overlayFrame.ts', 'src/webComponents.ts', 'src/components/toggle.ts'],
+  input: ['src/background.ts', 'src/popup.ts', 'src/options.ts', 'src/c2pa.ts', 'src/overlayFrame.ts', 'src/webComponents.ts', 'src/components/toggle.ts', 'src/diagram.ts'],
   treeshake,
   output: {
     dir: 'dist/chrome',
