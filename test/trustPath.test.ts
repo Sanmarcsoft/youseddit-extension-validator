@@ -12,7 +12,15 @@ import { checkTrustListInclusion } from '../src/trustlist'
 import trustedditTL from '../src/trust-anchors/trusteddit-trust-list.json'
 import defaultTL from '../src/trust-anchors/default-trust-list.json'
 
-const PKI = '/config/workspace/projects/sanmarcsoft/trusteddit-pki-services/certs/'
+/*
+ * Vendored from trusteddit-pki-services/certs. Public certificates only, no key
+ * material. This used to be an absolute path into a sibling checkout, which
+ * meant the test passed on the author's box and could never run anywhere else:
+ * when the unit suite was finally wired into CI it failed with ENOENT on the
+ * first read. A security regression test that only runs in one place is not a
+ * regression test.
+ */
+const PKI = new URL('./fixtures/trust-path/', import.meta.url).pathname
 const certFromPem = async (p: string): Promise<CertificateInfoExtended> =>
   await certificateFromDer(PEMtoDER(readFileSync(PKI + p, 'utf-8')))
 
