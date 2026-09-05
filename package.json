@@ -16,6 +16,7 @@
     "smoke:firefox": "node scripts/firefox-smoke.mjs",
     "package:firefox": "node scripts/package-firefox.mjs",
     "submit:firefox": "node scripts/submit-firefox.mjs",
+    "test:unit": "bun test test/*.test.ts",
     "test": "bun run build:e2e && bun x playwright test",
     "test:debug": "bun x playwright test --debug"
   },

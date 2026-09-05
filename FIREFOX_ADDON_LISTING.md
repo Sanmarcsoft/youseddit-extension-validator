@@ -1,4 +1,4 @@
-# Firefox Add-ons (AMO) Listing — Verifieddit
+# Firefox Add-ons (AMO) Listing: Verifieddit
 
 > Operational submission doc for addons.mozilla.org. Verified against the v1.2.5
 > source tree: every permission below is one `src/manifest.firefox.v3.json`
@@ -36,9 +36,9 @@ here is identical to the Chrome listing.
 
 | Field | Chrome Web Store | AMO |
 |---|---|---|
-| Add-on name | 75 chars | **45 chars, hard limit** — the CWS name is 46 and is rejected |
+| Add-on name | 75 chars | **45 chars, hard limit**; the CWS name is 46 and is rejected |
 | Summary | 132 chars | 250 chars |
-| Promo tiles | 1400x560 marquee + 440x280 small | **No equivalent — do not upload** |
+| Promo tiles | 1400x560 marquee + 440x280 small | **No equivalent, do not upload** |
 | Source code | Not required | **Required** for minified/bundled code (see `AMO_REVIEWER_NOTES.md`) |
 | Data disclosure | Privacy tab fields | `data_collection_permissions` in the manifest |
 | Categories | One | Up to two |
@@ -57,7 +57,7 @@ by re-syncing the two manifests.
 ## Summary (250 char limit)
 
 ```
-Verify content authenticity with C2PA Content Credentials. See who signed an image, video, audio file or PDF, whether it was altered since, and what the signer declared about AI origin. Everything is checked locally — your media is never uploaded.
+Verify content authenticity with C2PA Content Credentials. See who signed an image, video, audio file or PDF, whether it was altered since, and what the signer declared about AI origin. Everything is checked locally, and your media is never uploaded.
 ```
 
 ## Categories
@@ -100,7 +100,7 @@ Three edits when pasting:
 
 ## Screenshots
 
-Reuse `releases/screenshots/` as-is — all six carry over:
+Reuse `releases/screenshots/` as-is; all six carry over:
 
 | File | Caption |
 |---|---|
@@ -127,10 +127,10 @@ AMO reads this from the manifest rather than a web form. The shipped value:
 
 Both halves are load-bearing and both are truthful:
 
-- **`required: ["none"]`** — with default settings the add-on makes no outbound
+- **`required: ["none"]`**: with default settings the add-on makes no outbound
   request carrying user data. C2PA verification is WASM, entirely in-browser,
   and media bytes never leave the machine.
-- **`optional: ["websiteContent"]`** — the Manifest Store probe
+- **`optional: ["websiteContent"]`**: the Manifest Store probe
   (`src/manifestStore.ts`) is **off unless the user turns it on**. When enabled,
   it sends *perceptual hashes* (pHash/dHash hex digests) of viewed images to
   `manifests.sanmarcsoft.com` to recover credentials stripped from a file. Image
@@ -141,7 +141,7 @@ Both halves are load-bearing and both are truthful:
 The one remaining lint warning pair
 (`KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`) is expected: the key needs Firefox
 140 to be *read*, and we target 115. Older Firefox ignores it harmlessly. Do not
-raise `strict_min_version` to silence it — that would drop ESR 115 and 128 users
+raise `strict_min_version` to silence it, since that would drop ESR 115 and 128 users
 for no functional gain.
 
 ## Permission Justifications
@@ -164,7 +164,7 @@ event page). Requested permissions are exactly:
 - [ ] `addons-linter` reports **0 errors** (warnings documented above are expected)
 - [ ] `node scripts/firefox-smoke.mjs` passes against a real Firefox
 - [ ] Version in `src/manifest.firefox.v3.json` matches `package.json`
-- [ ] Tree is clean and tagged — `build-info.tagDescribe` must not read `-dirty`
+- [ ] Tree is clean and tagged; `build-info.tagDescribe` must not read `-dirty`
 - [ ] Both artifacts present in `releases/`: the add-on zip **and** the `-source.zip`
 - [ ] `AMO_REVIEWER_NOTES.md` pasted into the "Notes to reviewer" field
 
