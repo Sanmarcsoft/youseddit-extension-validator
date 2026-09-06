@@ -113,6 +113,13 @@ async function main () {
     await page.goto(DEMO_URL, { waitUntil: 'networkidle', timeout: 60_000 })
     await sleep(9000)
 
+    // The corpus page ends in developer scaffolding ("Corpus manifest:
+    // manifest.json"). That is a harness detail, not the product, and it read as
+    // an unfinished page in the listing. Remove it so the frame ends on content.
+    await page.evaluate(() => {
+      for (const el of document.querySelectorAll('footer, hr')) el.remove()
+    })
+
     // ---- 1. detection on a live page -------------------------------------
     // Framed on the trusted/untrusted pair rather than the top of the page.
     // The top three fixtures are signed by the development CA the store build
@@ -121,12 +128,16 @@ async function main () {
     // software. This pairing shows the product telling two assets apart, which
     // is the actual capability.
     console.log('01 detection')
-    await page.evaluate((f) => {
+    // The trusted fixture is the LAST card on the page, so aligning its TOP with
+    // the frame filled two thirds of the shot with the empty tail of the
+    // document. Align its BOTTOM instead: the frame then packs the cards above
+    // it and the listing shows a page of badged media, not a page of white.
+    await page.evaluate(({ f, h }) => {
       const img = [...document.querySelectorAll('img')].find(i => (i.currentSrc ?? i.src).includes(f))
       const card = img?.closest('.corpus-item') ?? img
-      const top = (card?.getBoundingClientRect().top ?? 0) + window.scrollY
-      window.scrollTo({ top: Math.max(0, top - 90), behavior: 'instant' })
-    }, FIXTURE)
+      const bottom = (card?.getBoundingClientRect().bottom ?? 0) + window.scrollY
+      window.scrollTo({ top: Math.max(0, bottom - h + 28), behavior: 'instant' })
+    }, { f: FIXTURE, h: SHOT_H })
     await sleep(1500)
     await page.screenshot({ path: path.join(OUT_DIR, '01-detection.png'),
       clip: { x: 0, y: 0, width: SHOT_W, height: SHOT_H } })
@@ -228,15 +239,26 @@ async function main () {
     await sleep(6000)
 
     console.log('04 popup validation')
-    await popup.evaluate(() => {
-      const btn = document.querySelector('#validationEntries .v-summary')
+    // Expand the row for the SAME fixture the page shots use. Taking the first
+    // row instead opened fixture 01, which a production build correctly reports
+    // as untrusted (its CA is the development one). Accurate, but a listing
+    // image whose headline verdict is "Untrusted" misrepresents the product.
+    await popup.evaluate((f) => {
+      const row = document.querySelector(`#validationEntries [data-url*="${f}"]`)
+      const btn = row?.querySelector('.v-summary') ?? document.querySelector('#validationEntries .v-summary')
       btn?.click()
-    })
+    }, FIXTURE)
     await sleep(2000)
+    // Deliberately NOT scrolled to the expanded detail. Doing so frames a row
+    // badged "Trusted" directly above `Errors: signingCredential.untrusted` --
+    // our trust list accepts the signer, the underlying c2pa-js status does not
+    // know the CA, and both render. Accurate, but it reads as a defect. The list
+    // framing shows what this view is for: eight assets sorted into trusted,
+    // untrusted, invalid and no-credentials. The graph has shots 02 and 03.
     await composite(ctx, await popup.screenshot({ fullPage: false }),
       path.join(OUT_DIR, '04-popup-validation.png'), {
-        title: 'The provenance graph, right in the toolbar',
-        body: 'Open the popup to explore the chain of custody for media on the page you are viewing, without leaving it.'
+        title: 'Every image on the page, checked as you browse',
+        body: 'The popup lists the media it found and who signed each item, so an untrusted signer or a tampered file is visible before you act on it.'
       })
 
     const clickTab = async (label) => {
