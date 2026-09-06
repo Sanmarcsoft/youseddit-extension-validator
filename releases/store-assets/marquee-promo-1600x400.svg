@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="400" viewBox="0 0 1600 400">
+  <!-- Wide cover variant, 4:1. Buy Me a Coffee renders its cover wider than the
+       1400px marquee, so that file was being upscaled and looked blurry; it also
+       crops toward 4:1, which cut the badges off the 2.5:1 composition. This is
+       the same design reflowed so nothing load-bearing sits near an edge.
+       Rasterise at 2x (3200x800) via scripts/render-store-assets.mjs. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#075985"/>
+      <stop offset="55%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#0c4a6e"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Opaque base. Nothing here may rely on transparency reaching the final file. -->
+  <rect width="1600" height="400" fill="#0369a1"/>
+  <rect width="1600" height="400" fill="url(#bg)"/>
+
+  <circle cx="1360" cy="40" r="280" fill="#ffffff" opacity="0.05"/>
+  <circle cx="90" cy="380" r="200" fill="#000000" opacity="0.07"/>
+
+  <!-- ================= LEFT: mark, wordmark, promise ================= -->
+
+  <g transform="translate(64,44)">
+    <rect width="64" height="64" rx="14" fill="#ffffff" opacity="0.14"/>
+    <g transform="scale(0.25)">
+      <path d="M32 115 L75 178 L132 25" stroke="white" stroke-width="22"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="168" y="155" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+            font-size="82" fill="white" letter-spacing="-3">it</text>
+    </g>
+  </g>
+
+  <text x="146" y="83" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+        font-size="42" fill="#ffffff" letter-spacing="-1.1">Verifieddit</text>
+  <text x="148" y="106" font-family="Helvetica, Arial, sans-serif" font-weight="500"
+        font-size="15" fill="#bae6fd" letter-spacing="2.0">C2PA CONTENT CREDENTIALS</text>
+
+  <text x="64" y="192" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+        font-size="35" fill="#ffffff" letter-spacing="-0.8">See who signed a photo,</text>
+  <text x="64" y="233" font-family="Helvetica, Arial, sans-serif" font-weight="700"
+        font-size="35" fill="#ffffff" letter-spacing="-0.8">and whether it was altered.</text>
+
+  <text x="64" y="272" font-family="Helvetica, Arial, sans-serif" font-weight="400"
+        font-size="18" fill="#e0f2fe">Verified in your browser. Nothing uploaded, no account.</text>
+
+  <!-- The four states, including the one every other tool omits -->
+  <g font-family="Helvetica, Arial, sans-serif" font-size="16" font-weight="600">
+    <g transform="translate(64,306)">
+      <rect width="122" height="36" rx="18" fill="#10b981" opacity="0.22"/>
+      <circle cx="22" cy="18" r="6" fill="#34d399"/>
+      <text x="37" y="24" fill="#d1fae5">Trusted</text>
+    </g>
+    <g transform="translate(200,306)">
+      <rect width="172" height="36" rx="18" fill="#f59e0b" opacity="0.22"/>
+      <circle cx="22" cy="18" r="6" fill="#fbbf24"/>
+      <text x="37" y="24" fill="#fef3c7">Unknown signer</text>
+    </g>
+    <g transform="translate(386,306)">
+      <rect width="120" height="36" rx="18" fill="#ef4444" opacity="0.22"/>
+      <circle cx="22" cy="18" r="6" fill="#f87171"/>
+      <text x="37" y="24" fill="#fee2e2">Altered</text>
+    </g>
+    <g transform="translate(520,306)">
+      <rect width="142" height="36" rx="18" fill="#ffffff" opacity="0.12"/>
+      <circle cx="22" cy="18" r="6" fill="#94a3b8"/>
+      <text x="37" y="24" fill="#e2e8f0">Not signed</text>
+    </g>
+  </g>
+
+  <!-- ================= RIGHT: the panel, which is the product ================= -->
+
+  <g transform="translate(980,48)">
+    <rect width="556" height="320" rx="16" fill="url(#card)"/>
+    <rect width="556" height="320" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.22"/>
+
+    <text x="24" y="38" font-family="Helvetica, Arial, sans-serif" font-size="13"
+          font-weight="600" fill="#bae6fd" letter-spacing="1.6">CONTENT CREDENTIALS</text>
+    <g transform="translate(444,18)">
+      <rect width="88" height="26" rx="13" fill="#10b981" opacity="0.28"/>
+      <text x="44" y="18" font-family="Helvetica, Arial, sans-serif" font-size="13"
+            font-weight="700" fill="#d1fae5" text-anchor="middle">VERIFIED</text>
+    </g>
+
+    <g font-family="Helvetica, Arial, sans-serif" font-size="15" fill="#e0f2fe">
+      <text x="24" y="80" fill="#7dd3fc">signer</text>
+      <text x="170" y="80" font-weight="600">Trusteddit.com</text>
+      <text x="24" y="112" fill="#7dd3fc">trust</text>
+      <text x="170" y="112" font-weight="600">Trusteddit Trust List</text>
+      <text x="24" y="144" fill="#7dd3fc">timestamp</text>
+      <text x="170" y="144" font-weight="600">RFC 3161</text>
+      <text x="24" y="176" fill="#7dd3fc">AI</text>
+      <text x="170" y="176" font-weight="600">declared by signer</text>
+    </g>
+
+    <line x1="24" y1="200" x2="532" y2="200" stroke="#ffffff" stroke-opacity="0.16"/>
+
+    <text x="24" y="226" font-family="Helvetica, Arial, sans-serif" font-size="12"
+          font-weight="600" fill="#bae6fd" letter-spacing="1.5">PROVENANCE CHAIN</text>
+
+    <!-- Miniature of the interactive graph -->
+    <g transform="translate(24,238)" font-family="Helvetica, Arial, sans-serif">
+      <rect x="0" y="10" width="150" height="34" rx="8" fill="#ffffff" opacity="0.20"/>
+      <rect x="0" y="10" width="150" height="34" rx="8" fill="none" stroke="#7dd3fc" stroke-opacity="0.7"/>
+      <text x="12" y="26" font-size="11" font-weight="600" fill="#f0f9ff">playing-cards.jpg</text>
+      <text x="12" y="38" font-size="9" fill="#7dd3fc" letter-spacing="0.6">JPEG · ACTIVE</text>
+      <path d="M150 27 L210 15" stroke="#ffffff" stroke-opacity="0.45" fill="none"/>
+      <path d="M150 27 L210 53" stroke="#ffffff" stroke-opacity="0.45" fill="none"/>
+      <rect x="210" y="0" width="298" height="30" rx="8" fill="#ffffff" opacity="0.12"/>
+      <text x="222" y="13" font-size="11" font-weight="600" fill="#f0f9ff">c2pa.actions.v2</text>
+      <text x="222" y="25" font-size="9" fill="#bae6fd" letter-spacing="0.6">ASSERTION</text>
+      <rect x="210" y="38" width="298" height="30" rx="8" fill="#ffffff" opacity="0.12"/>
+      <text x="222" y="51" font-size="11" font-weight="600" fill="#f0f9ff">stds.schema-org.CreativeWork</text>
+      <text x="222" y="63" font-size="9" fill="#bae6fd" letter-spacing="0.6">ASSERTION</text>
+    </g>
+  </g>
+</svg>
