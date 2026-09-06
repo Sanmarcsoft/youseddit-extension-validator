@@ -65,16 +65,22 @@ Verification is local. The extension collects nothing about you and keeps no
 record of what you inspected. There are zero analytics SDKs, zero tracking calls,
 and no use of cookies, `localStorage` or `sessionStorage` anywhere in `src/`.
 
-Data leaves the device in exactly three cases, all of them yours to trigger:
+Data leaves the device in exactly five cases. Each one follows something you
+did, and none carries an identifier for you, your device or your session:
 
 | What | When |
 |---|---|
 | The URL of one media file | You click *Inspect on Verifieddit* |
 | A fixed word naming an extension surface (`?src=`) | You click the Trusteddit link |
 | A perceptual hash of one image | **Only if you opt in** to the durable credential check, which ships off |
+| A trust-list refresh | Once a day, and only for a list you imported from a URL yourself |
+| A trust-list fetch | You paste a URL into the importer and click Fetch |
 
-Full detail in the [privacy policy](https://www.verifieddit.com/privacy),
-sections 2.8 and 2.9.
+Full detail, permission by permission and request by request, in
+[`PRIVACY_POLICY.md`](PRIVACY_POLICY.md). That is the policy for this extension.
+The [website policy](https://www.verifieddit.com/privacy) is a separate, broader
+document covering accounts and billing on verifieddit.com, none of which the
+extension has.
 
 ## Supported formats
 
@@ -93,7 +99,7 @@ has shared something that turned out to be fake and would rather check first.
 ## Install
 
 **Chrome Web Store:** v1.1.1 submitted, in review.
-**Firefox Add-ons (AMO):** v1.1.1 packaged and verified, awaiting upload — see
+**Firefox Add-ons (AMO):** v1.1.1 packaged and verified, awaiting upload; see
 [`FIREFOX_ADDON_LISTING.md`](FIREFOX_ADDON_LISTING.md).
 
 **Side-load a build:**
